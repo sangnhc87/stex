@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Basic Page Needs
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>Side-by-Side LaTeX Editor (Collapsible Console)</title>
+    <meta name="description" content="A side-by-side view for editing LaTeX code and previewing the PDF with a collapsible console.">
+    <meta name="author" content="">
+
+    <!-- Mobile Specific Metas
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style type="text/css" media="screen">
+        /* General layout improvements */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f4f4;
+            height: 100%;
+        }
+
+        /* The main flex container for side-by-side view */
+        .main-container {
+            display: flex;
+            height: 98vh; /* Use most of the viewport height */
+            padding: 10px;
+            gap: 10px; /* Space between the two panes */
+        }
+
+        /* Styling for both left and right panes */
+        .editor-pane, .pdf-pane {
+            flex: 1; /* Each pane takes up 50% of the width */
+            display: flex;
+            flex-direction: column; /* Stack elements vertically inside the pane */
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden; /* Important for border-radius to apply correctly */
+        }
+
+        /* ACE Editor container - WITH SCROLLBAR FIX */
+        #editor {
+            width: 100%;
+            flex: 1; /* This makes the editor take all available space */
+        }
+        
+        /* Container for controls (button, console) below the editor */
+        .controls {
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0; /* Prevent this section from shrinking */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* === NEW CSS FOR COLLAPSIBLE CONSOLE === */
+        .console-header {
+            cursor: pointer;
+            user-select: none; /* Prevents selecting text when clicking */
+            padding: 5px 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-header:hover {
+            background-color: #d0d0d0;
+        }
+        
+        /* This class will be toggled by JavaScript to hide the console */
+        pre#console.collapsed {
+            display: none;
+        }
+        /* ======================================= */
+
+        pre#console {
+    		white-space: pre-wrap;
+    		max-height: 200px;
+    		overflow-y: scroll;
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 5px; /* Add some space below the header */
+		}
+
+        #pdfbox {
+            width: 100%;
+            height: 100%;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        h5 {
+            margin: 0 0 10px 0; /* Adjust margin for title */
+            font-size: 12px;
+            color: #666;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <div class="editor-pane">
+            <div id="editor">\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Conference Paper Title}
+\author{\IEEEauthorblockN{First Author}}
+
+\maketitle
+
+\begin{abstract}
+This is the abstract.
+\end{abstract}
+
+\begin{IEEEkeywords}
+keywords, go, here
+\end{IEEEkeywords}
+
+\section{Introduction}
+Hello world. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling. This is a long line to test wrapping and scrolling.
+This is the last line.
+\end{document}
+            </div>
+            <div class="controls">
+                <div>
+                    <button type="button" onclick="compile()" id="compilebtn" disabled>Initializing</button>
+                    <h5>IEEE Conference Template Example</h5>
+                </div>
+                <!-- === NEW HTML STRUCTURE FOR CONSOLE === -->
+                <div id="console-header" class="console-header">
+                    <span>Console Output</span>
+                    <span id="console-toggle-icon">▲</span>
+                </div>
+                <pre id="console">Console output will appear here...</pre>
+                <!-- ======================================= -->
+            </div>
+        </div>
+        
+        <div class="pdf-pane">
+            <div id="pdfbox">
+            </div>
+        </div>
+
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+    const compileBtn = document.getElementById("compilebtn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+    // === NEW JS ELEMENTS FOR COLLAPSIBLE CONSOLE ===
+    const consoleHeader = document.getElementById("console-header");
+    const consoleToggleIcon = document.getElementById("console-toggle-icon");
+    // ===============================================
+
+    const editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/latex");
+    editor.session.setUseWrapMode(true);
+    editor.setFontSize(16);
+    
+    const globalEn = new PdfTeXEngine();
+
+    async function init() {
+      await globalEn.loadEngine();
+      compileBtn.innerHTML = "Compile";
+      compileBtn.disabled = false;
+      consoleOutput.innerHTML = "Engine loaded. Ready to compile."
+    }
+
+    async function compile() {
+        if(!globalEn.isReady()) {
+            console.log("Engine not ready yet");
+            return;
+        }
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = "Compiling...";
+        consoleOutput.innerHTML = "Starting compilation...";
+
+        // If the console was collapsed, expand it to show new output
+        if (consoleOutput.classList.contains('collapsed')) {
+            consoleOutput.classList.remove('collapsed');
+            consoleToggleIcon.textContent = '▲';
+        }
+
+        try {
+            let downloadReq = await fetch('assets/troll.jpg');
+            let imageBlob = await downloadReq.arrayBuffer();
+            globalEn.writeMemFSFile("troll.jpg", new Uint8Array(imageBlob));
+        } catch (e) {
+            console.warn("Could not load troll.jpg. The compilation might fail if the image is used.");
+        }
+        
+        globalEn.writeMemFSFile("main.tex", editor.getValue());
+        globalEn.setEngineMainFile("main.tex");
+        let r = await globalEn.compileLaTeX();
+        consoleOutput.innerHTML = r.log || "No log output.";
+        compileBtn.innerHTML = "Compile";
+        compileBtn.disabled = false;
+
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], {type : 'application/pdf'});
+            const objectURL = URL.createObjectURL(pdfblob);
+            setTimeout(()=>{ URL.revokeObjectURL(objectURL); }, 30000);
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output for errors.</div>`;
+        }
+    }
+
+    // === NEW JS LOGIC FOR COLLAPSIBLE CONSOLE ===
+    consoleHeader.addEventListener('click', () => {
+        // Toggle the 'collapsed' class on the console element
+        consoleOutput.classList.toggle('collapsed');
+
+        // Update the icon based on the new state
+        if (consoleOutput.classList.contains('collapsed')) {
+            consoleToggleIcon.textContent = '▼'; // It's now collapsed, show expand icon
+        } else {
+            consoleToggleIcon.textContent = '▲'; // It's now expanded, show collapse icon
+        }
+    });
+    // ===============================================
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>pdfLaTeX: Math and Bibliography</title>
+    <meta name="description" content="Side-by-side view for a pdfLaTeX example with math and BibTeX citations.">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style type="text/css" media="screen">
+        body, html { margin: 0; padding: 0; font-family: sans-serif; background-color: #f4f4f4; height: 100%; }
+        .main-container { display: flex; height: 98vh; padding: 10px; gap: 10px; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        #editor { width: 100%; height: 100%; }
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid #ddd; flex-shrink: 0; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: #282c34; color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; }
+        #pdfbox { width: 100%; height: 100%; }
+        button { padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+        h5 { margin: 10px 0 5px 0; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <!-- Left Pane: Editor and Controls -->
+        <div class="editor-pane">
+            <div id="editor">\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb} % Gói toán học mạnh mẽ
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{An Example of Math and Bibliography}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Mathematical Equations}
+
+One of the greatest strengths of \LaTeX{} is its ability to typeset beautiful mathematics. For example, Euler's identity, often cited as the most beautiful equation in mathematics, is written as:
+\begin{equation}
+    e^{i\pi} + 1 = 0
+    \label{eq:euler}
+\end{equation}
+
+Equation \eqref{eq:euler} elegantly connects five of the most fundamental constants in mathematics. This is a core feature for any scientific paper.
+
+\section{Citations and Bibliography}
+
+Another key feature is managing citations. We can easily cite foundational works in this field, such as The \TeX book by Donald Knuth \cite{knuth1984texbook}, or the guide to \LaTeX{} by Leslie Lamport \cite{lamport1994latex}.
+
+The references are automatically collected and formatted at the end of the document. This saves a huge amount of time compared to manual formatting.
+
+% These commands tell LaTeX where to find the bibliography data
+% and what style to use.
+\bibliographystyle{plain}
+\bibliography{sample}
+
+\end{document}</div>
+            <div class="controls">
+                <button type="button" onclick="compile()" id="compilebtn" disabled>Initializing</button>
+                <h5>pdfLaTeX: Công thức Toán và Danh mục tham khảo (BibTeX)</h5>
+                <pre id="console">Console output will appear here...</pre>
+            </div>
+        </div>
+        
+        <!-- Right Pane: PDF Viewer -->
+        <div class="pdf-pane">
+            <div id="pdfbox">
+                <!-- PDF will be embedded here -->
+            </div>
+        </div>
+
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+    const compileBtn = document.getElementById("compilebtn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+
+    const editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/latex");
+    editor.session.setUseWrapMode(true);
+    editor.setFontSize(16);
+    
+    const globalEn = new PdfTeXEngine();
+
+    async function init() {
+      await globalEn.loadEngine();
+      compileBtn.innerHTML = "Compile";
+      compileBtn.disabled = false;
+      consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+    }
+
+    async function compile() {
+        if(!globalEn.isReady()) {
+            console.log("Engine not ready yet");
+            return;
+        }
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = "Compiling...";
+        consoleOutput.innerHTML = "Starting compilation...";
+
+        // Fetch bibliography file
+        try {
+            let bibReq = await fetch('assets/sample.bib');
+            let bibText = await bibReq.text();
+            globalEn.writeMemFSFile("sample.bib", bibText);
+        } catch(e) {
+            console.warn("Could not load sample.bib. Citations will not work.");
+            consoleOutput.innerHTML = "Error: Could not fetch assets/sample.bib. Make sure it exists.";
+            compileBtn.innerHTML = "Compile";
+            compileBtn.disabled = false;
+            return;
+        }
+        
+        globalEn.writeMemFSFile("main.tex", editor.getValue());
+        globalEn.setEngineMainFile("main.tex");
+        
+        // BibTeX requires multiple passes.
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX(); // This will run pdflatex -> bibtex -> pdflatex
+        
+        consoleOutput.innerHTML = "Second pass to finalize references...";
+        let r = await globalEn.compileLaTeX(); // A final run to be sure
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        compileBtn.innerHTML = "Compile";
+        compileBtn.disabled = false;
+        
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], {type : 'application/pdf'});
+            const objectURL = URL.createObjectURL(pdfblob);
+            setTimeout(() => { URL.revokeObjectURL(objectURL); }, 30000);
+            
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+        }
+    }
+    
+    init();
+</script>
+</body>
+</html>
