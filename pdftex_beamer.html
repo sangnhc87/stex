@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Basic Page Needs
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>pdfLaTeX + Beamer: Presentation Slides</title>
+    <meta name="description" content="A side-by-side view for a pdfLaTeX Beamer example.">
+    <meta name="author" content="">
+
+    <!-- Mobile Specific Metas
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style type="text/css" media="screen">
+        body, html { margin: 0; padding: 0; font-family: sans-serif; background-color: #f4f4f4; height: 100%; }
+        .main-container { display: flex; height: 98vh; padding: 10px; gap: 10px; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        #editor { width: 100%; height: 100%; }
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid #ddd; flex-shrink: 0; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: #282c34; color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; }
+        #pdfbox { width: 100%; height: 100%; }
+        button { padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+        h5 { margin: 10px 0 5px 0; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <!-- Left Pane: Editor and Controls -->
+        <div class="editor-pane">
+            <div id="editor">\documentclass{beamer}
+\usepackage{beamerthemeshadow}
+% \usepackage{graphicx} % The engine usually includes this, but it's good practice to have it
+\begin{document}
+\title{Beamer Class Example}  
+\author{Sascha Frank}
+\date{\today} 
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}\frametitle{Table of contents}\tableofcontents
+\end{frame} 
+
+
+\section{Section no.1} 
+\begin{frame}\frametitle{Title} 
+Each frame should have a title.
+\end{frame}
+\subsection{Subsection no.1.1  }
+\begin{frame} 
+Without a title, something is missing. 
+\end{frame}
+
+
+\section{Section no. 2} 
+\subsection{Lists I}
+\begin{frame}\frametitle{Unordered lists}
+\begin{itemize}
+\item Introduction to  \LaTeX  
+\item Course 2 
+\item Termpapers and presentations with \LaTeX 
+\item Beamer class
+\end{itemize} 
+\end{frame}
+
+\begin{frame}\frametitle{Lists with pause}
+\begin{itemize}
+\item Introduction to  \LaTeX \pause 
+\item Course 2 \pause 
+\item Termpapers and presentations with \LaTeX \pause 
+\item Beamer class
+\end{itemize} 
+\end{frame}
+
+\section{Section no.3} 
+\subsection{Blocks}
+\begin{frame}\frametitle{Blocks}
+
+\begin{block}{Title of the block}
+Block text
+\end{block}
+
+\begin{exampleblock}{Title of the example block}
+Example block text
+\end{exampleblock}
+
+\begin{alertblock}{Title of the alert block}
+Alert block text
+\end{alertblock}
+\end{frame}
+
+\section{Section no. 4}
+\subsection{Pictures} 
+\begin{frame}\frametitle{Pictures in Beamer}
+\begin{figure}
+\includegraphics[scale=0.2]{troll.jpg} 
+\caption{An example picture}
+\end{figure}
+\end{frame}
+
+\subsection{Joining pictures and lists} 
+\begin{frame}
+\frametitle{Pictures and lists together}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{itemize}
+\item<1-> Subject 1
+\item<3-> Subject 2
+\item<5-> Subject 3
+\end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{overprint}
+\centering
+\includegraphics<2>[scale=0.15]{troll.jpg}
+\includegraphics<4>[scale=0.15]{troll.jpg}
+\includegraphics<6>[scale=0.15]{troll.jpg}
+\end{overprint}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+\end{document}</div>
+            <div class="controls">
+                <button type="button" onclick="compile()" id="compilebtn" disabled>Initializing</button>
+                <h5>pdfLaTeX Beamer: Tạo slide thuyết trình</h5>
+                <pre id="console">Console output will appear here...</pre>
+            </div>
+        </div>
+        
+        <!-- Right Pane: PDF Viewer -->
+        <div class="pdf-pane">
+            <div id="pdfbox">
+                <!-- PDF will be embedded here -->
+            </div>
+        </div>
+
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+    const compileBtn = document.getElementById("compilebtn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+
+    const editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/latex");
+    editor.session.setUseWrapMode(true);
+    editor.setFontSize(16);
+    
+    const globalEn = new PdfTeXEngine();
+
+    async function init() {
+      await globalEn.loadEngine();
+      compileBtn.innerHTML = "Compile";
+      compileBtn.disabled = false;
+      consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+    }
+
+    async function compile() {
+        if(!globalEn.isReady()) {
+            console.log("Engine not ready yet");
+            return;
+        }
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = "Compiling...";
+        consoleOutput.innerHTML = "Starting compilation...";
+
+        // Fetch image asset required by the Beamer document
+        try {
+            let downloadReq = await fetch('assets/troll.jpg');
+            let imageBlob = await downloadReq.arrayBuffer();
+            globalEn.writeMemFSFile("troll.jpg", new Uint8Array(imageBlob));
+        } catch(e) {
+            console.warn("Could not load troll.jpg. Compilation might fail.");
+        }
+        
+        globalEn.writeMemFSFile("main.tex", editor.getValue());
+        globalEn.setEngineMainFile("main.tex");
+        
+        // Beamer often requires two passes for table of contents
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX(); 
+        
+        consoleOutput.innerHTML = "Second pass...";
+        let r = await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        compileBtn.innerHTML = "Compile";
+        compileBtn.disabled = false;
+        
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], {type : 'application/pdf'});
+            const objectURL = URL.createObjectURL(pdfblob);
+            setTimeout(() => { URL.revokeObjectURL(objectURL); }, 30000);
+            
+            // *** IMPORTANT CHANGE HERE ***
+            // Embed the PDF with 100% height to fill the pane
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Modern Web LaTeX IDE</title>
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --dark-bg: #282c34;
+            --light-bg: #f4f4f4;
+            --border-color: #ddd;
+        }
+        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
+        
+        /* --- Toolbar --- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            gap: 15px;
+        }
+        .toolbar-group { display: flex; align-items: center; gap: 8px; }
+        .toolbar button, .toolbar select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; }
+        #compile-btn { background-color: var(--primary-color); color: white; font-weight: bold; }
+        #compile-btn:hover { background-color: #0056b3; }
+        #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        /* --- Main Content --- */
+        .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        #editor { flex: 1; width: 100%; }
+
+        /* --- Collapsible Console --- */
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .console-header:hover { background-color: #d0d0d0; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
+        pre#console.collapsed { display: none; }
+        
+        /* --- PDF Viewer --- */
+        #pdfbox { height: 100%; width: 100%; }
+
+        /* --- Loading Overlay --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+            font-size: 1.5em;
+        }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label for="file-loader-input" class="toolbar-button-label">
+                <button onclick="document.getElementById('file-loader-input').click()">Load Files</button>
+            </label>
+            <input type="file" id="file-loader-input" multiple style="display: none;">
+        </div>
+        <div class="toolbar-group">
+            <label for="main-file-selector">Main File:</label>
+            <select id="main-file-selector"></select>
+        </div>
+        <div class="toolbar-group">
+            <label for="template-selector">Template:</label>
+            <select id="template-selector">
+                <option value="">-- Select a Template --</option>
+                <option value="article">Simple Article</option>
+                <option value="cv">Stylish CV</option>
+            </select>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+             <button id="compile-btn" disabled>Initializing...</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="editor-pane">
+            <div id="editor">% Welcome to the Modern Web LaTeX IDE!
+% 1. Use the toolbar above to load your .tex, .sty, images, etc.
+% 2. Or, select a template to get started.
+% 3. Your .sty/.cls files will be saved for future sessions!
+</div>
+            <div class="controls">
+                <div id="console-header" class="console-header">
+                    <span>Console Output</span>
+                    <span id="console-toggle-icon">▲</span>
+                </div>
+                <pre id="console">Engine will be ready shortly...</pre>
+            </div>
+        </div>
+        <div class="pdf-pane">
+            <div id="pdfbox"></div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span>Compiling...</span>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+    // --- DOM Elements ---
+    const editorEl = ace.edit("editor");
+    const compileBtn = document.getElementById("compile-btn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+    const fileLoaderInput = document.getElementById('file-loader-input');
+    const mainFileSelector = document.getElementById('main-file-selector');
+    const templateSelector = document.getElementById('template-selector');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const consoleHeader = document.getElementById("console-header");
+    const consoleToggleIcon = document.getElementById("console-toggle-icon");
+
+    // --- State Management ---
+    const globalEn = new PdfTeXEngine();
+    let mainTexFile = 'main.tex';
+    const loadedFiles = new Map(); // Temp storage for all loaded files
+
+    // --- IndexedDB for Persistent .sty/.cls files ---
+    const DB_NAME = 'LaTeXFilesDB';
+    const STORE_NAME = 'StyFilesStore';
+    let db;
+
+    function openDb() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onerror = () => reject("Error opening IndexedDB.");
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve();
+            };
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                db.createObjectStore(STORE_NAME, { keyPath: 'name' });
+            };
+        });
+    }
+
+    function saveFileToDb(name, data) {
+        if (!db) return;
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.put({ name, data });
+    }
+
+    function loadFilesFromDb() {
+        return new Promise((resolve) => {
+            if (!db) return resolve();
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = (event) => {
+                const files = event.target.result;
+                files.forEach(file => {
+                    loadedFiles.set(file.name, file.data);
+                    console.log(`Loaded ${file.name} from IndexedDB.`);
+                });
+                resolve();
+            };
+        });
+    }
+
+    // --- Editor Setup ---
+    editorEl.setTheme("ace/theme/monokai");
+    editorEl.session.setMode("ace/mode/latex");
+    editorEl.session.setUseWrapMode(true);
+    editorEl.setFontSize(16);
+
+    // --- Event Listeners ---
+    fileLoaderInput.addEventListener('change', handleFileLoad);
+    mainFileSelector.addEventListener('change', handleMainFileChange);
+    templateSelector.addEventListener('change', handleTemplateChange);
+    compileBtn.addEventListener('click', compile);
+    consoleHeader.addEventListener('click', toggleConsole);
+
+    // --- Main Functions ---
+    async function init() {
+        try {
+            await Promise.all([globalEn.loadEngine(), openDb()]);
+            await loadFilesFromDb();
+            updateMainFileSelector();
+            compileBtn.innerHTML = "Compile";
+            compileBtn.disabled = false;
+            consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+        } catch (err) {
+            console.error(err);
+            consoleOutput.innerHTML = `Initialization failed: ${err}`;
+        }
+    }
+
+    function handleFileLoad(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const fileData = new Uint8Array(e.target.result);
+                loadedFiles.set(file.name, fileData);
+                
+                // If it's a .tex file, update selector and maybe the editor
+                if (file.name.endsWith('.tex')) {
+                    const textDecoder = new TextDecoder();
+                    editorEl.setValue(textDecoder.decode(fileData), -1);
+                    mainTexFile = file.name;
+                    updateMainFileSelector();
+                }
+
+                // Persist .sty and .cls files
+                if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) {
+                    saveFileToDb(file.name, fileData);
+                    alert(`Saved ${file.name} to browser storage for future use!`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        
+        // Clear the input value to allow reloading the same file
+        event.target.value = ''; 
+    }
+
+    function handleMainFileChange(event) {
+        mainTexFile = event.target.value;
+        const fileContent = loadedFiles.get(mainTexFile);
+        if (fileContent) {
+            const textDecoder = new TextDecoder();
+            editorEl.setValue(textDecoder.decode(fileContent), -1);
+        }
+    }
+    
+    function updateMainFileSelector() {
+        mainFileSelector.innerHTML = '';
+        let foundMainFile = false;
+        for (const fileName of loadedFiles.keys()) {
+            if (fileName.endsWith('.tex')) {
+                const option = document.createElement('option');
+                option.value = fileName;
+                option.textContent = fileName;
+                mainFileSelector.appendChild(option);
+                if (fileName === mainTexFile) {
+                    option.selected = true;
+                    foundMainFile = true;
+                }
+            }
+        }
+        if (!foundMainFile && mainTexFile) {
+             const option = document.createElement('option');
+             option.value = mainTexFile;
+             option.textContent = mainTexFile;
+             option.selected = true;
+             mainFileSelector.appendChild(option);
+        }
+    }
+
+    async function compile() {
+        if (!globalEn.isReady()) {
+            console.log("Engine not ready yet");
+            return;
+        }
+
+        loadingOverlay.style.display = 'flex'; // Show loading effect
+        compileBtn.disabled = true;
+
+        // Update the content of the currently edited file
+        const textEncoder = new TextEncoder();
+        loadedFiles.set(mainTexFile, textEncoder.encode(editorEl.getValue()));
+        
+        // Write all loaded files to the virtual file system
+        for (const [name, data] of loadedFiles.entries()) {
+            globalEn.writeMemFSFile(name, data);
+        }
+        
+        globalEn.setEngineMainFile(mainTexFile);
+        
+        // Beamer and bibtex might need multiple passes
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = "Second pass...";
+        const r = await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        if (consoleOutput.classList.contains('collapsed')) {
+            toggleConsole(); // Show console if it was hidden
+        }
+        
+        loadingOverlay.style.display = 'none'; // Hide loading effect
+        compileBtn.disabled = false;
+
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+            const objectURL = URL.createObjectURL(pdfblob);
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+        }
+    }
+
+    function toggleConsole() {
+        consoleOutput.classList.toggle('collapsed');
+        consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
+    }
+    
+    function handleTemplateChange(event) {
+        const templateName = event.target.value;
+        const templates = {
+            'article': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\title{Simple Article}\n\\author{Me}\n\\date{\\today}\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\n\nHello, world!\n\n\\end{document}`,
+            'cv': `\\documentclass[a4paper]{scrartcl}\n\\usepackage{scrlayer-scrpage}\n\\usepackage{titlesec}\n\\usepackage{marvosym}\n\\usepackage{tabularx,colortbl}\n\\usepackage[T1]{fontenc}\n\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\titlerule]\n\n\\begin{document}\n\\begin{center}\n{\\fontsize{36}{36}\\selectfont\\scshape John Smith}\n\n\\vspace{1cm}\n\n\\section{Objective}\n\nA great job.\n\n\\section{Education}\n\nMy University, 2024.\n\n\\end{center}\n\\end{document}`
+        };
+        
+        if (templates[templateName]) {
+            mainTexFile = `${templateName}.tex`;
+            editorEl.setValue(templates[templateName], -1);
+            updateMainFileSelector();
+        }
+    }
+
+    // --- Start the application ---
+    init();
+
+</script>
+</body>
+</html>
