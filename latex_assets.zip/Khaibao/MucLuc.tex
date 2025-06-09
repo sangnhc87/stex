@@ -1,0 +1,311 @@
+\definecolor{mauphan}{HTML}{FFA500}
+\definecolor{mausubsection}{HTML}{CD1D1D}
+\definecolor{mauchuong}{HTML}{AE0E0E}
+\definecolor{doimauchuong}{HTML}{0EAEAE}
+%\definecolor{mausection}{HTML}{EA5548}
+\definecolor{mausection}{HTML}{008bb2}
+
+\usepackage[explicit]{titlesec} %chỉnh định của section, chapter #1
+\usepackage{pgfornament}
+\titlespacing*{\section}{0pt}{5pt}{3pt}
+\titleformat{\section}{\filcenter}{%
+	\begin{tikzpicture}[declare function={r = 0.79;},line cap=round]
+		\path[rounded corners=3pt,fill=mausection!30,shift={(-15:3pt)}] (90:r)--(150:r)--(210:r)--(270:r)--(330:r)--(30:r)--cycle;
+		\path[rounded corners=3pt,fill=mausection] (90:r)--(150:r)--(210:r)--(270:r)--(330:r)--(30:r)--cycle;
+		\draw[line width=1pt,mausection] (-90:1.35*r) coordinate (A)--+(30:1.25*r)coordinate (B)
+			--([turn]-30:0.85*\linewidth) coordinate (C);
+		\fill[mausection] (A) circle (2pt);
+		\fill[mausection] (C) circle (3pt);
+		\draw[opacity=0.45,white,line width=3pt] (150:{0.8*r})--+(30:{0.3*r});
+		\fill[opacity=0.45,white] ($(150:{0.8*r})+(30:{0.55*r})$) circle (1.65pt);
+		\path let \p1=($(C)-(B)-(0.5,0)$) in  ($(B)!0.5!(C)+(0,2pt)$) 
+			node[text width=\x1,anchor=south,font=\bfseries\sffamily\Large,
+						inner sep=1pt,text=mausection,align=center]{\MakeUppercase{#1}};
+		\path (0,0) node[font=\bfseries\sffamily,text=white]{BÀI \arabic{section}};		
+	\end{tikzpicture}}{1pt}{\setcounter{ex}{0}\setcounter{bt}{0}}
+
+\titleformat{name=\section,numberless}[display]{\addcontentsline{toc}{section}{#1 \arabic{chapter}}}%
+	{\begin{tikzpicture}[color=teal,declare function={bk=7pt;}]
+	  	\path (0,0) node[inner sep=9pt,outer sep=0pt,font=\fontfamily{pag}\bfseries\Large\selectfont](A){\phantom{I}ÔN TẬP CHƯƠNG \arabic{chapter}\phantom{I}};
+	  	\path (A.north west) coordinate (Tt)
+	  		(A.north east) coordinate (Tp)
+	  		(A.south west) coordinate (Dt)
+	  		(A.south east) coordinate (Dp);
+	  	\path[ultra thick,draw=teal!35,fill] ($(Tt)!bk!(Tp)$)--($(Tp)!bk!(Tt)$)--($(Tp)!bk!(Dp)$)--($(Dp)!bk!(Tp)$)
+	  		--($(Dp)!bk!(Dt)$)--($(Dt)!bk!(Dp)$)--($(Dt)!bk!(Tt)$)--($(Tt)!bk!(Dt)$)--cycle;
+	 	 \path (0,0) node[inner sep=9pt,outer sep=0pt,font=\bfseries\Large,text=white]{\phantom{I}\MakeUppercase{#1} \arabic{chapter}\phantom{I}};
+	  \end{tikzpicture}}{3pt}{}
+	  
+\titlespacing*{\subsection}{0pt}{3pt}{3pt}
+\titleformat{\subsection}{}{%
+	\begin{tikzpicture}[declare function={r = 0.35;},line cap=round]
+		\path[fill=mauchuong!25] (-35:2pt) circle (r);
+		\path[fill=mauchuong] (0,0) circle (r);
+		\draw[opacity=0.45,white,line width=2pt] ({150:{0.75*r}}) arc (150:125:{0.75*r});
+		\path (0,0) node[font=\bfseries\large\sffamily,text=white]{\resizebox{!}{0.27cm}{\Roman{subsection}}};
+		\path ({1.25*r},0) node[anchor=west,font=\bfseries\sffamily\Large,text width=16.5cm,text=mausubsection]{#1};
+	\end{tikzpicture}}{0.2em}{}
+
+%\titlespacing*{\subsubsection}{0.65cm}{3pt}{3pt}
+\titlespacing*{\subsubsection}{0pt}{3pt}{3pt}
+\titleformat{\subsubsection}{}{%
+	 \bfseries\sffamily\large\color{mausubsection}\arabic{subsubsection}. #1%
+	}{0em}{}
+	
+\usepackage{titletoc} %chỉnh định dạng của mục lục
+
+\usepackage{pdfrender}
+%%Đoạn lệnh đổi mục lục
+\titlespacing*{\chapter}{0pt}{60pt}{-15pt}
+\def\fontchuong{23}
+\titleformat{\chapter}[display]{\thispagestyle{empty}}{%
+\begin{tikzpicture}[remember picture,overlay]
+	\path (current page.north west) coordinate (pA);
+	\begin{scope}[shift={($(pA)+(0,-8)$)}]
+		\def\duong{(0,2.55){[rounded corners=19pt]--++(17,0)}--(19,8)--(0,8)--cycle;}
+		\begin{scope}
+			\path[fill=mauchuong,rounded corners] \duong		
+			\clip \duong;
+			\foreach \i in {0,...,12}{
+			  \foreach \j in {-2,...,15}{
+			  	\foreach \a in {0,120,-120} \draw[line width=1pt,mauchuong!87,scale=0.5] (3*\i,2*sin{60}*\j) -- +(\a:1);
+			  	\foreach \a in {0,120,-120} \draw[line width=1pt,mauchuong!87,scale=0.5] (3*\i+3*cos{60},2*sin{60}*\j+sin{60}) -- +(\a:1);
+			  }}				
+		\end{scope}
+		\def\duongtrai{(0,0)..controls +(30:3) and +(210:2)..(3,6)..controls +(30:2) and +(250:3)..(8,8)--(0,8)--cycle;}
+		\begin{scope}
+			\path[left color=doimauchuong!90!black,right color=doimauchuong] \duongtrai		
+			\clip \duongtrai;
+			\foreach \i in {-2,...,5}{
+			  \foreach \j in {-7,...,15}{
+			  	\foreach \a in {0,120,-120} \draw[line width=1pt,doimauchuong!97,scale=0.5] (3*\i,2*sin{60}*\j) -- +(\a:1);
+			  	\foreach \a in {0,120,-120} \draw[line width=1pt,doimauchuong!97,scale=0.5] (3*\i+3*cos{60},2*sin{60}*\j+sin{60}) -- +(\a:1);
+			  }}					
+		\end{scope}
+		\draw[white,line width=3pt] (0,0)..controls +(30:3) and +(210:2)..(3,6)..controls +(30:2) and +(250:3)..(8,8);
+		\fill[white] (2.1,4.15) coordinate (O) circle (1);
+%		\path[fill=green,fill opacity=0.35,even odd rule] 
+%			(O) circle (1)
+%			($(O)+(0:1.6)$) arc (0:270:1.6)--+(1.6,0)--cycle;
+		\path[inner color=green,outer color=green!65,even odd rule,opacity=0.45] 
+			(O) circle (1)
+			($(O)+(0:1.6)$) arc (0:270:1.6)--+(1.6,0)--cycle;
+		\path[
+			postaction={
+			decoration={raise=2pt,
+			text along path,
+			text format delimiters={|}{|},
+			text={%
+			|\bfseries\footnotesize\sffamily|
+			{C}{H}{Ư}{Ơ}{N}{G}{}
+			}},
+			decorate}
+			] ($(O)+(190:1.03)$) arc (190:60:1.03);
+		\path (O) node[font=\bfseries\fontfamily{ugq}\fontsize{39pt}{0pt}\selectfont]{\arabic{chapter}};
+   \end{scope}
+   \path ($(O)+(2,0.25)$)
+   node[anchor=west,text width=13cm,text=white,
+   	font=\bfseries\fontfamily{pag}\fontsize{\fontchuong pt}{0pt}\selectfont]{\MakeUppercase{#1}};
+\end{tikzpicture}%
+}{0pt}{}
+
+\titleformat{name=\chapter,numberless}[display]
+	{\thispagestyle{empty}}%
+	{\begin{tikzpicture}[remember picture,overlay]
+		\path (current page.north west) coordinate (pA);
+		\begin{scope}[shift={($(pA)+(0,-8)$)}]
+			\def\duong{(0,2.55){[rounded corners=19pt]--++(17,0)}--(19,8)--(0,8)--cycle;}
+			\begin{scope}
+				\path[fill=mauchuong,rounded corners] \duong		
+				\clip \duong;
+				\foreach \i in {0,...,12}{
+				  \foreach \j in {-2,...,15}{
+				  	\foreach \a in {0,120,-120} \draw[line width=1pt,mauchuong!87,scale=0.5] (3*\i,2*sin{60}*\j) -- +(\a:1);
+				  	\foreach \a in {0,120,-120} \draw[line width=1pt,mauchuong!87,scale=0.5] (3*\i+3*cos{60},2*sin{60}*\j+sin{60}) -- +(\a:1);
+				  }}				
+			\end{scope}
+			\def\duongtrai{(0,0)..controls +(30:3) and +(210:2)..(3,6)..controls +(30:2) and +(250:3)..(8,8)--(0,8)--cycle;}
+			\begin{scope}
+				\path[left color=doimauchuong!90!black,right color=doimauchuong] \duongtrai		
+				\clip \duongtrai;
+				\foreach \i in {-2,...,5}{
+				  \foreach \j in {-7,...,15}{
+				  	\foreach \a in {0,120,-120} \draw[line width=1pt,doimauchuong!97,scale=0.5] (3*\i,2*sin{60}*\j) -- +(\a:1);
+				  	\foreach \a in {0,120,-120} \draw[line width=1pt,doimauchuong!97,scale=0.5] (3*\i+3*cos{60},2*sin{60}*\j+sin{60}) -- +(\a:1);
+				  }}					
+			\end{scope}
+			\draw[white,line width=3pt] (0,0)..controls +(30:3) and +(210:2)..(3,6)..controls +(30:2) and +(250:3)..(8,8);
+			\path (2.1,4.15) coordinate (O) circle (1);
+	   \end{scope}
+	   \path ($(O)+(2,1)$)
+	   node[anchor=west,text width=13cm,text=white,align=center,font=\bfseries\fontfamily{pag}
+	   \fontsize{\fontchuong pt}{0pt}\selectfont]{\MakeUppercase{#1}};
+	\end{tikzpicture}%
+	}
+	{0pt}%
+	{}%
+\makeatletter
+\renewcommand{\tableofcontents}{%
+	{\chapter*{MỤC LỤC\,}{}}
+	\vspace*{0.5cm}%
+	\@starttoc{toc}
+	}
+\makeatother
+%Hết đoạn lệnh đổi mục lục
+
+
+\newif\ifnotstarredversion
+\renewcommand{\thepart}{}
+\makeatletter
+\renewcommand*\l@part[2]{%
+    \ifnum \c@tocdepth >-2\relax
+    \addpenalty{-\@highpenalty}%
+    \addvspace{5pt \@plus\p@}%
+    \setlength\@tempdima{3em}%
+    \begingroup%
+   \noindent\tikz[remember picture]{
+	   \path (2.5,0) node[font=\bfseries\fontfamily{pag}\selectfont,inner sep=3pt] (A){#1};
+	   \path ($(A.north east)+(0.15,0)$) coordinate (At)
+	   			($(A.south east)+(0.15,0)$) coordinate (Ad)
+	   			(A.north west) coordinate (Bt)
+	   			(A.south west) coordinate (Bd);
+	   \path[left color=mauchuong!85,right color=mauchuong!65] (A.south west) rectangle ($(A.north west)-(2.5,0)$)
+	   ($(Bt)!0.5!(Bd)+(-2.1,0)$) node[font=\bfseries\fontfamily{pag}\selectfont,anchor=west]{Phần};
+	   \draw[ultra thick,mauchuong] let \p1=($(At)-(Ad)$), \n1 = {veclen(\x1, \y1)} in (Ad) arc (-90 :{90}:{\n1/2})--(Bt)--+(-2.5,0)--($(A.south west)-(2.5,0)$)--cycle;
+	}%
+    \par\smallskip
+	\penalty\@highpenalty
+	\setcounter{chapter}{0}
+    \endgroup
+    \fi
+}
+
+\def\@partimage{}
+\newsavebox{\Abox}
+\newcommand{\partimage}[1]{%
+	\savebox{\Abox}{{#1}}%
+	\gdef\@partimage{ \usebox{\Abox}}%
+}
+
+\def\@part[#1]#2{%
+  \thispagestyle{empty}%
+  \setcounter{chapter}{0}
+  \startcontents[chapters]
+  \refstepcounter{part}
+  \addcontentsline{toc}{part}{ #1}%
+  \markboth{Phần \Roman{part}. #1}{Phần \Roman{part}. #1}%
+  {\interlinepenalty \@M
+    \begin{center}
+    \begin{tikzpicture}[remember picture,overlay]
+ 		\fill[top color=cyan!15,bottom color=white] (current page.north west) rectangle ([yshift=-7.5cm]current page.north east);
+ 		\begin{scope}
+ 			\clip (current page.north west) rectangle ([yshift=-7cm]current page.north east);
+ 			\draw[line width=1.25pt,white,step=0.75cm,rotate=45] ([xshift=-10cm]current page.north west) grid ([yshift=-7cm]current page.north east);
+ 		\end{scope}	
+   		\path[mausubsection] ($(current page.north)+(-3.5,-3.5)$)  to [ornament=88] +(7,0);
+   		\path ($(current page.north)+(0,-3.5)$) node[anchor=south,shift={(0,6pt)}]{\textpdfrender{
+   							TextRenderingMode=FillStroke,
+   							StrokeColor=mausubsection!75!blue,
+   							LineWidth=1pt,
+   							FillColor=mausubsection,
+   						}{\fontsize{27pt}{0pt}\selectfont\sffamily\bfseries Phần #2}%
+   			};
+    \end{tikzpicture}%
+    
+    \vfil%
+ 	\noindent\@partimage 
+    \end{center}
+      }%
+     \vfil\par
+      \@endpart
+    }
+\makeatother
+
+\renewcommand{\thechapter}{\arabic{chapter}}
+
+\titlecontents{chapter}[2.75cm]{%
+\large\sffamily\bfseries\color{mauchuong}}{%
+\begin{tikzpicture}[overlay,remember picture]
+	\path (0,0)--+(0.975*\linewidth,0);
+	\path (0,17pt) coordinate (A)--+(0.965*\linewidth,0) coordinate (B);
+	\begin{scope}[transform canvas={shift={(-2.75,1pt)}}]
+		\draw[thick,mauchuong] (A)--+(2.5,0) coordinate (C);
+		\draw[thick,doimauchuong] (B)--(C);
+		\fill[mauchuong] (A) circle (1pt);
+		\fill[doimauchuong] (B) circle (1pt);
+	\end{scope}
+\end{tikzpicture}%
+%\makebox[2.5cm][l]{\large\sffamily\bfseries\color{mauchuong}Chủ đề \thecontentslabel.}
+{\contentslabel[{Chương \thecontentslabel.}]{2.75cm}}%
+}{}{\large\hfill\thecontentspage}
+
+\renewcommand{\thesection}{\arabic{section}}
+\titlecontents{section}[1.25cm]{\large\sffamily\def\tcolor{\color{black}}}{Bài \thecontentslabel. }{\color{cyan!90!blue}\gdef\tcolor{\color{cyan!90!blue}}}{\tcolor\hfill\thecontentspage}
+
+ \newcommand{\baitap}{\par%
+ \noindent%
+ \begin{tikzpicture}[color=teal,declare function={bk=7pt;}]
+ 	\path (0,0) node[inner sep=7pt,outer sep=0pt,font=\bfseries\Large](A){\phantom{I}BÀI TẬP\phantom{I}};
+ 	\path (A.north west) coordinate (Tt)
+ 		(A.north east) coordinate (Tp)
+ 		(A.south west) coordinate (Dt)
+ 		(A.south east) coordinate (Dp);
+ 	\draw[ultra thick] ($(Tt)!bk!(Tp)$)--($(Tp)!bk!(Tt)$)--($(Tp)!bk!(Dp)$)--($(Dp)!bk!(Tp)$)
+ 		--($(Dp)!bk!(Dt)$)--($(Dt)!bk!(Dp)$)--($(Dt)!bk!(Tt)$)--($(Tt)!bk!(Dt)$)--cycle;
+ \end{tikzpicture}}
+ 
+ \newcommand{\ontapchuong}{\setcounter{subsection}{0}\par%
+	 \noindent%
+	  \begin{tikzpicture}[color=teal,declare function={bk=7pt;}]
+	  	\path (0,0) node[inner sep=9pt,outer sep=0pt,font=\bfseries\Large](A){\phantom{I}ÔN TẬP CHƯƠNG \arabic{chapter}\phantom{I}};
+	  	\path (A.north west) coordinate (Tt)
+	  		(A.north east) coordinate (Tp)
+	  		(A.south west) coordinate (Dt)
+	  		(A.south east) coordinate (Dp);
+	  	\path[ultra thick,draw=teal!35,fill] ($(Tt)!bk!(Tp)$)--($(Tp)!bk!(Tt)$)--($(Tp)!bk!(Dp)$)--($(Dp)!bk!(Tp)$)
+	  		--($(Dp)!bk!(Dt)$)--($(Dt)!bk!(Dp)$)--($(Dt)!bk!(Tt)$)--($(Tt)!bk!(Dt)$)--cycle;
+	 	 \path (0,0) node[inner sep=9pt,outer sep=0pt,font=\bfseries\Large,text=white]{\phantom{I}ÔN TẬP CHƯƠNG \arabic{chapter}\phantom{I}};
+	  \end{tikzpicture}
+	  \addcontentsline{toc}{section}{\hypersetup{linkcolor=cyan!90!blue}Ôn tập chương \arabic{chapter}}}
+	  
+\newcommand{\ontaphai}[2][1]{\setcounter{subsection}{0}%
+ \par%
+ \noindent%
+ \addcontentsline{toc}{section}{#2}
+ \ifnum #1=1
+	 \begin{tikzpicture}[declare function={rt=0.5;d=sqrt(2)*rt;}]
+	  \path (90:rt) coordinate (A)
+	  (180:rt) coordinate (B)
+	  (270:rt) coordinate (C)
+	  (0:rt) coordinate (D)
+	  ([shift={(0.15,0)}]0:rt) coordinate (E)
+	  ($ (E)+(135:rt) $) coordinate (F)
+	  ($ (E)+(-135:rt) $) coordinate (G)
+	  ($ (A)!0.5!(F) $) coordinate (AF)
+	  ($ (D)!0.5!(E) $) coordinate (DE)
+	  ($ (C)!0.5!(G) $) coordinate (CG);
+	  \path[transform canvas={shift={(-45:2.5pt)}},left color=teal!50,right color=teal!5]
+	  (F)--(E)--(G)--+(0.95*\linewidth,0)--([turn]90:d)--cycle;
+	  \path[right color=teal!75!black,left color=teal!80,rounded corners=2pt] (A)--(B)--(C)--(D)--cycle;
+	  \draw[line width=0.65pt,teal,line cap=round,rounded corners=1.5pt]
+	  (AF)--(DE)--(CG);
+	  \draw[transform canvas={xscale=-1},line width=0.65pt,teal,line cap=round,rounded corners=1.5pt] (AF)--(DE)--(CG);
+	  \path[left color=teal!90!black,right color=teal!50] (F)--(E)--(G)--+(0.95*\linewidth,0)--([turn]90:d)--cycle;
+	  \path (-0.7pt,-0.3pt) node[inner sep=0pt,font=\itshape\bfseries\color{gray}]{\faEdit};
+	  \path (-1pt,0) node[inner sep=0pt,font=\itshape\bfseries\color{white}]{\faEdit};
+	  \path ([shift={(0.11,-0.01)}]E) node[align=left,anchor=west,font=\sffamily\bfseries\color{gray}]{#2};
+	  \path ([shift={(0.1,0)}]E) node[align=left,anchor=west,font=\sffamily\bfseries\color{white}]{#2};
+	  \end{tikzpicture}%
+  \else
+	\begin{tikzpicture}[color=teal,declare function={bk=7pt;}]
+	  	\path (0,0) node[inner sep=9pt,outer sep=0pt,font=\bfseries\Large](A){\phantom{I}\MakeUppercase{#2}\phantom{I}};
+	  	\path (A.north west) coordinate (Tt)
+	  		(A.north east) coordinate (Tp)
+	  		(A.south west) coordinate (Dt)
+	  		(A.south east) coordinate (Dp);
+	  	\path[ultra thick,draw=teal!35,fill] ($(Tt)!bk!(Tp)$)--($(Tp)!bk!(Tt)$)--($(Tp)!bk!(Dp)$)--($(Dp)!bk!(Tp)$)
+	  		--($(Dp)!bk!(Dt)$)--($(Dt)!bk!(Dp)$)--($(Dt)!bk!(Tt)$)--($(Tt)!bk!(Dt)$)--cycle;
+	 	 \path (0,0) node[inner sep=9pt,outer sep=0pt,font=\bfseries\Large,text=white]{\phantom{I}\MakeUppercase{#2}\phantom{I}};
+	  \end{tikzpicture}%
+  \fi
+ }

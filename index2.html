@@ -2,327 +2,435 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Ultimate Web LaTeX IDE</title>
-    <meta name="description" content="A professional web LaTeX IDE with a file explorer, resizable panes, and multiple compiler engines.">
+    <title>Modern Web LaTeX IDE</title>
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file/ZIP uploading and persistent storage.">
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            --bg-color: #fff; --text-color: #333; --border-color: #ddd; --toolbar-bg: #fff; --editor-bg: #282c34;
-            --primary-color: #007bff; --secondary-color: #28a745; --resizer-color: #ccc;
+            --primary-color: #007bff;
+            --dark-bg: #282c34;
+            --light-bg: #f4f4f4;
+            --border-color: #ddd;
         }
-        body.dark-mode {
-            --bg-color: #2d323b; --text-color: #f1f1f1; --border-color: #444; --toolbar-bg: #353a44; --editor-bg: #21252b;
-            --resizer-color: #555;
-        }
-        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; display: flex; flex-direction: column; }
+        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
         
-        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: var(--toolbar-bg); border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 12px; }
+        /* --- Toolbar --- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            gap: 15px;
+        }
         .toolbar-group { display: flex; align-items: center; gap: 8px; }
-        .toolbar button, .toolbar select { padding: 6px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: var(--bg-color); color: var(--text-color); cursor: pointer; }
-        .toolbar button:hover, .toolbar select:hover { background-color: rgba(0,0,0,0.1); }
-        #compile-btn { background-color: var(--secondary-color); color: white; font-weight: bold; }
-        #compile-btn:hover { background-color: #218838; }
+        .toolbar button, .toolbar select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; }
+        #compile-btn { background-color: var(--primary-color); color: white; font-weight: bold; }
+        #compile-btn:hover { background-color: #0056b3; }
         #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; }
 
-        .main-container { display: flex; flex-grow: 1; min-height: 0; }
-        
-        #file-explorer { width: 200px; padding: 10px; border-right: 1px solid var(--border-color); overflow-y: auto; flex-shrink: 0; }
-        #file-explorer ul { list-style-type: none; padding-left: 15px; margin: 0; }
-        #file-explorer li { padding: 4px 0; cursor: pointer; }
-        #file-explorer .file:hover { background-color: rgba(0,0,0,0.1); }
-        #file-explorer .file.active { background-color: var(--primary-color); color: white; }
-        #file-explorer .folder { font-weight: bold; }
-
-        .resizer { width: 5px; background: var(--resizer-color); cursor: col-resize; flex-shrink: 0; }
-        .resizer:hover { background: var(--primary-color); }
-
-        .editor-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* --- Main Content --- */
+        .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         #editor { flex: 1; width: 100%; }
-        .controls { padding: 10px; background-color: var(--bg-color); border-top: 1px solid var(--border-color); flex-shrink: 0; }
-        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: rgba(0,0,0,0.05); border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: #282c34; color: #abb2bf; padding: 8px; font-size: 13px; margin-top: 5px; }
-        
-        .pdf-pane { flex: 1; overflow: hidden; }
-        #pdfbox { height: 100%; width: 100%; background-color: #525659; }
 
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
-        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        /* --- Collapsible Console --- */
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .console-header:hover { background-color: #d0d0d0; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
+        pre#console.collapsed { display: none; }
+        
+        /* --- PDF Viewer --- */
+        #pdfbox { height: 100%; width: 100%; }
+
+        /* --- Loading Overlay --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+            font-size: 1.5em;
+        }
+        #loading-message { margin-top: 20px; }
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div class="toolbar">
         <div class="toolbar-group">
-            <button onclick="document.getElementById('zip-loader-input').click()">Load Project (.zip)</button>
-            <input type="file" id="zip-loader-input" accept=".zip" style="display: none;">
+            <label for="file-loader-input" class="toolbar-button-label">
+                <button onclick="document.getElementById('file-loader-input').click()">Load Files / .zip</button>
+            </label>
+            <input type="file" id="file-loader-input" multiple style="display: none;" accept=".tex,.sty,.cls,.bib,.png,.jpg,.jpeg,.zip">
         </div>
         <div class="toolbar-group">
-            <button onclick="document.getElementById('file-loader-input').click()">Add Files</button>
-            <input type="file" id="file-loader-input" multiple style="display: none;">
+            <label for="main-file-selector">Main File:</label>
+            <select id="main-file-selector"></select>
         </div>
         <div class="toolbar-group">
-            <label for="engine-selector">Engine:</label>
-            <select id="engine-selector">
-                <option value="pdflatex">pdfLaTeX</option>
-                <option value="xetex">XeLaTeX</option>
+            <label for="template-selector">Template:</label>
+            <select id="template-selector">
+                <option value="">-- Select a Template --</option>
+                <option value="article">Simple Article</option>
+                <option value="cv">Stylish CV</option>
             </select>
         </div>
         <div class="toolbar-group" style="margin-left: auto;">
-            <button id="download-pdf-btn" disabled>Download PDF</button>
-            <button id="dark-mode-toggle">Toggle Dark Mode</button>
-            <button id="compile-btn" disabled>Initializing...</button>
+             <button id="compile-btn" disabled>Initializing...</button>
         </div>
     </div>
 
     <div class="main-container">
-        <div id="file-explorer">
-            <p style="margin-top:0; font-size: 14px; color: #888;">Project files will appear here.</p>
-        </div>
-        <div class="resizer" id="resizer-1"></div>
         <div class="editor-pane">
-            <div id="editor">% Welcome to the Ultimate Web LaTeX IDE!</div>
+            <div id="editor">% Welcome to the Modern Web LaTeX IDE!
+% 1. Use the "Load Files / .zip" button to upload your project.
+% 2. Or, select a template to get started.
+% 3. Your .sty/.cls files will be saved for future sessions!
+</div>
             <div class="controls">
-                <div id="console-header" class="console-header"><span>Console Output</span><span>▲</span></div>
+                <div id="console-header" class="console-header">
+                    <span>Console Output</span>
+                    <span id="console-toggle-icon">▲</span>
+                </div>
                 <pre id="console">Engine will be ready shortly...</pre>
             </div>
         </div>
-        <div class="resizer" id="resizer-2"></div>
-        <div class="pdf-pane"><div id="pdfbox"></div></div>
+        <div class="pdf-pane">
+            <div id="pdfbox"></div>
+        </div>
     </div>
 
-    <div id="loading-overlay"><div class="spinner"></div><span id="loading-text"></span></div>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span id="loading-message">Compiling...</span>
+    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
-    <script src="PdfTeXEngine.js"></script>
-    <script src="XeTeXEngine.js"></script>
-    <script src="DvipdfmxEngine.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<!-- *** STEP 1: ADD JSZIP LIBRARY *** -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="PdfTeXEngine.js"></script>
 <script>
-    // --- DOM Elements & State ---
-    const elements = {
-        editor: ace.edit("editor"), compileBtn: document.getElementById("compile-btn"), console: document.getElementById("console"),
-        pdfbox: document.getElementById("pdfbox"), zipLoader: document.getElementById('zip-loader-input'), fileLoader: document.getElementById('file-loader-input'),
-        engineSelector: document.getElementById('engine-selector'), loadingOverlay: document.getElementById('loading-overlay'),
-        loadingText: document.getElementById('loading-text'), consoleHeader: document.getElementById("console-header"),
-        fileExplorer: document.getElementById('file-explorer'), darkModeToggle: document.getElementById('dark-mode-toggle'),
-        downloadPdfBtn: document.getElementById('download-pdf-btn')
-    };
-    const engines = { pdflatex: new PdfTeXEngine(), xetex: new XeTeXEngine(), dvipdfmx: new DvipdfmxEngine() };
-    let currentProjectFiles = new Map();
-    let mainTexFile = '';
-    let lastPdfBlob = null;
+    // --- DOM Elements ---
+    const editorEl = ace.edit("editor");
+    const compileBtn = document.getElementById("compile-btn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+    const fileLoaderInput = document.getElementById('file-loader-input');
+    const mainFileSelector = document.getElementById('main-file-selector');
+    const templateSelector = document.getElementById('template-selector');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingMessage = document.getElementById('loading-message');
+    const consoleHeader = document.getElementById("console-header");
+    const consoleToggleIcon = document.getElementById("console-toggle-icon");
 
-    // --- IndexedDB for persistent .sty/.cls files ---
-    const DB_NAME = 'LaTeXFilesDB', STORE_NAME = 'StyFilesStore';
+    // --- State Management ---
+    const globalEn = new PdfTeXEngine();
+    let mainTexFile = 'main.tex';
+    const loadedFiles = new Map(); // Temp storage for all loaded files
+
+    // --- IndexedDB for Persistent .sty/.cls files ---
+    const DB_NAME = 'LaTeXFilesDB';
+    const STORE_NAME = 'StyFilesStore';
     let db;
-    function openDb() { return new Promise((resolve, reject) => { const r = indexedDB.open(DB_NAME, 1); r.onerror = () => reject("Error opening IndexedDB."); r.onsuccess = e => { db = e.target.result; resolve(); }; r.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, { keyPath: 'name' }); }); }
-    function saveFileToDb(name, data) { if (db) db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).put({ name, data }); }
-    async function loadDbFilesToEngine(engine) { return new Promise(resolve => { if (!db) return resolve(); const r = db.transaction([STORE_NAME], 'readonly').objectStore(STORE_NAME).getAll(); r.onsuccess = e => { e.target.result.forEach(f => engine.writeMemFSFile(f.name, f.data)); console.log(`Loaded ${f.name} from DB`); resolve(); }; });}
 
-    // --- Main Logic ---
+    function openDb() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onerror = () => reject("Error opening IndexedDB.");
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve();
+            };
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                db.createObjectStore(STORE_NAME, { keyPath: 'name' });
+            };
+        });
+    }
+
+    function saveFileToDb(name, data) {
+        if (!db) return;
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.put({ name, data });
+    }
+
+    function loadFilesFromDb() {
+        return new Promise((resolve) => {
+            if (!db) return resolve();
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+            request.onsuccess = (event) => {
+                const files = event.target.result;
+                files.forEach(file => {
+                    loadedFiles.set(file.name, file.data);
+                    console.log(`Loaded ${file.name} from IndexedDB.`);
+                });
+                resolve();
+            };
+        });
+    }
+
+    // --- Editor Setup ---
+    editorEl.setTheme("ace/theme/monokai");
+    editorEl.session.setMode("ace/mode/latex");
+    editorEl.session.setUseWrapMode(true);
+    editorEl.setFontSize(16);
+
+    // --- Event Listeners ---
+    fileLoaderInput.addEventListener('change', handleFileLoad);
+    mainFileSelector.addEventListener('change', handleMainFileChange);
+    templateSelector.addEventListener('change', handleTemplateChange);
+    compileBtn.addEventListener('click', compile);
+    consoleHeader.addEventListener('click', toggleConsole);
+
+    // --- Main Functions ---
     async function init() {
-        showLoading("Initializing Engines...");
-        elements.editor.setTheme("ace/theme/solarized_dark"); elements.editor.session.setMode("ace/mode/latex"); elements.editor.session.setUseWrapMode(true); elements.editor.setFontSize(16);
-        await Promise.all([engines.pdflatex.loadEngine(), engines.xetex.loadEngine(), engines.dvipdfmx.loadEngine(), openDb()]);
-        elements.compileBtn.innerHTML = "Compile"; elements.compileBtn.disabled = true; elements.console.innerHTML = "Ready. Load a project to start.";
-        hideLoading();
-    }
-    
-    async function loadProjectFiles(files) {
-        showLoading("Loading files...");
-        for (const file of files) {
-            const data = new Uint8Array(await file.arrayBuffer());
-            currentProjectFiles.set(file.name, data);
-            if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) saveFileToDb(file.name, data);
+        try {
+            await Promise.all([globalEn.loadEngine(), openDb()]);
+            await loadFilesFromDb();
+            updateMainFileSelector();
+            compileBtn.innerHTML = "Compile";
+            compileBtn.disabled = false;
+            consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+        } catch (err) {
+            console.error(err);
+            consoleOutput.innerHTML = `Initialization failed: ${err}`;
         }
-        updateFileTree();
-        const texFiles = [...currentProjectFiles.keys()].filter(k => k.endsWith('.tex'));
-        if (!mainTexFile && texFiles.length > 0) {
-            mainTexFile = texFiles.find(n => /^(main|master)\.tex$/i.test(n)) || texFiles[0];
-            await displayFileInEditor(mainTexFile);
-        }
-        elements.compileBtn.disabled = false;
-        hideLoading();
     }
 
-    async function handleZipLoad(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        showLoading("Unzipping Project...");
-        currentProjectFiles.clear(); mainTexFile = '';
-        const zip = await JSZip.loadAsync(file);
-        const filesToLoad = [];
-        for (const path in zip.files) {
-            const entry = zip.files[path];
-            if (!entry.dir) {
-                const data = await entry.async('uint8array');
-                filesToLoad.push(new File([data], path));
+    // *** STEP 2: UPDATE THE FILE HANDLING LOGIC ***
+    async function handleFileLoad(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+
+        // Clear previous project files (but keep persisted .sty files from DB)
+        // This makes loading a new project/zip cleaner
+        const persistedKeys = [];
+        loadedFiles.forEach((value, key) => {
+            if (key.endsWith('.sty') || key.endsWith('.cls')) {
+                persistedKeys.push(key);
             }
-        }
-        await loadProjectFiles(filesToLoad);
-        event.target.value = '';
-    }
-    
-    function updateFileTree() {
-        const tree = {};
-        currentProjectFiles.forEach((_, path) => {
-            let currentLevel = tree;
-            path.split('/').forEach((part, index, arr) => {
-                if (index === arr.length - 1) currentLevel[part] = 'file';
-                else {
-                    if (!currentLevel[part]) currentLevel[part] = {};
-                    currentLevel = currentLevel[part];
+        });
+        loadedFiles.clear();
+        await loadFilesFromDb(); // Reload persisted files
+
+        let potentialMainFile = null;
+
+        for (const file of Array.from(files)) {
+            // --- ZIP FILE HANDLING ---
+            if (file.name.endsWith('.zip')) {
+                loadingMessage.innerText = "Unzipping project...";
+                loadingOverlay.style.display = 'flex';
+                try {
+                    const jszip = new JSZip();
+                    const zip = await jszip.loadAsync(file);
+                    const filePromises = [];
+
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (zipEntry.dir) return; // Skip directories
+
+                        const promise = zipEntry.async('uint8array').then(fileData => {
+                            loadedFiles.set(relativePath, fileData);
+                            console.log(`Unzipped: ${relativePath}`);
+
+                            // Heuristic to find the main .tex file
+                            if (relativePath.endsWith('.tex') && !potentialMainFile) {
+                                // Prefer files named 'main.tex' or in the root directory
+                                if (relativePath.toLowerCase() === 'main.tex' || !relativePath.includes('/')) {
+                                   potentialMainFile = relativePath;
+                                }
+                            }
+
+                            // Persist .sty and .cls files from zip
+                            if (relativePath.endsWith('.sty') || relativePath.endsWith('.cls')) {
+                                saveFileToDb(relativePath, fileData);
+                            }
+                        });
+                        filePromises.push(promise);
+                    });
+                    await Promise.all(filePromises);
+
+                } catch (e) {
+                    alert(`Error unzipping file: ${e.message}`);
+                    console.error(e);
+                } finally {
+                    loadingOverlay.style.display = 'none';
                 }
-            });
-        });
-        elements.fileExplorer.innerHTML = buildTreeHtml(tree);
-        elements.fileExplorer.querySelectorAll('.file').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const path = e.target.dataset.path;
-                if (path.endsWith('.tex')) mainTexFile = path;
-                displayFileInEditor(path);
-                document.querySelectorAll('#file-explorer .file.active').forEach(active => active.classList.remove('active'));
-                e.target.classList.add('active');
-            });
-        });
+            } 
+            // --- REGULAR FILE HANDLING ---
+            else {
+                const fileData = new Uint8Array(await file.arrayBuffer());
+                loadedFiles.set(file.name, fileData);
+                
+                if (file.name.endsWith('.tex')) {
+                    potentialMainFile = file.name; // A directly uploaded .tex is a strong candidate for main file
+                }
+
+                if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) {
+                    saveFileToDb(file.name, fileData);
+                }
+            }
+        }
+        
+        // After processing all files, update the UI
+        if (potentialMainFile) {
+            mainTexFile = potentialMainFile;
+            const fileContent = loadedFiles.get(mainTexFile);
+            if(fileContent) {
+                const textDecoder = new TextDecoder();
+                editorEl.setValue(textDecoder.decode(fileContent), -1);
+            }
+        }
+        
+        updateMainFileSelector();
+
+        event.target.value = ''; // Allow reloading the same file(s)
     }
 
-    function buildTreeHtml(tree, path = '') {
-        let html = '<ul>';
-        Object.entries(tree).sort(([aKey, aVal], [bKey, bVal]) => {
-            const aIsDir = typeof aVal === 'object';
-            const bIsDir = typeof bVal === 'object';
-            if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
-            return aKey.localeCompare(bKey);
-        }).forEach(([name, content]) => {
-            const fullPath = path ? `${path}/${name}` : name;
-            if (typeof content === 'object') {
-                html += `<li><span class="folder">📁 ${name}</span>${buildTreeHtml(content, fullPath)}</li>`;
-            } else {
-                html += `<li><span class="file" data-path="${fullPath}">📄 ${name}</span></li>`;
+
+    function handleMainFileChange(event) {
+        mainTexFile = event.target.value;
+        const fileContent = loadedFiles.get(mainTexFile);
+        if (fileContent) {
+            const textDecoder = new TextDecoder();
+            editorEl.setValue(textDecoder.decode(fileContent), -1);
+        }
+    }
+    
+    function updateMainFileSelector() {
+        mainFileSelector.innerHTML = '';
+        let foundMainFileInList = false;
+        const texFiles = [];
+
+        // Find all .tex files
+        for (const fileName of loadedFiles.keys()) {
+            if (fileName.endsWith('.tex')) {
+                texFiles.push(fileName);
+            }
+        }
+        
+        // Sort them for consistent order
+        texFiles.sort();
+
+        // Populate the dropdown
+        texFiles.forEach(fileName => {
+            const option = document.createElement('option');
+            option.value = fileName;
+            option.textContent = fileName;
+            mainFileSelector.appendChild(option);
+            if (fileName === mainTexFile) {
+                option.selected = true;
+                foundMainFileInList = true;
             }
         });
-        return html + '</ul>';
+        
+        // If the current mainTexFile is somehow not in the list, add it
+        if (!foundMainFileInList && mainTexFile && loadedFiles.has(mainTexFile)) {
+             const option = document.createElement('option');
+             option.value = mainTexFile;
+             option.textContent = mainTexFile;
+             option.selected = true;
+             mainFileSelector.insertBefore(option, mainFileSelector.firstChild);
+        }
     }
 
     async function compile() {
-        if (!mainTexFile) { alert("Please select a main .tex file from your project."); return; }
-        showLoading("Compiling...");
-        elements.compileBtn.disabled = true;
+        if (!globalEn.isReady()) {
+            console.log("Engine not ready yet");
+            return;
+        }
 
-        const engineName = elements.engineSelector.value;
-        const currentEngine = engines[engineName];
-        await loadDbFilesToEngine(currentEngine);
+        loadingMessage.innerText = "Compiling...";
+        loadingOverlay.style.display = 'flex'; // Show loading effect
+        compileBtn.disabled = true;
 
-        currentProjectFiles.forEach((data, name) => currentEngine.writeMemFSFile(name, data));
-        currentEngine.writeMemFSFile(mainTexFile, new TextEncoder().encode(elements.editor.getValue()));
-        currentEngine.setEngineMainFile(mainTexFile);
+        // Update the content of the currently edited file
+        const textEncoder = new TextEncoder();
+        loadedFiles.set(mainTexFile, textEncoder.encode(editorEl.getValue()));
         
-        console.log(`Compiling ${mainTexFile} with ${engineName}...`);
-        elements.console.innerHTML = "First pass...";
-        let r = await currentEngine.compileLaTeX();
-        
-        if (r.status === 0 && engineName === 'xetex') {
-            elements.console.innerHTML += "\nRunning dvipdfmx...";
-            const dvipdfmx = engines.dvipdfmx;
-            dvipdfmx.writeMemFSFile("main.xdv", r.pdf);
-            r = await dvipdfmx.compilePDF();
-        } else {
-            elements.console.innerHTML = "Second pass...";
-            r = await currentEngine.compileLaTeX();
+        // Write all loaded files to the virtual file system
+        for (const [name, data] of loadedFiles.entries()) {
+            globalEn.writeMemFSFile(name, data);
         }
         
-        elements.console.innerHTML = r.log || "No log output.";
-        hideLoading(); elements.compileBtn.disabled = false;
+        globalEn.setEngineMainFile(mainTexFile);
+        
+        // Beamer and bibtex might need multiple passes
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = "Second pass...";
+        const r = await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        if (consoleOutput.classList.contains('collapsed')) {
+            toggleConsole(); // Show console if it was hidden
+        }
+        
+        loadingOverlay.style.display = 'none'; // Hide loading effect
+        compileBtn.disabled = false;
+
         if (r.status === 0) {
-            lastPdfBlob = new Blob([r.pdf], { type: 'application/pdf' });
-            elements.pdfbox.innerHTML = `<embed src="${URL.createObjectURL(lastPdfBlob)}#toolbar=0&navpanes=1" width="100%" height="100%">`;
-            elements.downloadPdfBtn.disabled = false;
+            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+            const objectURL = URL.createObjectURL(pdfblob);
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
         } else {
-            elements.pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed.</div>`;
-            elements.downloadPdfBtn.disabled = true;
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
         }
     }
 
-    // --- UI Helpers ---
-    async function displayFileInEditor(path) {
-        const data = currentProjectFiles.get(path);
-        if (data) {
-            if (/\.(tex|sty|cls|bib)$/.test(path)) {
-                elements.editor.setValue(new TextDecoder().decode(data), -1);
-            } else {
-                elements.editor.setValue(`--- Binary file: ${path} ---`, -1);
-            }
+    function toggleConsole() {
+        consoleOutput.classList.toggle('collapsed');
+        consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
+    }
+    
+    function handleTemplateChange(event) {
+        const templateName = event.target.value;
+        const templates = {
+            'article': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\title{Simple Article}\n\\author{Me}\n\\date{\\today}\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\n\nHello, world!\n\n\\end{document}`,
+            'cv': `\\documentclass[a4paper]{scrartcl}\n\\usepackage{scrlayer-scrpage}\n\\usepackage{titlesec}\n\\usepackage{marvosym}\n\\usepackage{tabularx,colortbl}\n\\usepackage[T1]{fontenc}\n\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\titlerule]\n\n\\begin{document}\n\\begin{center}\n{\\fontsize{36}{36}\\selectfont\\scshape John Smith}\n\n\\vspace{1cm}\n\n\\section{Objective}\n\nA great job.\n\n\\section{Education}\n\nMy University, 2024.\n\n\\end{center}\n\\end{document}`
+        };
+        
+        if (templates[templateName]) {
+            loadedFiles.clear(); // Clear previous project
+            mainTexFile = `${templateName}.tex`;
+            editorEl.setValue(templates[templateName], -1);
+            updateMainFileSelector();
         }
     }
-    function handleMainFileChange(e) { mainTexFile = e.target.value; displayFileInEditor(mainTexFile); }
-    function handleFileLoad(event) { if (event.target.files.length > 0) loadProjectFiles(event.target.files); event.target.value = ''; }
-    function toggleConsole() { elements.console.classList.toggle('collapsed'); elements.consoleHeader.querySelector('span:last-child').textContent = elements.console.classList.contains('collapsed') ? '▼' : '▲'; }
-    function showLoading(text) { elements.loadingText.textContent = text; elements.loadingOverlay.style.display = 'flex'; }
-    function hideLoading() { elements.loadingOverlay.style.display = 'none'; }
-    elements.darkModeToggle.addEventListener('click', () => document.body.classList.toggle('dark-mode'));
-    elements.downloadPdfBtn.addEventListener('click', () => {
-        if (lastPdfBlob) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(lastPdfBlob);
-            link.download = mainTexFile.replace('.tex', '.pdf');
-            link.click();
-        }
-    });
 
-    // --- Resizable Panes Logic ---
-    function makeResizable(resizerId, leftPaneId, rightPaneId) {
-        const resizer = document.getElementById(resizerId);
-        const leftPane = document.getElementById(leftPaneId);
-        const rightPane = document.getElementById(rightPaneId);
-        let x = 0; let leftWidth = 0;
-        const mouseDownHandler = (e) => {
-            x = e.clientX; leftWidth = leftPane.getBoundingClientRect().width;
-            document.addEventListener('mousemove', mouseMoveHandler); document.addEventListener('mouseup', mouseUpHandler);
-        };
-        const mouseMoveHandler = (e) => {
-            const dx = e.clientX - x; const newLeftWidth = leftWidth + dx;
-            const containerWidth = leftPane.parentElement.getBoundingClientRect().width;
-            leftPane.style.width = `${newLeftWidth}px`;
-            // rightPane.style.width will be handled by flexbox
-        };
-        const mouseUpHandler = () => { document.removeEventListener('mousemove', mouseMoveHandler); document.removeEventListener('mouseup', mouseUpHandler); };
-        resizer.addEventListener('mousedown', mouseDownHandler);
-    }
-    makeResizable('resizer-1', 'file-explorer', 'editor-pane');
-    makeResizable('resizer-2', document.querySelector('.editor-pane').parentElement, 'pdf-pane'); // A bit tricky to get the right elements
-    // The above resizer logic is simplified. Let's adjust it to work with flex.
-    const resizer1 = document.getElementById('resizer-1');
-    const resizer2 = document.getElementById('resizer-2');
-    const fileExplorer = document.getElementById('file-explorer');
-    const editorPane = document.querySelector('.editor-pane');
-    const pdfPane = document.querySelector('.pdf-pane');
-
-    const createDragHandler = (resizer, leftElement, rightElement) => (e) => {
-        let x = e.clientX;
-        const onMouseMove = (moveEvent) => {
-            const dx = moveEvent.clientX - x;
-            x = moveEvent.clientX;
-            const newLeftWidth = leftElement.offsetWidth + dx;
-            const newRightWidth = rightElement.offsetWidth - dx;
-            if (newLeftWidth > 50 && newRightWidth > 50) { // minimum width
-                 leftElement.style.flex = `0 0 ${newLeftWidth}px`;
-                 rightElement.style.flex = `1 1 ${newRightWidth}px`;
-            }
-        };
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    };
-    resizer1.addEventListener('mousedown', createDragHandler(resizer1, fileExplorer, editorPane));
-    resizer2.addEventListener('mousedown', createDragHandler(resizer2, editorPane, pdfPane));
-
-    // --- Start ---
+    // --- Start the application ---
     init();
+
 </script>
 </body>
 </html>

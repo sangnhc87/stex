@@ -1,0 +1,70 @@
+\usepackage{amsmath}
+\allowdisplaybreaks[4]
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{fontawesome,pifont,oplotsymbl}
+\usepackage{marvosym}
+\usepackage{savesym}
+\savesymbol{Cross}
+\usepackage{bbding}
+\restoresymbol{bb}{Cross}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{calc,intersections,shapes.geometric,arrows,decorations.markings,arrows.meta,patterns,fadings,
+shadows,backgrounds}
+\tikzfading[name=fade out, inner color=transparent!0,outer color=transparent!100]
+\tikzfading[name=fade left, top color=transparent!0,bottom color=transparent!0,middle color=transparent!100]
+\tikzfading[name=fade right,left color=transparent!0,right color=transparent!100]
+\usepackage{graphicx}%chỉnh hình ảnh
+\usepackage{makecell}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let
+\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let
+\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let
+\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\renewcommand{\arraystretch}{1.25}
+\usepackage[most,xparse,many]{tcolorbox}
+\newcommand\circlenum[2][cyan]{\tikz[baseline=(char.base)]
+{\node[shape=circle,inner sep=1pt,draw=#1,fill=#1!10,
+font=\bfseries\footnotesize,minimum size=14pt,outer sep=0pt] (char) {#2};}}
+\newcommand\circlenumH[2][cyan]{\tikz[baseline=(char.base)]
+{\node[shape=circle,inner sep=0.5pt,draw=#1,%fill=#1!10,
+font=\bfseries\footnotesize,minimum size=13pt,outer sep=0pt] (char) {#2};}}
+\renewenvironment{center}
+{\parskip=3pt\par\nopagebreak\centering}
+{\par\noindent\ignorespacesafterend}
+\usepackage{multicol}
+\setlength{\multicolsep}{2pt plus 1pt minus 1pt}
+%%%============================================%%%
+\DeclareSymbolFont{symbolsC}{U}{txsyc}{m}{n}
+\DeclareMathSymbol{\varparallel}{\mathrel}{symbolsC}{9}
+\renewcommand{\parallel}{\mathbin{\!\raisebox{0.25pt}/\mkern-2mu\raisebox{0.25pt}/\!}}
+\renewcommand{\backsim}{\ \mathord{\raisebox{0.025\baselineskip}{\rotatebox{90}{\fontfamily{qag}\selectfont S}}}\ }
+\setlength\arraycolsep{2pt}
+%\newcommand{\hoac}[1]{\renewcommand{\arraystretch}{0.85}\left[\begin{aligned}#1\end{aligned}\right.}
+%\newcommand{\heva}[1]{\renewcommand{\arraystretch}{0.85}\left\{\begin{aligned}#1\end{aligned}\right.}
+\DeclareSymbolFont{AMSb}{U}{msb}{m}{n}
+\makeatletter
+\DeclareSymbolFontAlphabet{\math@bb}{AMSb}
+\AtBeginDocument{\protected\def\mathbb{\math@bb}}
+\g@addto@macro\normalsize{
+\setlength{\abovedisplayskip}{4pt}%
+\setlength{\belowdisplayskip}{2pt}%
+\setlength{\abovedisplayshortskip}{4pt}%
+\setlength{\belowdisplayshortskip}{1pt}%
+}
+\makeatother
+\def\bmod{\operatorname{mod}\,}
+\makeatletter
+\DeclareRobustCommand
+\vdots{\,\vbox{\baselineskip3\p@ \lineskiplimit\z@
+\hbox{.}\hbox{.}\hbox{.}}\,}
+\makeatother
+
+\renewenvironment{center}
+ {\parskip=0pt\par\nopagebreak\centering}
+ {\par\noindent\ignorespacesafterend}
+ 
+\newcommand{\indam}[1]{\textcolor{mausubsection}{\textbf{#1}}}
+\newcommand{\indamm}[1]{\textcolor{mausubsection}{\textbf{#1}}}

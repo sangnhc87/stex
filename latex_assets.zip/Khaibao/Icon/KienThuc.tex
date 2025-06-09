@@ -1,0 +1,38 @@
+\documentclass[tikz,border=1pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{fontawesome}
+\begin{document}
+\definecolor{mausection}{HTML}{EA5548}
+\begin{tikzpicture}[line cap=round,line join=round,declare function={r = 0.79;}]
+	\path[rounded corners=3pt,fill=mausection!30,shift={(1pt,-1pt)}] (90:r)--(150:r)--(210:r)--(270:r)--(330:r)--(30:r)--cycle;
+	\path[rounded corners=3pt,fill=mausection] (90:r)--(150:r)--(210:r)--(270:r)--(330:r)--(30:r)--cycle;
+	\draw[opacity=0.45,white,line width=3pt] (145:{0.8*r})--+(30:{0.35*r});
+	\fill[opacity=0.45,white] ($(150:{0.8*r})+(30:{0.65*r})$) circle (1.65pt);
+	\path (0.1,-0.1) node[scale=0.26]{\begin{tikzpicture}[line cap=round,color=white] 
+	 	\fill[even odd rule] 
+	 		{[rounded corners=1.5pt] (0,0) rectangle (2.2,3)}
+	 		(0.1,0.1) rectangle (2.1,2.9);
+	 		
+	 	\fill[even odd rule] 
+	 		{[rounded corners=1pt] (0.4,2.5) rectangle (1.8,2.8)}
+	 		(0.5,2.6) rectangle (1.7,2.7);
+	 		 		
+	 	\foreach \y in {0.6,1.35,2.1}{
+	 		 \fill[even odd rule] (0.55,\y) circle (0.25)
+	 		 		  (0.55,\y) circle (0.33);
+	 		 \fill (0.52,{\y-0.05})--+(45:0.2)--([turn]-90:0.06)--([turn]-90:0.23)
+	 		 arc(-45:-135:0.03)--+(135:0.13)--([turn]-90:0.06)--cycle
+	 		 (1,{\y-0.1})--+(1,0)--([turn]-90:0.1)--+(-1,0)--cycle
+	 		 (1,{\y+0.1})--+(0.7,0)--([turn]-90:0.1)--+(-0.7,0)--cycle
+	 		 (1.8,{\y+0.1})--+(0.2,0)--([turn]-90:0.1)--+(-0.2,0)--cycle;
+	 	}
+		
+		\fill[mausection]  (1.8,0.9) coordinate (A)--+(45:1.7) arc (-30:120:0.22)--++(225:1.7)--([turn]30:0.35) arc (170:285:0.04)--cycle;
+	 	\fill[even odd rule] (1.8,0.9) coordinate (A)--+(45:1.7) arc (-30:120:0.22)--++(225:1.7)--([turn]30:0.35) arc (170:285:0.04)--cycle
+	 	($(A)+(0,0.1)$) coordinate (B)--+(45:1.6) arc (-30:120:0.14) --++(225:1.6)--cycle
+	 	($(B)+(-165:0.1)$)--+(-165:0.2)--([turn]-120:0.2)--cycle;
+	\end{tikzpicture}};
+\end{tikzpicture}
+ 
+\end{document}
