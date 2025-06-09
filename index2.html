@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Modern Web LaTeX IDE</title>
-    <meta name="description" content="An advanced, modern web-based LaTeX editor with file/ZIP uploading and persistent storage.">
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -12,10 +12,10 @@
             --dark-bg: #282c34;
             --light-bg: #f4f4f4;
             --border-color: #ddd;
+            --danger-color: #dc3545;
         }
         body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
         
-        /* --- Toolbar --- */
         .toolbar {
             display: flex;
             align-items: center;
@@ -24,6 +24,7 @@
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
             gap: 15px;
+            flex-wrap: wrap; /* Cho phép xuống dòng nếu không đủ chỗ */
         }
         .toolbar-group { display: flex; align-items: center; gap: 8px; }
         .toolbar button, .toolbar select {
@@ -38,46 +39,33 @@
         #compile-btn { background-color: var(--primary-color); color: white; font-weight: bold; }
         #compile-btn:hover { background-color: #0056b3; }
         #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+        #clear-cache-btn { border-color: var(--danger-color); color: var(--danger-color); }
+        #clear-cache-btn:hover { background-color: var(--danger-color); color: white; }
 
-        /* --- Main Content --- */
         .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
         .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         #editor { flex: 1; width: 100%; }
 
-        /* --- Collapsible Console --- */
         .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
         .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .console-header:hover { background-color: #d0d0d0; }
         pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
         pre#console.collapsed { display: none; }
         
-        /* --- PDF Viewer --- */
         #pdfbox { height: 100%; width: 100%; }
 
-        /* --- Loading Overlay --- */
         #loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 9999;
-            display: none; /* Hidden by default */
-            justify-content: center;
-            align-items: center;
-            color: white;
-            flex-direction: column;
-            font-size: 1.5em;
+            display: none;
+            justify-content: center; align-items: center;
+            color: white; flex-direction: column; font-size: 1.5em;
         }
-        #loading-message { margin-top: 20px; }
         .spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid var(--primary-color);
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
+            border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color);
+            border-radius: 50%; width: 60px; height: 60px;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -86,9 +74,9 @@
     <div class="toolbar">
         <div class="toolbar-group">
             <label for="file-loader-input" class="toolbar-button-label">
-                <button onclick="document.getElementById('file-loader-input').click()">Load Files / .zip</button>
+                <button onclick="document.getElementById('file-loader-input').click()">Load Files</button>
             </label>
-            <input type="file" id="file-loader-input" multiple style="display: none;" accept=".tex,.sty,.cls,.bib,.png,.jpg,.jpeg,.zip">
+            <input type="file" id="file-loader-input" multiple style="display: none;">
         </div>
         <div class="toolbar-group">
             <label for="main-file-selector">Main File:</label>
@@ -102,6 +90,9 @@
                 <option value="cv">Stylish CV</option>
             </select>
         </div>
+        <div class="toolbar-group">
+            <button id="clear-cache-btn">Clear All Cache</button>
+        </div>
         <div class="toolbar-group" style="margin-left: auto;">
              <button id="compile-btn" disabled>Initializing...</button>
         </div>
@@ -109,10 +100,11 @@
 
     <div class="main-container">
         <div class="editor-pane">
-            <div id="editor">% Welcome to the Modern Web LaTeX IDE!
-% 1. Use the "Load Files / .zip" button to upload your project.
-% 2. Or, select a template to get started.
-% 3. Your .sty/.cls files will be saved for future sessions!
+            <div id="editor">% Welcome to the Smart LaTeX IDE!
+% 1. Use "Load Files" or choose a template.
+% 2. Your .sty, .cls, and 'Phieu*.png' images are automatically cached.
+% 3. Other images are loaded on-the-fly when you compile.
+% 4. Use "Clear All Cache" to reset everything.
 </div>
             <div class="controls">
                 <div id="console-header" class="console-header">
@@ -129,307 +121,340 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <span id="loading-message">Compiling...</span>
+        <span>Compiling...</span>
     </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
-<!-- *** STEP 1: ADD JSZIP LIBRARY *** -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="PdfTeXEngine.js"></script>
 <script>
-    // --- DOM Elements ---
-    const editorEl = ace.edit("editor");
-    const compileBtn = document.getElementById("compile-btn");
-    const consoleOutput = document.getElementById("console");
-    const pdfbox = document.getElementById("pdfbox");
-    const fileLoaderInput = document.getElementById('file-loader-input');
-    const mainFileSelector = document.getElementById('main-file-selector');
-    const templateSelector = document.getElementById('template-selector');
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const loadingMessage = document.getElementById('loading-message');
-    const consoleHeader = document.getElementById("console-header");
-    const consoleToggleIcon = document.getElementById("console-toggle-icon");
+// --- DOM Elements ---
+const editorEl = ace.edit("editor");
+const compileBtn = document.getElementById("compile-btn");
+const consoleOutput = document.getElementById("console");
+const pdfbox = document.getElementById("pdfbox");
+const fileLoaderInput = document.getElementById('file-loader-input');
+const mainFileSelector = document.getElementById('main-file-selector');
+const templateSelector = document.getElementById('template-selector');
+const loadingOverlay = document.getElementById('loading-overlay');
+const consoleHeader = document.getElementById("console-header");
+const consoleToggleIcon = document.getElementById("console-toggle-icon");
+const clearCacheBtn = document.getElementById('clear-cache-btn');
 
-    // --- State Management ---
-    const globalEn = new PdfTeXEngine();
-    let mainTexFile = 'main.tex';
-    const loadedFiles = new Map(); // Temp storage for all loaded files
+// --- State & Config ---
+const globalEn = new PdfTeXEngine();
+let mainTexFile = 'main.tex';
+const DB_NAME = 'LaTeXFilesDB';
+const STORE_NAME = 'StyFilesStore';
+const TEXLIVE_BASE_URL = "https://texlive2.swiftlatex.com/pdftex/";
+const TEXLIVE_VERSION = '26';
+let db;
 
-    // --- IndexedDB for Persistent .sty/.cls files ---
-    const DB_NAME = 'LaTeXFilesDB';
-    const STORE_NAME = 'StyFilesStore';
-    let db;
+// --- IndexedDB Functions ---
+function openDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 2);
+        request.onerror = () => reject("Error opening IndexedDB.");
+        request.onsuccess = (event) => { db = event.target.result; resolve(); };
+        request.onupgradeneeded = (event) => {
+            const storeDb = event.target.result;
+            if (!storeDb.objectStoreNames.contains(STORE_NAME)) {
+                storeDb.createObjectStore(STORE_NAME, { keyPath: 'name' });
+            }
+        };
+    });
+}
 
-    function openDb() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onerror = () => reject("Error opening IndexedDB.");
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                resolve();
-            };
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                db.createObjectStore(STORE_NAME, { keyPath: 'name' });
-            };
-        });
-    }
+function saveFileToDb(name, data) {
+    if (!db) return Promise.reject("DB not open");
+    const cleanName = name.split('/').pop();
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    return new Promise((resolve, reject) => {
+        const request = store.put({ name: cleanName, data });
+        request.onsuccess = resolve;
+        request.onerror = (e) => reject(`Failed to save ${cleanName}: ${e.target.error}`);
+    });
+}
 
-    function saveFileToDb(name, data) {
-        if (!db) return;
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
+function getFileFromDb(name) {
+    return new Promise((resolve) => {
+        if (!db) return resolve(null);
+        const cleanName = name.split('/').pop();
+        const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
-        store.put({ name, data });
+        const request = store.get(cleanName);
+        request.onsuccess = (event) => resolve(event.target.result ? event.target.result.data : null);
+        request.onerror = () => resolve(null);
+    });
+}
+
+function clearStyCache() {
+    if (!db) return alert("Database not available.");
+    if (!confirm("Are you sure you want to delete all cached files? This action cannot be undone and will reload the page.")) return;
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.clear();
+    request.onsuccess = () => {
+        alert("Cache cleared successfully. The page will now reload.");
+        location.reload();
+    };
+    request.onerror = (event) => alert(`Failed to clear cache: ${event.target.error}`);
+}
+
+// --- Editor Setup ---
+editorEl.setTheme("ace/theme/monokai");
+editorEl.session.setMode("ace/mode/latex");
+editorEl.session.setUseWrapMode(true);
+editorEl.setFontSize(16);
+
+// --- Event Listeners ---
+fileLoaderInput.addEventListener('change', handleFileLoad);
+mainFileSelector.addEventListener('change', handleMainFileChange);
+templateSelector.addEventListener('change', handleTemplateChange);
+compileBtn.addEventListener('click', compile);
+consoleHeader.addEventListener('click', toggleConsole);
+clearCacheBtn.addEventListener('click', clearStyCache);
+
+// --- Core Logic ---
+
+async function loadCacheIntoEngine() {
+    console.log("Loading cached files into engine's virtual file system...");
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    return new Promise(resolve => {
+        request.onsuccess = (event) => {
+            const files = event.target.result;
+            if (files.length > 0) {
+                 console.log(`Found ${files.length} files in cache. Writing to engine...`);
+                 files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
+                 console.log("Finished writing cache to engine.");
+            } else {
+                console.log("No files found in cache.");
+            }
+            resolve();
+        };
+        request.onerror = () => { console.error("Could not load cache from IndexedDB."); resolve(); };
+    });
+}
+
+async function parseLogAndCacheDependencies(logContent) {
+    console.log("Parsing log for new STY/CLS dependencies...");
+    const fileRegex = /\(([^)\s]+\.(?:cls|sty|def|clo|ldf|cfg|tex))\s?/g;
+    let match;
+    const dependencies = new Set();
+    while ((match = fileRegex.exec(logContent)) !== null) {
+        const fileName = match[1].split('/').pop();
+        if (fileName) dependencies.add(fileName);
     }
-
-    function loadFilesFromDb() {
-        return new Promise((resolve) => {
-            if (!db) return resolve();
-            const transaction = db.transaction([STORE_NAME], 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.getAll();
-            request.onsuccess = (event) => {
-                const files = event.target.result;
-                files.forEach(file => {
-                    loadedFiles.set(file.name, file.data);
-                    console.log(`Loaded ${file.name} from IndexedDB.`);
-                });
-                resolve();
-            };
-        });
-    }
-
-    // --- Editor Setup ---
-    editorEl.setTheme("ace/theme/monokai");
-    editorEl.session.setMode("ace/mode/latex");
-    editorEl.session.setUseWrapMode(true);
-    editorEl.setFontSize(16);
-
-    // --- Event Listeners ---
-    fileLoaderInput.addEventListener('change', handleFileLoad);
-    mainFileSelector.addEventListener('change', handleMainFileChange);
-    templateSelector.addEventListener('change', handleTemplateChange);
-    compileBtn.addEventListener('click', compile);
-    consoleHeader.addEventListener('click', toggleConsole);
-
-    // --- Main Functions ---
-    async function init() {
+    if (dependencies.size === 0) return;
+    console.log(`Found ${dependencies.size} potential STY/CLS dependencies.`);
+    for (const fileName of dependencies) {
+        if (await getFileFromDb(fileName)) continue;
+        console.log(`[Cache MISS] Caching new dependency: ${fileName}`);
         try {
-            await Promise.all([globalEn.loadEngine(), openDb()]);
-            await loadFilesFromDb();
+            const response = await fetch(`${TEXLIVE_BASE_URL}${TEXLIVE_VERSION}/${fileName}`);
+            if (response.ok) {
+                const fileData = await response.arrayBuffer();
+                await saveFileToDb(fileName, new Uint8Array(fileData));
+                console.log(`[Cache SAVE] Successfully cached ${fileName}.`);
+            } else {
+                console.warn(`Could not fetch dependency ${fileName}. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Error fetching dependency ${fileName}:`, error);
+        }
+    }
+}
+
+async function parseLogAndLoadMissingImages(logContent) {
+    const missingFileRegex = /File `(.+?\.(?:png|jpg|jpeg|pdf|eps))` not found/g;
+    let match;
+    const filesToLoad = new Set();
+    while ((match = missingFileRegex.exec(logContent)) !== null) {
+        filesToLoad.add(match[1]);
+    }
+    if (filesToLoad.size === 0) return [];
+
+    console.log(`Found missing images:`, Array.from(filesToLoad));
+    const loadedFileNames = [];
+    for (const fileName of filesToLoad) {
+        try {
+            const response = await fetch(fileName);
+            if (response.ok) {
+                const fileData = await response.arrayBuffer();
+                const fileUint8 = new Uint8Array(fileData);
+                globalEn.writeMemFSFile(fileName, fileUint8);
+                if (fileName.startsWith('Phieu')) {
+                    await saveFileToDb(fileName, fileUint8);
+                    console.log(`[Cache SAVE] Saved persistent image ${fileName} to IndexedDB.`);
+                } else {
+                    console.log(`[Session Load] Loaded temporary image ${fileName} for this session only.`);
+                }
+                loadedFileNames.push(fileName);
+            } else {
+                console.error(`Failed to fetch ${fileName}. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`Error fetching image ${fileName}:`, error);
+        }
+    }
+    return loadedFileNames;
+}
+
+async function init() {
+    try {
+        await openDb();
+        await globalEn.loadEngine();
+        await loadCacheIntoEngine();
+        
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = (event) => {
+            event.target.result.forEach(file => {
+                if(file.name.endsWith('.tex')) {
+                    // This map is minimal, just to populate the selector
+                    // The actual file content for editing is loaded from DB on change
+                }
+            });
             updateMainFileSelector();
-            compileBtn.innerHTML = "Compile";
-            compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
-        } catch (err) {
-            console.error(err);
-            consoleOutput.innerHTML = `Initialization failed: ${err}`;
-        }
+        };
+
+        compileBtn.innerHTML = "Compile";
+        compileBtn.disabled = false;
+        consoleOutput.innerHTML = "Engine loaded with smart caching. Ready to compile.";
+    } catch (err) {
+        console.error(err);
+        consoleOutput.innerHTML = `Initialization failed: ${err}`;
     }
+}
 
-    // *** STEP 2: UPDATE THE FILE HANDLING LOGIC ***
-    async function handleFileLoad(event) {
-        const files = event.target.files;
-        if (!files.length) return;
-
-        // Clear previous project files (but keep persisted .sty files from DB)
-        // This makes loading a new project/zip cleaner
-        const persistedKeys = [];
-        loadedFiles.forEach((value, key) => {
-            if (key.endsWith('.sty') || key.endsWith('.cls')) {
-                persistedKeys.push(key);
-            }
-        });
-        loadedFiles.clear();
-        await loadFilesFromDb(); // Reload persisted files
-
-        let potentialMainFile = null;
-
-        for (const file of Array.from(files)) {
-            // --- ZIP FILE HANDLING ---
-            if (file.name.endsWith('.zip')) {
-                loadingMessage.innerText = "Unzipping project...";
-                loadingOverlay.style.display = 'flex';
-                try {
-                    const jszip = new JSZip();
-                    const zip = await jszip.loadAsync(file);
-                    const filePromises = [];
-
-                    zip.forEach((relativePath, zipEntry) => {
-                        if (zipEntry.dir) return; // Skip directories
-
-                        const promise = zipEntry.async('uint8array').then(fileData => {
-                            loadedFiles.set(relativePath, fileData);
-                            console.log(`Unzipped: ${relativePath}`);
-
-                            // Heuristic to find the main .tex file
-                            if (relativePath.endsWith('.tex') && !potentialMainFile) {
-                                // Prefer files named 'main.tex' or in the root directory
-                                if (relativePath.toLowerCase() === 'main.tex' || !relativePath.includes('/')) {
-                                   potentialMainFile = relativePath;
-                                }
-                            }
-
-                            // Persist .sty and .cls files from zip
-                            if (relativePath.endsWith('.sty') || relativePath.endsWith('.cls')) {
-                                saveFileToDb(relativePath, fileData);
-                            }
-                        });
-                        filePromises.push(promise);
-                    });
-                    await Promise.all(filePromises);
-
-                } catch (e) {
-                    alert(`Error unzipping file: ${e.message}`);
-                    console.error(e);
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            } 
-            // --- REGULAR FILE HANDLING ---
-            else {
-                const fileData = new Uint8Array(await file.arrayBuffer());
-                loadedFiles.set(file.name, fileData);
-                
-                if (file.name.endsWith('.tex')) {
-                    potentialMainFile = file.name; // A directly uploaded .tex is a strong candidate for main file
-                }
-
-                if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) {
-                    saveFileToDb(file.name, fileData);
-                }
-            }
-        }
-        
-        // After processing all files, update the UI
-        if (potentialMainFile) {
-            mainTexFile = potentialMainFile;
-            const fileContent = loadedFiles.get(mainTexFile);
-            if(fileContent) {
+function handleFileLoad(event) {
+    const files = event.target.files;
+    if (!files.length) return;
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const fileData = new Uint8Array(e.target.result);
+            await saveFileToDb(file.name, fileData);
+            globalEn.writeMemFSFile(file.name, fileData);
+            if (file.name.endsWith('.tex')) {
                 const textDecoder = new TextDecoder();
-                editorEl.setValue(textDecoder.decode(fileContent), -1);
+                editorEl.setValue(textDecoder.decode(fileData), -1);
+                mainTexFile = file.name;
+                updateMainFileSelector();
             }
-        }
-        
-        updateMainFileSelector();
+        };
+        reader.readAsArrayBuffer(file);
+    });
+    event.target.value = '';
+}
 
-        event.target.value = ''; // Allow reloading the same file(s)
-    }
-
-
-    function handleMainFileChange(event) {
-        mainTexFile = event.target.value;
-        const fileContent = loadedFiles.get(mainTexFile);
+function handleMainFileChange(event) {
+    mainTexFile = event.target.value;
+    getFileFromDb(mainTexFile).then(fileContent => {
         if (fileContent) {
             const textDecoder = new TextDecoder();
             editorEl.setValue(textDecoder.decode(fileContent), -1);
         }
-    }
-    
-    function updateMainFileSelector() {
-        mainFileSelector.innerHTML = '';
-        let foundMainFileInList = false;
-        const texFiles = [];
+    });
+}
 
-        // Find all .tex files
-        for (const fileName of loadedFiles.keys()) {
-            if (fileName.endsWith('.tex')) {
-                texFiles.push(fileName);
-            }
-        }
-        
-        // Sort them for consistent order
-        texFiles.sort();
-
-        // Populate the dropdown
-        texFiles.forEach(fileName => {
-            const option = document.createElement('option');
-            option.value = fileName;
-            option.textContent = fileName;
-            mainFileSelector.appendChild(option);
-            if (fileName === mainTexFile) {
-                option.selected = true;
-                foundMainFileInList = true;
+function updateMainFileSelector() {
+    mainFileSelector.innerHTML = '';
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = (event) => {
+        let foundMainFile = false;
+        event.target.result.forEach(file => {
+            if (file.name.endsWith('.tex')) {
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                mainFileSelector.appendChild(option);
+                if (file.name === mainTexFile) {
+                    option.selected = true;
+                    foundMainFile = true;
+                }
             }
         });
-        
-        // If the current mainTexFile is somehow not in the list, add it
-        if (!foundMainFileInList && mainTexFile && loadedFiles.has(mainTexFile)) {
+        if (!foundMainFile && mainTexFile) {
              const option = document.createElement('option');
              option.value = mainTexFile;
              option.textContent = mainTexFile;
              option.selected = true;
-             mainFileSelector.insertBefore(option, mainFileSelector.firstChild);
+             mainFileSelector.appendChild(option);
         }
     }
+}
 
-    async function compile() {
-        if (!globalEn.isReady()) {
-            console.log("Engine not ready yet");
-            return;
-        }
-
-        loadingMessage.innerText = "Compiling...";
-        loadingOverlay.style.display = 'flex'; // Show loading effect
-        compileBtn.disabled = true;
-
-        // Update the content of the currently edited file
-        const textEncoder = new TextEncoder();
-        loadedFiles.set(mainTexFile, textEncoder.encode(editorEl.getValue()));
-        
-        // Write all loaded files to the virtual file system
-        for (const [name, data] of loadedFiles.entries()) {
-            globalEn.writeMemFSFile(name, data);
-        }
-        
-        globalEn.setEngineMainFile(mainTexFile);
-        
-        // Beamer and bibtex might need multiple passes
-        consoleOutput.innerHTML = "First pass...";
-        await globalEn.compileLaTeX();
-        
-        consoleOutput.innerHTML = "Second pass...";
-        const r = await globalEn.compileLaTeX();
-        
-        consoleOutput.innerHTML = r.log || "No log output.";
-        if (consoleOutput.classList.contains('collapsed')) {
-            toggleConsole(); // Show console if it was hidden
-        }
-        
-        loadingOverlay.style.display = 'none'; // Hide loading effect
-        compileBtn.disabled = false;
-
-        if (r.status === 0) {
-            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
-            const objectURL = URL.createObjectURL(pdfblob);
-            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
-        } else {
-            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
-        }
+async function compile() {
+    if (!globalEn.isReady()) {
+        console.log("Engine not ready yet");
+        return;
     }
 
-    function toggleConsole() {
-        consoleOutput.classList.toggle('collapsed');
-        consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
+    loadingOverlay.style.display = 'flex';
+    compileBtn.disabled = true;
+
+    const currentContent = editorEl.getValue();
+    const currentContentData = new TextEncoder().encode(currentContent);
+    globalEn.writeMemFSFile(mainTexFile, currentContentData);
+    await saveFileToDb(mainTexFile, currentContentData);
+    globalEn.setEngineMainFile(mainTexFile);
+
+    console.log("--- Starting first compilation pass ---");
+    let r = await globalEn.compileLaTeX();
+
+    const loadedImageFiles = await parseLogAndLoadMissingImages(r.log);
+    if (loadedImageFiles.length > 0) {
+        console.log(`--- Re-compiling after loading ${loadedImageFiles.length} missing image(s) ---`);
+        r = await globalEn.compileLaTeX();
+    }
+
+    consoleOutput.innerHTML = r.log || "No log output.";
+    if (consoleOutput.classList.contains('collapsed')) {
+        toggleConsole();
     }
     
-    function handleTemplateChange(event) {
-        const templateName = event.target.value;
-        const templates = {
-            'article': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\title{Simple Article}\n\\author{Me}\n\\date{\\today}\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\n\nHello, world!\n\n\\end{document}`,
-            'cv': `\\documentclass[a4paper]{scrartcl}\n\\usepackage{scrlayer-scrpage}\n\\usepackage{titlesec}\n\\usepackage{marvosym}\n\\usepackage{tabularx,colortbl}\n\\usepackage[T1]{fontenc}\n\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\titlerule]\n\n\\begin{document}\n\\begin{center}\n{\\fontsize{36}{36}\\selectfont\\scshape John Smith}\n\n\\vspace{1cm}\n\n\\section{Objective}\n\nA great job.\n\n\\section{Education}\n\nMy University, 2024.\n\n\\end{center}\n\\end{document}`
-        };
-        
-        if (templates[templateName]) {
-            loadedFiles.clear(); // Clear previous project
-            mainTexFile = `${templateName}.tex`;
-            editorEl.setValue(templates[templateName], -1);
-            updateMainFileSelector();
-        }
-    }
+    loadingOverlay.style.display = 'none';
+    compileBtn.disabled = false;
 
-    // --- Start the application ---
-    init();
+    if (r.status === 0) {
+        const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+        const objectURL = URL.createObjectURL(pdfblob);
+        pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+        await parseLogAndCacheDependencies(r.log);
+    } else {
+        pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+    }
+}
+
+function toggleConsole() {
+    consoleOutput.classList.toggle('collapsed');
+    consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
+}
+
+async function handleTemplateChange(event) {
+    const templateName = event.target.value;
+    if (!templateName) return;
+    const templates = {
+        'article': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\title{Simple Article}\n\\author{Me}\n\\date{\\today}\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\n\nHello, world!\n\n\\end{document}`,
+        'cv': `\\documentclass[a4paper]{scrartcl}\n\\usepackage{scrlayer-scrpage}\n\\usepackage{titlesec}\n\\usepackage{marvosym}\n\\usepackage{tabularx,colortbl}\n\\usepackage[T1]{fontenc}\n\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\titlerule]\n\n\\begin{document}\n\\begin{center}\n{\\fontsize{36}{36}\\selectfont\\scshape John Smith}\n\n\\vspace{1cm}\n\n\\section{Objective}\n\nA great job.\n\n\\section{Education}\n\nMy University, 2024.\n\n\\end{center}\n\\end{document}`
+    };
+    
+    mainTexFile = `${templateName}.tex`;
+    const templateData = new TextEncoder().encode(templates[templateName]);
+    editorEl.setValue(templates[templateName], -1);
+    await saveFileToDb(mainTexFile, templateData);
+    globalEn.writeMemFSFile(mainTexFile, templateData);
+    updateMainFileSelector();
+}
+
+// --- Start the application ---
+init();
 
 </script>
 </body>
