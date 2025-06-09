@@ -1,0 +1,26 @@
+%\titlespacing*{\section}{0cm}{0cm}{15pt}
+% \usepackage{eso-pic}
+ \tikzset{shaded/.style args={#1:#2:#3 @ #4}{
+   left color=#1, right color=#3, middle color=#2, shading angle=#4
+ }}
+ \tikzset{pics/.cd, clock/.style args={#1:#2:#3}{code={
+ \tikzset{x=1ex, y=1ex, every path/.style={line cap=round}} 
+ \shade [shaded=black!75:black!50:black!25 @ 225] circle [radius=13];
+ \shade [shaded=black!75:black!50:black!25 @ 45]  circle [radius=12.5];
+ \fill [black!90] circle [radius=12];
+ \foreach \i [evaluate={\j=90-\i*30; \k=mod(\i,3)==0;\m=int(\i*5);}] in {1,...,12}
+   \draw [white, line width=\k ? .4ex : .2ex] (\j:11.5) -- (\j:11-\k) 
+     (\j:10) node [anchor=\j, text=black!20, font=\sffamily]  {\expandafter\uppercase\expandafter{\i}};
+ \shade [inner color=white, outer color=black, opacity=0.25] circle [radius=12];
+ \fill [gray!50, rotate=90-#1*30-#2/2-#3/120, 
+   rounded corners=.5ex, drop shadow={fill=black, opacity=0.5}]
+   (-3/2,3/4) -- (-3/2,-3/4) -- (7,0) -- cycle;
+ \fill  [gray!50, rotate=90-#2*6-#3/60, 
+   rounded corners=0.5ex, drop shadow={fill=black, opacity=0.5}]
+   (-3/2,3/4) -- (-3/2,-3/4) -- (11,0) -- cycle;
+ \fill [red!75!black, drop shadow={fill=black, opacity=0.5}, rotate=90-#3*6] (0,-.1ex) rectangle (11,.1ex);
+ \shade [shaded=black!50:black!25:black!10 @ 225] circle [radius=1];
+ \shade [shaded=black!50:black!25:black!10 @ 45] circle [radius=3/4];
+ \fill [white, opacity=1/16] (0:11) arc (0:180:11) 
+ .. controls ++(-45:10) and ++(135:10) .. cycle;
+ }}}

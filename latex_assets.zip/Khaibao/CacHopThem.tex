@@ -1,0 +1,114 @@
+\tikzset{laphuong/.pic={
+	\path[pic actions,line join=round]
+	(0,0)--++(27.5:r)--++(152.5:r)--+(-152.5:r)--cycle
+	(0,0)--++(0,-r)--++(152.5:r)--+(0,r)--cycle
+	(0,0)--++(0,-r)--++(27.5:r)--+(0,r)--cycle;
+}}
+\usetikzlibrary{matrix}
+\newtcolorbox{kttrongtam}{
+enhanced,breakable,
+before skip=6pt,after skip=6pt,
+boxsep=9pt,
+left=1cm,
+right=0.25cm,
+bottom=0pt,
+frame empty,
+frame hidden,
+arc=7pt,
+colback=orange!7,
+sharp corners,
+rounded corners=south,
+colframe=orange!35,
+boxrule=0pt,
+borderline north={9pt}{0pt}{orange!65},
+drop fuzzy shadow=gray!75,
+overlay unbroken and first ={
+\fill[orange,drop shadow={opacity=0.25,shadow xshift=1pt, shadow yshift=-1.5pt,shadow scale=1.05}] (frame.north west) coordinate (A)--+(2,0)--($(A)+(0,-1.25)$)--cycle;
+\path ($(A)+(0.65,-0.15)$) coordinate (B) node{
+\begin{tikzpicture}[x=3.65pt,y=3.65pt,xscale=-1]
+\draw[thick,orange,fill=white] (-1,-4) to[out=50,in=-90,looseness=1.4] (-1,-3) to[out=-160,in=0]
+(-2,-3.2) to[out=180,in=-120] (-2.7,-2) to[out=120,in=-120] (-2.9,-1.5)
+to[out=120,in=-120] (-2.95,-1.1) to[out=60,in=-30] (-3.2,-0.9)
+to[out=150,in=-120] (-3,0.4) to[out=60,in=-90] (-3,1.2)
+to[out=90,in=90,looseness=1.8] (3.3,1.2)
+to[out=-90,in=90,looseness=0.8] (2,-2)
+to[out=-90,in=150,looseness=0.8] (3.2,-4) -- cycle;
+\end{tikzpicture}
+};
+\tikzset{declare function={r=0.275;}}
+\path (B) pic[fill=orange,draw=white]{laphuong};
+}
+}
+
+\newenvironment{trithuc}{\begin{kt}}{\end{kt}}
+%\newenvironment{tomtath}{\begin{kttrongtam}}{\end{kttrongtam}}
+
+
+%%%=======================================================%%%
+\newtcolorbox{phantich}{
+   		   boxsep=3pt,
+   		   left=3pt,
+   		   top=9pt,
+   		   enhanced,
+   		   right=3pt,
+   		   boxrule=0.65pt, %độ dày của khung
+   		   colframe=cyan!15, %màu của khung
+   		   grow to left by=-3pt,
+   		   before skip=5pt,
+		   interior style={left color=cyan!7,right color=white},
+		   frame empty,
+%   		   code={\refstepcounter{ex}},
+   		   title={\faGg\ Phân tích}, %nhãn của hộp
+   		   coltitle=white, %màu của nhãn của hộp	
+   		   fonttitle=\bfseries\sffamily,
+		   attach boxed title to top left={xshift=-7pt,yshift=-\tcboxedtitleheight/2},		  
+   		   underlay boxed title={
+   					\path[fill=black] (title.south west)--++(7.1pt,0)--+(0,-7.1pt)--cycle;
+   				},
+   		 sharp corners,
+   		 underlay={
+   			\path[even odd rule,left color=teal,right color=orange] {($(frame.north west)+(-0.65pt,0.65pt)$) rectangle  ($(frame.south east)+(0.65pt,-0.65pt)$)}
+   			{[rounded corners=3pt]($(frame.north west)+(0.65pt,-0.65pt)$) rectangle  ($(frame.south east)+(-0.65pt,0.65pt)$)};
+			\path (title.north west) coordinate (A) (title.south west) coordinate (B)
+					(title.north east) coordinate (C);   				
+ 			\path[left color=red,right color=orange] let \p1=($(A)-(B)$),  	
+ 					\n1={veclen(\p1)}
+ 					in (A) -- (C) arc (90:-90:{\n1/2})-- (B) -- cycle
+ 					($(B)!0.5!(C)+(0.65pt,-0.65pt)$) node[font=\bfseries\sffamily,text=gray]{\faGg\ Phân tích}
+ 					($(B)!0.5!(C)$) node{\tcbtitle}; 
+   		},		
+    }
+    
+  %%%============================Tính chất=========================%%%
+  \newtcolorbox{hopgoc}[1][Định lý]{enhanced,breakable,notitle,
+     frame empty,
+     colframe=white,
+     colback=cyan!10,
+     sharp corners,
+     rounded corners=southeast,
+     arc=15pt,
+     interior style={left color=cyan!15,right color=cyan!10},
+     left=0.65cm,right=6pt,top=6pt,bottom=6pt,before skip=19pt,
+      overlay unbroken and first ={
+  	    \draw[line width=1pt,teal] ([shift={(-1pt,-1pt)}]frame.north east) coordinate (A)--
+  	    ($([yshift=-1pt]frame.north west)+(0.75,0)+(1pt,0)$) coordinate (B) arc (0:-90:0.75) coordinate (C)
+  	    --([shift={(1pt,1pt)}]frame.south west) coordinate (D);
+  	    \foreach \ten in {A,B,C,D}{\fill[teal] (\ten) circle (1.75pt);}
+  		\path ($(B)!0.5!(C)+(135:0.4)$) node{\includegraphics[width=1cm]{Khaibao/Icon/Bulb.pdf}};
+  		\path ($(B)+(0,-2pt)$) node[font=\sffamily\bfseries,text=teal,anchor=south west]{#1};
+      },
+      overlay middle and last={
+  	    \draw[line width=1pt,teal] ([shift={(-1pt,-1pt)}]frame.north east) coordinate (A)--
+  	    ($([yshift=-1pt]frame.north west)+(0.75,0)+(1pt,0)$) coordinate (B) arc (0:-90:0.75) coordinate (C)
+  	    --([shift={(1pt,1pt)}]frame.south west) coordinate (D);
+  	    \foreach \ten in {A,B,C,D}{\fill[teal] (\ten) circle (1.75pt);}
+  		\path ($(B)!0.5!(C)+(135:0.4)$) node{\includegraphics[width=1cm]{Khaibao/Icon/Bulb.pdf}};
+      } 
+  }
+  
+  \newcounter{tc}[section]
+  \newenvironment{tc}{\refstepcounter{tc}\begin{hopgoc}[Tính chất \thetc]}{\end{hopgoc}}
+  
+  \newcounter{hq}[section]
+  \newenvironment{hq}{\refstepcounter{hq}\begin{hopgoc}[Hệ quả \thehq]}{\end{hopgoc}}
+ 

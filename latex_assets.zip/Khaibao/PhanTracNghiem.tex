@@ -1,0 +1,582 @@
+%%%================Lệnh immini================%%%
+\def\loaicau{}
+\def\tieudehinh{}
+\def\loaicau{}
+\newlength{\widthPB}
+\newbool{TNdungsai}
+  
+\newcommand{\hinhphai}[2]{%
+\savebox{\imbox}{#2}%
+\tcbsidebyside[
+sidebyside adapt=right,
+blanker,sidebyside gap=5mm,
+sidebyside align=top seam,
+]{%
+	{\tieudehinh}%
+		#1
+	}{%
+		\usebox{\imbox}%
+	}%
+%	\xdef\loaicau{\setboolean{TNdungsai}{false}}%
+}
+
+\renewcommand{\immini}[3][]{%
+\savebox{\imbox}{#3}%
+%\setlength{\widthPB}{0.53\linewidth}
+\tcbsidebyside[
+	sidebyside adapt=right,
+	blanker,sidebyside gap=5mm,
+	sidebyside align=top seam,before skip=0pt
+	]{%
+		\tieudehinh%
+	#2
+	}{%
+		\usebox{\imbox}
+	}%
+}
+
+\tikzset{daudung/.pic={\draw[line width=0.65pt] (-0.7ex,0.3ex) -- ++(0.6ex,-0.5ex) --++(1.1ex,1.7ex) --++(-1.05ex,-2ex) -- cycle;}}
+\tikzset{dausai/.pic={\draw[line width=0.65pt] (50:0.5ex) -- (230:0.5ex) (130:0.5ex) -- (310:0.5ex);}}
+
+ \newcommand{\TLdung}[1]{%
+ \tikz[baseline=(char.base)]
+  {\node[shape=circle,inner sep=0.5pt,draw=mausubsection,font=\bfseries\footnotesize,minimum size=12pt,outer sep=5pt] (char) {#1};
+  	 \path (char) pic[mausubsection,line join=miter]{daudung};
+  }\ignorespaces}
+ 
+ \newcommand{\TLsai}[1]{%
+ \tikz[baseline=(char.base)]
+ {\node[shape=circle,inner sep=0.5pt,draw=mausubsection,font=\bfseries\footnotesize,minimum size=12pt,outer sep=5pt] (char) {#1};
+  \path (char) pic[mausubsection,line join=miter]{dausai};
+% \path (char) node[font=\scriptsize\sffamily\bfseries,text=mausubsection,anchor=center]{x};
+ }\ignorespaces}
+ 
+\def\checkmarkH{{\tikz[line join=miter]{\draw (0.5ex,0.5ex) coordinate (O) circle (0.75ex);\path[preaction={draw=white,line width=0.2ex},fill=white,draw] (0,.5ex) -- (.5ex,0) -- (1.5ex,1.35ex) -- (.45ex,.25ex) -- cycle; \draw ([shift={(90:0.75ex)}]O) arc (90:270:0.75ex);}} }
+
+\makeatletter
+\RenewDocumentEnvironment{ex}{+!O{}O{}}{%
+	\global\setbool{TNdungsai}{false}
+	\ifthenelse{\equal{#1}{c}}{
+		\ifblank{#2}{%
+			\@ifnextchar\immini{\gdef\tieudehinh{{\bfseries\color{mauchuong}\checkmarkH Câu \theex.}}}%
+			{{\par\noindent{\bfseries\color{mauchuong}\checkmarkH Câu \theex.}
+			}}%
+		 }%blank#2true
+		 {\@ifnextchar\immini{\gdef\tieudehinh{{\bfseries\checkmarkH Câu \theex } {(\textit{#1}).\,}}}%
+			{{\par\vspace*{-6pt}\noindent\bfseries\color{mauchuong}\checkmarkH Câu \theex} {\color{mauchuong}(\textit{#2}).\,}}%
+		 }}%blank#2false	
+	{%
+	\ifblank{#2}{%
+		\@ifnextchar\immini{\gdef\tieudehinh{{\bfseries\color{mauchuong} Câu \theex.}}}%
+		{{\par\noindent{\bfseries\color{mauchuong} Câu \theex.}
+		}}%
+	 }%blank#2true
+	 {\@ifnextchar\immini{\gdef\tieudehinh{{\bfseries Câu \theex } {(\textit{#1}).\,}}}%
+		{{\par\vspace*{-6pt}\noindent\bfseries\color{mauchuong} Câu \theex} {\color{mauchuong}(\textit{#2}).\,}}%
+	 }}%blank#2false	
+	}{\gdef\tieudehinh{}\ignorespacesafterend}
+\makeatother
+
+\AtBeginEnvironment{ex}{%
+	\refstepcounter{ex}%
+	 \setcounter{numTrue}{0}%
+	 \setcounter{numTrueSol}{0}%
+	 \global\setbool{TNdungsai}{false}%
+	 \def\dotEX{.}%
+	 \setcounter{numChoice}{0}%
+	 \renewcommand{\loigiai}[1]{\gdef\tieudehinh{}\par\noindent%
+	 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {Lời giải.}} #1
+	 \ifthenelse{\value{numTrueSol}>0}{
+	 \hfill \textcolor{mauchuong}{\faKey~\circlenum{\Alph{numTrueSol}}}
+	 }{}
+ }%}
+} 
+
+\renewcommand{\FalseEX}{\stepcounter{dapan}{{\Alph{dapan}}.}}
+\renewcommand{\TrueEX}{\stepcounter{dapan}{\Alph{dapan}}.}
+
+\RenewEnviron{Solution}[1]{%
+	\tikz{\node[draw=mauchuong,thick,inner sep=3pt,text width=0.1\linewidth-4\fboxsep,minimum height=0.65cm,
+		rounded corners,fill=yellow!5,align=center](A){
+		{\resizebox{1.1cm}{!}{\textbf{#1} -	{\textbf{\BODY}}}}
+		};
+	 \path ($(A)+(0,-13pt)$);
+	}
+}
+
+\def\bangdapan#1{
+\begin{center}
+	{\bfseries\sffamily BẢNG ĐÁP ÁN TRẮC NGHIỆM}
+	\vspace*{-11pt}
+\end{center}
+
+\begin{flushleft}
+	\input{Ans/#1}
+\end{flushleft}
+}
+
+%%%===============trắc nghiệm đúng sai======================%%%
+\usepackage{makecell}
+\newbool{Ads}
+ \newbool{Bds}
+ \newbool{Cds}
+ \newbool{Dds}
+ \makeatletter
+ \newcommand{\KiemtraA}{\@ifnextchar\True{\global\setbool{Ads}{true}\xdef\saveans{\saveans\string\TLdung{A}}}{\global\setbool{Ads}{false}\xdef\saveans{\saveans\string\TLsai{A}}}}
+ \newcommand{\KiemtraB}{\@ifnextchar\True{\global\setbool{Bds}{true}\xdef\saveans{\saveans\string\TLdung{B}}}{\global\setbool{Bds}{false}\xdef\saveans{\saveans\string\TLsai{B}}}}
+ \newcommand{\KiemtraC}{\@ifnextchar\True{\global\setbool{Cds}{true}\xdef\saveans{\saveans\string\TLdung{C}}}{\global\setbool{Cds}{false}\xdef\saveans{\saveans\string\TLsai{C}}}}
+ \newcommand{\KiemtraD}{\@ifnextchar\True{\global\setbool{Dds}{true}\xdef\saveans{\saveans\string\TLdung{D}}}{\global\setbool{Dds}{false}\xdef\saveans{\saveans\string\TLsai{D}}}}
+ \makeatother
+ 
+ 
+ \def\saveans{}
+ \newlength{\widthNPB}
+ \setlength{\widthPB}{1.07\linewidth}
+ \setlength{\widthNPB}{0.53\linewidth-1.1cm}
+ \setlength\LTpre{5pt}% khoảng cách trước longtable
+ \setlength\LTpost{3pt}
+ \def\maudapan{black}
+ 
+\newcommand{\choiceTF}[5][1]{%
+\def\saveans{}%
+\global\setbool{TNdungsai}{true}%
+\loigiaiTF
+\ifthenelse{\equal{#1}{1}}{%
+ \begin{enumerate}[wide=\parindent,label*=\protect{\alph*)},itemsep=-3pt,topsep=-4pt]
+ \item \KiemtraA#2\dotEX	
+ \item \KiemtraB#3\dotEX
+ \item \KiemtraC#4\dotEX
+ \item \KiemtraD#5\dotEX
+ \end{enumerate}
+ }{
+ \ifthenelse{\equal{#1}{t}}{%
+ \begin{longtable}{|p{\widthPB}|C{0.45cm}|C{.45cm}|}
+ \hline
+ \thead{\normalsize\sffamily Phát biểu}& {\sffamily Đ} & {\sffamily S}\\
+ \hline
+ 	{a)} \KiemtraA#2\dotEX &\ifbool{Ads}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Ads}{}{{\color{\maudapan}\footnotesize\faClose}}  \\
+ \hline
+	{b)} \KiemtraB#3\dotEX & \ifbool{Bds}{{\color{\maudapan}\footnotesize\faCheck}}{} & \ifbool{Bds}{}{{\color{\maudapan}\footnotesize\faClose}}\\
+ \hline
+	{c)} \KiemtraC#4\dotEX &\ifbool{Cds}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Cds}{}{{\color{\maudapan}\footnotesize\faClose}} \\
+ \hline
+	{d)} \KiemtraD#5\dotEX & \ifbool{Dds}{{\color{\maudapan}\footnotesize\faCheck}}{} & \ifbool{Dds}{}{{\color{\maudapan}\footnotesize\faClose}} \\
+ \hline
+ \end{longtable}
+ }{%
+ \ifthenelse{\equal{#1}{tt}}{%
+ \begin{center}
+ \vspace*{-0.65\baselineskip}
+ \begin{tabular}{cc}%
+ \begin{tabular}[t]{|p{\widthNPB}|C{0.45cm}|C{.45cm}|}
+		 \hline
+		 \thead{\normalsize\sffamily Phát biểu}& {\sffamily Đ} & {\sffamily S}\\
+		 \hline
+		 {a)} \KiemtraA#2\dotEX &\ifbool{Ads}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Ads}{}{{\color{\maudapan}\footnotesize\faClose}}  \\
+		 \hline
+		 {b)} \KiemtraB#3\dotEX &\ifbool{Bds}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Bds}{}{{\color{\maudapan}\footnotesize\faClose}}  \\
+		 \hline
+		 \end{tabular}~
+		 \begin{tabular}[t]{|p{\widthNPB}|C{0.35cm}|C{.35cm}|}
+		 \hline
+		 \thead{\normalsize\sffamily Phát biểu}&{\sffamily Đ} & {\sffamily S}\\
+		 \hline
+		 {c)} \KiemtraC#4\dotEX &\ifbool{Cds}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Cds}{}{{\color{\maudapan}\footnotesize\faClose}}  \\
+		 \hline
+		 {d)} \KiemtraD#5\dotEX &\ifbool{Dds}{{\color{\maudapan}\footnotesize\faCheck}}{} &\ifbool{Dds}{}{{\color{\maudapan}\footnotesize\faClose}}  \\
+		 \hline
+		 \end{tabular}
+		 \end{tabular}
+		\end{center}
+ }{%
+	 \begin{multicols}{#1}
+	 \begin{enumerate}[wide=0.65cm,label*=\protect{\alph*)},itemsep=-3pt,topsep=-4pt]
+		 \item \KiemtraA#2\dotEX	
+		 \item \KiemtraB#3\dotEX
+		 \item \KiemtraC#4\dotEX
+		 \item \KiemtraD#5\dotEX
+	 \end{enumerate}
+	 \end{multicols}	
+	 }
+ }
+ }
+\Writetofile{ansbook}{\string\def\string\writeANS{\saveans}}
+  \scantokens{
+	\begin{solbook}
+		\writeANS
+	\end{solbook}
+  }%
+\setcounter{numTrue}{0}%
+}
+
+
+\newcommand{\loigiaiTF}{
+	 \renewcommand{\loigiai}[1]{%
+	 \par\noindent%
+	 {\xdef\tieudehinh{}\par\noindent%
+	 	 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {Lời giải.}} ##1\hfill \textcolor{mauchuong}{\faKey}~\hspace*{-7pt}
+		 \ifbool{Ads}{\TLdung{A}}{\TLsai{A}}~\hspace*{-7pt}
+		 \ifbool{Bds}{\TLdung{B}}{\TLsai{B}}~\hspace*{-7pt}
+		 \ifbool{Cds}{\TLdung{C}}{\TLsai{C}}~\hspace*{-7pt}
+		 \ifbool{Dds}{\TLdung{D}}{\TLsai{D}}}
+	 }%
+}
+\newenvironment{itemchoice}%
+	{\begin{enumerate}[wide=0.65cm,label*=\protect{\alph*)},itemsep=-3pt,topsep=-4pt]}%
+	{\end{enumerate}}
+\def\itemch{\item}
+
+%\renewenvironment{Solbook}[1]{{\noindent{\textsf{Câu~#1}}} \ignorespaces}{}
+
+\RenewEnviron{Solbook}[1]{%
+	\tikz{
+		\node[font=\bfseries,text width=4cm,
+			align=center,minimum height=18pt] (A){\resizebox{3.9cm}{!}{Câu #1. \BODY}};
+		\draw[mauchuong,rounded corners]([yshift=-1pt]A.north west) rectangle ([yshift=1pt]A.south east);
+	}%
+}
+
+\newcommand{\bangdapanTF}[1]{
+	\begin{center}
+		\textbf{\textsf{BẢNG ĐÁP ÁN ĐÚNG SAI Đ/S}}
+	\end{center}
+	\begin{multicols}{4}
+	\input{Ansbook/#1}
+	\end{multicols}
+}
+
+\usepackage{xstring}
+\newcommand{\khungB}[1]{%
+ \StrSubstitute{#1}{$}{}[\chuoi] % Loại bỏ dấu $
+  \StrLen{\chuoi}[\strlen]%
+  \ifnum\strlen<4
+ 	  \def\strlen{4}
+  \fi
+  \foreach \i in {1,...,\strlen} {%
+    \StrChar{\chuoi}{\i}[\char]%
+    \tikz\node[draw=teal!65,rectangle,minimum width=19pt,minimum height=19pt,rounded corners=1pt,text=white]{\char};%
+  }%
+}
+
+%%%================hiển thị lời giải trắc nghiệm================%%%
+\def\hienthiloigiai{
+	\global\setbool{TNdungsai}{false}%
+	\xdef\maudapan{black}%
+	\AtBeginEnvironment{ex}{%
+		\renewcommand{\loigiaiTF}{%
+			 \renewcommand{\loigiai}[1]{%
+				 \par\noindent%
+				 {\xdef\tieudehinh{}\par\noindent%
+				 	 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {\fontfamily{qzc}\selectfont Lời giải.}} ####1\hfill \textcolor{mauchuong}{\faKey}~\hspace*{-7pt}
+					 \ifbool{Ads}{\TLdung{A}}{\TLsai{A}}~\hspace*{-7pt}
+					 \ifbool{Bds}{\TLdung{B}}{\TLsai{B}}~\hspace*{-7pt}
+					 \ifbool{Cds}{\TLdung{C}}{\TLsai{C}}~\hspace*{-7pt}
+					 \ifbool{Dds}{\TLdung{D}}{\TLsai{D}}}
+			}%				
+		}
+		\renewcommand{\shortans}[2][]{\phantom{.}\hfill{\color{mauchuong}\raisebox{6pt}{\faKey}}\;\khungB{##2}}
+		\ifbool{TNdungsai}{%
+			 \renewcommand{\loigiai}[1]{%
+				 \par\noindent%
+				 {\xdef\tieudehinh{}\par\noindent%
+				 	 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {\fontfamily{qzc}\selectfont Lời giải.}} ##1\hfill \textcolor{mauchuong}{\faKey}~\hspace*{-7pt}
+					 \ifbool{Ads}{\TLdung{A}}{\TLsai{A}}~\hspace*{-7pt}
+					 \ifbool{Bds}{\TLdung{B}}{\TLsai{B}}~\hspace*{-7pt}
+					 \ifbool{Cds}{\TLdung{C}}{\TLsai{C}}~\hspace*{-7pt}
+					 \ifbool{Dds}{\TLdung{D}}{\TLsai{D}}}
+				}%
+			}{%
+				 \renewcommand{\loigiai}[1]{\gdef\tieudehinh{}\par\noindent%
+				 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {\fontfamily{qzc}\selectfont Lời giải.}} ##1
+				 \ifthenelse{\value{numTrueSol}>0}{%
+				 \hfill {\color{mauchuong}\faKey~\circlenum{\Alph{numTrueSol}}}%
+			}{}}%
+		}%					
+	}
+	\AtBeginEnvironment{bt}{%
+		\renewcommand{\shortans}[2][]{%
+			 \scantokens{%
+				 \begin{giaibt}
+				 	##2
+				 \end{giaibt}}% 
+			 \phantom{.}\hfill{\color{mauchuong}\raisebox{6pt}{\faKey}}\;\khungB{##2}}%
+			 \renewcommand{\loigiai}[1]{%
+				 \par\noindent%
+				 {\xdef\tieudehinh{}\par\noindent%
+				 	 {\color{mausubsection}\reflectbox{\Large\WritingHand}\ {\fontfamily{qzc}\selectfont Lời giải.}} ##1
+				 }%
+		   }%
+	}	
+}
+
+%%%================tắt lời giải trắc nghiệm================%%%
+\def\anloigiai{
+	\xdef\maudapan{white}%
+	\AtBeginEnvironment{ex}{%
+		\renewcommand{\loigiai}[1]{}
+		\renewcommand{\loigiaiTF}{}
+	}
+	\AtBeginEnvironment{bt}{%
+		\renewcommand{\loigiai}[1]{}
+		\renewcommand{\shortans}[2][]{%
+%			 \scantokens{%
+%				 \begin{giaibt}
+%				 	##2
+%				 \end{giaibt}}% 	
+				 \phantom{.}\hfill\khungB{##2}\hspace*{-0.35cm}
+		   }% 
+	}%
+}
+
+%%%=============lưu lời giải trắc nghiệm=============%%%
+\Newassociation{giaiex}{loigiaiex}{ansex}
+\def\luuloigiai{
+	\xdef\maudapan{white}%
+	\AtBeginEnvironment{ex}{%
+		\renewcommand{\loigiaiTF}{}
+		\renewcommand{\loigiai}[1]{%
+		 \Writetofile{ansex}{\string\def\string\writeANS{\string\faKey\, \saveans}}
+		 \ifbool{TNdungsai}{}{\Writetofile{ansex}{\string\def\string\writeANS{\string\faKey\, \circlenum{\Alph{numTrueSol}}}}}
+				 \scantokens{%
+				 \begin{giaiex}
+					 ##1
+				 \end{giaiex}
+				}% 
+		}
+	}
+	\AtBeginEnvironment{bt}{%
+		\renewcommand{\loigiai}[1]{%
+				\Writetofile{ansex}{\string\def\string\writeANS{}}
+				 \scantokens{%
+				 \begin{giaiex}
+					 ##1
+				 \end{giaiex}
+				}% 
+		}
+	}
+}
+
+\NewTColorBox{boxlgex}{+m}{
+	 breakable,
+	 enhanced,
+	 outer arc=0pt,
+	 arc=0pt,
+	 colframe=white,
+	 frame hidden,
+	 left=-6pt,right=0pt,top=0pt,
+	 colback=white,
+	 attach boxed title to top left,
+	 boxed title style={
+	 colback=white,
+	 outer arc=0pt,
+	 arc=0pt,
+	 top=1pt,
+	 bottom=1pt,
+	 left=3pt,
+	 right=3pt,
+	 colframe=white
+ },
+ fonttitle=\bfseries\sffamily\selectfont\color{white},
+ title={\faGg\; Câu~#1},
+ overlay unbroken and first={
+ \path (title.north west) coordinate (A)
+ ($ (title.south west) +(-4pt,0pt)$) coordinate (B)
+ (title.south east) coordinate (C)
+ ($ (title.north east)+(4pt,0) $) coordinate (D);
+ \path[rounded corners=2pt,fill=mauchuong,
+ preaction={transform canvas={shift={(-45:2pt)}},left color=mauchuong!45,right color=mauchuong!25}] 
+ (A)--(B)--(C)--(D)--cycle;
+ \path (A)--(C) node[midway,font=\color{white}\bfseries\sffamily\selectfont](Bai){\textsl{\faGg\ Câu~#1}};
+ \draw[rounded corners=2pt,thick,mauchuong] ([xshift=-3pt]B) coordinate (Bt)
+ --([shift={(-2pt,2pt)}]A)--+(\linewidth,0) coordinate (Ct);
+ \path ($(Ct)+(210:3pt)$) node[anchor=north east,text=mausection]{\writeANS};
+ \fill[mauchuong] (Bt) circle (1pt) (Ct) circle (2pt);
+}
+}
+ 
+\renewenvironment{loigiaiex}[1]{\begin{boxlgex}{#1}}{\end{boxlgex}}
+
+\RenewEnviron{listEX}[1][1]{
+	\ifthenelse{\equal{#1}{1}}%
+	{%
+	\begin{enumerate}%[label*=\circlenum{\Alph*},itemsep=-1pt,topsep=0pt]%
+		\BODY%
+	\end{enumerate}%
+	}%
+	{\begin{multicols}{#1}
+	\begin{enumerate}%[label*=\circlenum{\Alph*},itemsep=-1pt,topsep=0pt]%
+		\BODY%
+	\end{enumerate}%
+	\end{multicols}}%
+}
+
+%%%================Đổi thành dòng kẻ lời giải==================%%%
+\newcommand{\Pointilles}[2][1.1]{%
+ \par\nobreak%
+ \noindent\rule{0pt}{1.1\baselineskip}%
+ \foreach \i in {1,...,#2}{%
+ \ifnum\i=1
+ \noindent\makebox[\linewidth]{\rule{0pt}{#1\baselineskip}\reflectbox{\Large\WritingHand}\dotfill}\endgraf
+ \else
+ \noindent\makebox[\linewidth]{\rule{0pt}{#1\baselineskip}\dotfill}\endgraf
+ \fi
+ }
+}
+
+\newcommand{\DoiThanhDongKe}[1]{
+\setbox0=\vbox{\hbox{
+\noindent\begin{minipage}{\linewidth}%
+#1 aaaaa
+\end{minipage}
+}}
+\linepar=\ht0
+\pgfmathparse{int((\linepar-\fboxsep)/(\lineheight)+1)}
+	\ifnum\pgfmathresult>3
+	\noindent%
+		\Pointilles{\pgfmathresult}
+	\else
+	\noindent%
+		\Pointilles{3}
+	\fi
+}
+
+\newcommand{\DoiThanhDongKeH}[1]{
+\setbox0=\vbox{\hbox{
+\noindent\begin{minipage}{\linewidth}%
+#1 aaaaa
+\end{minipage}
+}}
+\linepar=\ht0
+\pgfmathparse{int((\linepar-\fboxsep)/(0.85\lineheight)+1)}
+	\ifnum\pgfmathresult>3
+	\noindent%
+		\Pointilles{\pgfmathresult}
+	\else
+	\noindent%
+		\Pointilles{4}
+	\fi
+}
+
+%%%=============================================%%%
+\def\dongkeloigiai{
+	\AtBeginEnvironment{ex}{
+		\def\maudapan{white}
+		\renewcommand{\loigiaiTF}{}
+		\renewcommand{\loigiai}[1]{%
+		 \DoiThanhDongKe{##1}
+		}
+	}
+}
+
+
+%%%=============================================%%%
+\def\dongkeHaicot{
+	\AtBeginEnvironment{ex}{
+		\def\maudapan{white}
+		\renewcommand{\loigiaiTF}{}
+		\renewcommand{\loigiai}[1]{
+			\begin{multicols}{2}			
+				\DoiThanhDongKeH{##1}
+			\end{multicols}%
+		}
+	}
+	\AtBeginEnvironment{bt}{
+		\renewcommand{\loigiai}[1]{
+			\begin{multicols}{2}			
+				\DoiThanhDongKeH{##1}
+			\end{multicols}%
+		}
+	}	
+}
+
+%%%================Đổi thành dòng kẻ lời giải==================%%%
+
+\RenewEnviron{enumEX}[2][]{
+	\ifthenelse{\equal{#2}{1}}%
+	{%
+	\begin{enumerate}%[label*=\circlenum{\Alph*},itemsep=-1pt,topsep=0pt]%
+		\BODY%
+	\end{enumerate}%
+	}%
+	{\begin{multicols}{#2}
+	\begin{enumerate}%[label*=\circlenum{\Alph*},itemsep=-1pt,topsep=0pt]%
+		\BODY%
+	\end{enumerate}%
+	\end{multicols}}%
+}
+
+\newcounter{bt}
+\makeatletter
+\newenvironment{bt}[1][]{\par\noindent%
+	\refstepcounter{bt}%
+	\ifthenelse{\equal{#1}{c}}{%
+	\@ifnextchar\immini{\vspace*{-3pt}\gdef\tieudehinh{{\bfseries\color{mauchuong}\checkmarkH Bài \arabic{bt}. }}}%
+	{{\bfseries\color{mauchuong}\checkmarkH Bài \arabic{bt}. }}%\arabic{section}.
+	}{%không tùy chọn
+	\@ifnextchar\immini{\vspace*{-3pt}\gdef\tieudehinh{{\bfseries\color{mauchuong}Bài \arabic{bt}. }}}%
+	{{\bfseries\color{mauchuong}Bài \arabic{bt}. }}%\arabic{section}.
+}}%
+{\xdef\tieudehinh{}}
+\makeatother
+
+ 
+%%%===============cau trả lời ngắn=======================%%%
+\Newassociation{giaibt}{loigiaibt}{ansbt}
+\tikzset{
+    master/.style={
+        execute at end picture={
+            \coordinate (lower right) at (current bounding box.south east);
+            \coordinate (upper left) at (current bounding box.north west);
+        }
+    },
+    slave/.style={
+        execute at end picture={
+            \pgfresetboundingbox
+            \path (upper left) rectangle (lower right);
+        }
+    }
+}
+
+\newcommand{\ovuong}[2][2.5]{%
+ \scantokens{%
+	 \begin{giaibt}
+	 #2
+	 \end{giaibt}}% 
+	 {\linepenalty100\exhyphenpenalty0
+	\hfill{\tikz{%
+		\path (0,-0.15) node (char) {};
+		\draw[rounded corners=2pt,thick,mauchuong] (0,-0.275) rectangle (#1,0.275);
+	 }\hspace*{-9pt}%
+ }%
+}}
+
+\newcommand{\shortans}[2][2.5]{%
+	\ovuong{#2}%
+}
+
+\RenewEnviron{loigiaibt}[1]{%
+	\tikz{\node[rounded corners,draw=mauchuong,text width=4cm,align=center,minimum height=19pt] 
+		{\textbf{Bài~#1.} {\boldmath\textbf{\color{mausubsection}\BODY}}}%
+		}
+	}%
+	
+\newcommand{\bangdapanSA}[1]{%
+	\begin{center}
+		{\sffamily\bfseries ĐÁP SỐ PHẦN TRẢ LỜI NGẮN}
+	\end{center}
+	
+	\medskip
+	\begin{flushleft}
+		\begin{multicols}{4}%
+			\input{Ansbook/#1}
+		\end{multicols}%
+	\end{flushleft}
+}	
+
+
+\newcommand{\vong}[1]{%
+\begin{tikzpicture}[baseline=(vong.base)]
+		\path (0,0) node(vong) {};
+		\path (0pt,-1pt) node[anchor=south, circle,fill=mauchuong,inner sep=1pt,font=\footnotesize\bfseries,text=white,outer sep=0pt] {#1};
+	\end{tikzpicture}
+}

@@ -1,0 +1,84 @@
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+	\fancyhead[O]{
+		\begin{tikzpicture}[overlay,declare function={r = 0.5;rl=r*sqrt(3);
+					        rn=rl-r;ts=rn/r;},line join=miter,line cap=butt]
+			  \def\duong{(90:r) arc (150:270:r)
+			    arc(30:150:r)
+			    arc(270:390:r)--cycle;}
+			  \foreach \tl/\mau/\net in {0.385/1/0.35,0.625/0.8/0.6,1/0.65/0.75}{
+			      \begin{scope}[scale=\tl]
+			        \path[draw=doimauchuong,line width=\net pt]
+			        \duong;
+			        \path[rotate=60,scale=ts,draw=doimauchuong,line width=\net pt]
+			        \duong;
+			      \end{scope}
+			    }
+				\draw[mauchuong!65] circle (1.2*r)
+					(15:0.65) arc (15:-15:0.65) to [out=75,in=180] (2,0) to [out=180,in=-75] cycle
+					(2,0)--(0.5*\linewidth,0) coordinate (B)
+					(165:0.65) arc (165:195:0.65) to [out=105,in=0] (-2,0) to [out=0,in=-105] cycle
+					(-2,0)--(-0.5*\linewidth,0) coordinate (A);
+			 \fill[mauchuong] (A) circle (1pt)
+			 	(B) circle (1pt);
+			\path (A) node[shift={(0,6pt)},anchor=west,text=mauchuong]{{\sffamily\small LaTeX Theme and Related Topics}};
+			\path (B) node[shift={(0,6pt)},anchor=east,text=mauchuong]{{\sffamily\small LaTeX - Math test}};
+		\end{tikzpicture}
+	}
+\fancyhead[E]{\begin{tikzpicture}[overlay,declare function={r = 0.5;rl=r*sqrt(3);
+					        rn=rl-r;ts=rn/r;},line join=miter,line cap=butt]
+			  \def\duong{(90:r) arc (150:270:r)
+			    arc(30:150:r)
+			    arc(270:390:r)--cycle;}
+			  \foreach \tl/\mau/\net in {0.385/1/0.35,0.625/0.8/0.6,1/0.65/0.75}{
+			      \begin{scope}[scale=\tl]
+			        \path[draw=doimauchuong,line width=\net pt]
+			        \duong;
+			        \path[rotate=60,scale=ts,draw=doimauchuong,line width=\net pt]
+			        \duong;
+			      \end{scope}
+			    }
+				\draw[mauchuong!65] circle (1.2*r)
+					(15:0.65) arc (15:-15:0.65) to [out=75,in=180] (2,0) to [out=180,in=-75] cycle
+					(2,0)--(0.5*\linewidth,0) coordinate (B)
+					(165:0.65) arc (165:195:0.65) to [out=105,in=0] (-2,0) to [out=0,in=-105] cycle
+					(-2,0)--(-0.5*\linewidth,0) coordinate (A);
+			 \fill[mauchuong] (A) circle (1pt)
+			 	(B) circle (1pt);
+			\path (B) node[shift={(0,6pt)},anchor=east,text=mauchuong]{{\sffamily\small LaTeX Theme and Related Topics}};
+			\path (A) node[shift={(0,6pt)},anchor=west,text=mauchuong]{{\sffamily\small LaTeX - Math test}};
+		\end{tikzpicture}}
+\cfoot{}
+\rhead{}
+\lhead{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\chaptermark}[1]{\markboth{\sffamily Chương \arabic{chapter}.\ {#1}}{}%
+}
+\renewcommand{\sectionmark}[1]{\markright{Bài \arabic{section}. #1}}
+\usepackage{eso-pic}
+%\usepackage{qrcode}
+%\usepackage{miama}
+\AddToShipoutPicture{
+\ifodd\thepage
+	\begin{tikzpicture}[overlay,remember picture]
+		\path ($(current page.south east)+(0,1.25)$) coordinate (A)
+			--+(-1.75cm,0) coordinate (B) 
+			--([turn]90:23pt) coordinate (C)
+			--+(+2.5cm,0) coordinate (D);
+		\fill[left color=mausection!75, right color=mausection] (A)--(B)--(C)--(D)--cycle;
+		\path ($(A)!0.5!(C)$) node[font=\sffamily\bfseries]{\thepage};
+		\path ($(B)!0.5!(C)+(-0.15,0)$) node[anchor=east,text=mausection,font=\small]{\leftmark};
+	\end{tikzpicture}
+\else
+	\begin{tikzpicture}[overlay,remember picture]
+		\path ($(current page.south west)+(0,1.25)$) coordinate (A)
+			--+(1.75cm,0) coordinate (B) 
+			--([turn]-90:23pt) coordinate (C)
+			--+(-2.5cm,0) coordinate (D);
+		\fill[right color=mausection!75, left color=mausection] (A)--(B)--(C)--(D)--cycle;
+		\path ($(A)!0.5!(C)$) node[font=\sffamily\bfseries]{\thepage};
+		\path ($(B)!0.5!(C)+(0.15,0)$) node[anchor=west,text=mausection,font=\small]{\fontfamily{qzc}\selectfont\rightmark};
+	\end{tikzpicture}
+\fi
+}
+ 

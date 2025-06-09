@@ -1,0 +1,500 @@
+\usepackage[most,xparse]{tcolorbox}
+\tcbuselibrary{skins}
+%\usepackage{etoolbox}
+%%%========================Hộp ví dụ========================%%%
+\newcounter{vd}
+\newtcolorbox{vd}[1][]{enhanced,breakable,
+	attach boxed title to top left={xshift=-4.5mm,yshift=-0.5mm},
+	code={\refstepcounter{vd}},
+	fonttitle=\bfseries\sffamily,
+	title={
+	  \if\relax\detokenize{#1}\relax
+	     {\color{green!75!black}VÍ DỤ \thevd}
+	   \else
+	     {\color{green!75!black}VÍ DỤ \thevd\ (\MakeLowercase{#1})}
+	   \fi
+	},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   sharp corners,
+%   interior empty,
+   interior style={draw=none,fill=none},
+   left=3pt,right=0pt,top=0pt,bottom=0pt,
+    overlay unbroken and first ={
+	    \draw[line width=1pt,green!75!black] (frame.north west)--(frame.south west);
+	    \fill[green!75!black] (frame.north west) circle (1.5pt);
+	    \fill[green!75!black] (frame.south west) circle (1.5pt);
+    },
+     overlay middle and last={
+	    \draw[line width=1pt,green!75!black] (frame.north west)--(frame.south west);
+	    \fill[green!75!black] (frame.north west) circle (1.5pt) 
+	    	+(0,6pt) node[anchor=west,text=green!75!black,font=\small\bfseries]{Tiếp theo ví dụ \thevd};
+	    \fill[green!75!black] (frame.south west) circle (1.5pt);
+    }   
+}
+
+
+\AtBeginEnvironment{vd}{%
+	\def\maudapan{white}%
+	\Opensolutionfile{ansbook}[Ansbook/Tam]%
+	\renewcommand{\loigiai}[1]{%
+	\par\noindent%
+	\textcolor{green!75!black}{\textbf{Giải}}
+	  #1
+	}
+}
+\AtEndEnvironment{vd}{\Closesolutionfile{ansbook}}
+
+%%%========================hộp định lý========================%%%
+\newcounter{dl}
+\newtcolorbox{dl}[1][]{enhanced,breakable,
+	attach boxed title to top left={xshift=-4mm,yshift=-0.5mm},
+	code={\refstepcounter{dl}},
+	fonttitle=\bfseries\sffamily,
+	title={
+	  \if\relax\detokenize{#1}\relax
+	     {\color{mausection}ĐỊNH LÝ \thedl}
+	   \else
+	     {\color{mausection}ĐỊNH LÝ \thedl\ (\MakeLowercase{#1})}
+	   \fi
+	},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   sharp corners,
+%   interior empty,
+   interior style={draw=none,fill=none},
+   left=3pt,right=0pt,top=0pt,bottom=0pt,
+    overlay unbroken and first ={
+	    \draw[line width=1pt,green!75!black] (frame.north west)--(frame.south west);
+	    \fill[green!75!black] (frame.north west) circle (1.5pt);
+	    \fill[green!75!black] (frame.south west) circle (1.5pt);
+    },
+     overlay middle and last={
+	    \draw[line width=1pt,green!75!black] (frame.north west)--(frame.south west);
+	    \fill[mausection] (frame.north west) circle (1.5pt) 
+	    	+(0,6pt) node[anchor=west,text=mausection,font=\small\bfseries]{Tiếp theo ví dụ \thevd};
+	    \fill[mausection] (frame.south west) circle (1.5pt);
+    }   
+}
+
+%%%========================Hộp luyện tập========================%%%
+\newcounter{lt}
+\newtcolorbox{lt}[1][]{enhanced,breakable,
+	attach boxed title to top left={xshift=-4mm,yshift=-0.5mm},
+	code={\refstepcounter{lt}},
+	fonttitle=\bfseries\sffamily,
+	title={
+	  \if\relax\detokenize{#1}\relax
+	     {\color{orange}LUYỆN TẬP \thelt}
+	   \else
+	     {\color{orange}LUYỆN TẬP \thelt\ (\MakeLowercase{#1})}
+	   \fi
+	},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   sharp corners,
+   interior style={draw=none,fill=none},
+   left=3pt,right=0pt,top=0pt,bottom=0pt,
+    overlay unbroken and first ={
+	    \draw[line width=1pt,orange] (frame.north west)--(frame.south west);
+	    \fill[orange] (frame.north west) circle (1.5pt);
+	    \fill[orange] (frame.south west) circle (1.5pt);
+    },
+     overlay middle and last={
+	    \draw[line width=1pt,orange] (frame.north west)--(frame.south west);
+	    \fill[orange] (frame.north west) circle (1.5pt) 
+	    	+(0,6pt) node[anchor=west,text=green!75!black,font=\small\bfseries]{Tiếp theo luyện tập \thelt};
+	    \fill[orange] (frame.south west) circle (1.5pt);
+    }   
+}
+
+\AtBeginEnvironment{lt}{%
+	\def\maudapan{white}%
+	\renewcommand{\loigiai}[1]{}%
+}
+
+\newenvironment{luyentap}{\begin{lt}}{\end{lt}}
+%%%========================Hộp vận dụng========================%%%
+\newtcolorbox{vandung}{enhanced,breakable,
+	attach boxed title to top left={xshift=-4mm,yshift=-0.5mm},
+	fonttitle=\bfseries\sffamily,
+	title={
+	     {\color{mauchuong}VẬN DỤNG \phantom{A}}
+	},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   sharp corners,
+   interior style={draw=none,fill=none},
+   left=3pt,right=0pt,top=0pt,bottom=0pt,
+   overlay unbroken and first ={
+	    \draw[line width=1pt,mauchuong] (frame.north west)--(frame.south west);
+	    \fill[mauchuong] (frame.north west) circle (1.5pt);
+	    \fill[mauchuong] (frame.south west) circle (1.5pt);
+    },
+     overlay middle and last={
+	    \draw[line width=1pt,mauchuong] (frame.north west)--(frame.south west);
+	    \fill[mauchuong] (frame.north west) circle (1.5pt) 
+	    	+(0,6pt) node[anchor=west,text=green!75!black,font=\small\bfseries]{Vận dụng tiếp theo};
+	    \fill[mauchuong] (frame.south west) circle (1.5pt);
+    }   
+}
+
+%%%================Hộp định nghĩa====================%%%
+\definecolor{dnxanh}{HTML}{00CC99}
+\definecolor{dndo}{HTML}{CC0033}
+\newcounter{dn}
+%%%===================================================%%%
+\NewTColorBox[use counter=dn]{dn}{+O{}}{
+enhanced,
+colback=white,
+fonttitle=\bfseries\sffamily\color{white},
+ title={\faGg\ Định nghĩa~\thetcbcounter aa},
+colframe=mauchuong,
+colbacktitle=white,
+fonttitle=\bfseries,
+attach boxed title to top left=
+{yshift=-2mm-\tcboxedtitleheight,yshifttext=2mm-\tcboxedtitleheight/2},
+ boxed title style={
+ outer arc=0pt,
+ arc=0pt,
+ top=3pt,
+ bottom=3pt,
+ left=0pt,
+ right=0pt,
+ frame hidden,
+ },
+ overlay unbroken and first={
+ \path
+ ($ (title.north west) +(-2pt,0pt)$) coordinate (A)
+ ($ (title.south west) +(-2pt,3pt)$) coordinate (B)
+ ($ (title.south east)+(3pt,3pt) $) coordinate (C)
+ ($ (title.north east)+(3pt,0) $) coordinate (D)
+ (frame.north east) coordinate (E)
+ (frame.south east) coordinate (F)
+ (intersection of A--D and E--F) coordinate (At)
+ (intersection of B--C and E--F) coordinate (Bt)
+ ;
+ 
+\path[fill=mauchuong!25,rounded corners=3pt](A)--(B)--($(Bt)!5pt!(B)$)--($(At)!5pt!(A)$)--cycle;
+\path[fill=mauchuong!70!black,rounded corners=2pt](A)--(B)--([xshift=3pt]C)--([xshift=3pt]D)--cycle;   
+\path[left color=dndo,right color=dndo!80,rounded corners=3pt]([xshift=-2pt]A)--([xshift=-2pt]B)--(C)--(D)--cycle;
+ 
+ \path ($ (A)!0.5!(B) +(9pt,0)$) node[anchor=west,font=\color{white}\bfseries\sffamily\selectfont]{{\faGg\ Định nghĩa~\thetcbcounter}};
+ 
+ \path ($ (C)!0.5!(D) +(5pt,0)$) node[anchor=west,font=\color{mauchuong}\small\bfseries]{#1};
+},
+top=\tcboxedtitleheight
+}
+
+%%%===================================================%%%
+\newcounter{md}[section]
+\NewTColorBox[use counter=md]{md}{+O{}}{
+enhanced,
+colback=white,
+fonttitle=\bfseries\sffamily\color{white},
+ title={\faGg\ Định lý~\thetcbcounter aa},
+colframe=mauchuong,
+colbacktitle=white,
+fonttitle=\bfseries,
+attach boxed title to top left=
+{yshift=-2mm-\tcboxedtitleheight,yshifttext=2mm-\tcboxedtitleheight/2},
+ boxed title style={
+ outer arc=0pt,
+ arc=0pt,
+ top=3pt,
+ bottom=3pt,
+ left=0pt,
+ right=0pt,
+ frame hidden,
+ },
+ overlay unbroken and first={
+ \path
+ ($ (title.north west) +(-2pt,0pt)$) coordinate (A)
+ ($ (title.south west) +(-2pt,3pt)$) coordinate (B)
+ ($ (title.south east)+(3pt,3pt) $) coordinate (C)
+ ($ (title.north east)+(3pt,0) $) coordinate (D)
+ (frame.north east) coordinate (E)
+ (frame.south east) coordinate (F)
+ (intersection of A--D and E--F) coordinate (At)
+ (intersection of B--C and E--F) coordinate (Bt)
+ ;
+ 
+\path[fill=mauchuong!25,rounded corners=3pt](A)--(B)--($(Bt)!5pt!(B)$)--($(At)!5pt!(A)$)--cycle;
+\path[fill=mauchuong!70!black,rounded corners=2pt](A)--(B)--([xshift=3pt]C)--([xshift=3pt]D)--cycle;   
+\path[left color=dndo,right color=dndo!80,rounded corners=3pt]([xshift=-2pt]A)--([xshift=-2pt]B)--(C)--(D)--cycle;
+ 
+ \path ($ (A)!0.5!(B) +(9pt,0)$) node[anchor=west,font=\color{white}\bfseries\sffamily\selectfont]{{\faGg\ Định lý~\thetcbcounter}};
+ 
+ \path ($ (C)!0.5!(D) +(5pt,0)$) node[anchor=west,font=\color{mauchuong}\small\bfseries]{#1};
+},
+top=\tcboxedtitleheight
+}
+%%%===============Hộp kiến thức trọng tâm===============%%%
+\newtcolorbox{kt}[1][]{enhanced,breakable, notitle,
+   frame empty,
+   colframe=white,
+   colback=cyan!10,
+   sharp corners,
+   rounded corners=southeast,
+   arc=15pt,
+   notitle,
+   interior style={left color=cyan!15,right color=cyan!10},
+   left=0.65cm,right=6pt,top=6pt,bottom=6pt,before skip=12pt,
+    overlay unbroken and first ={
+	    \draw[line width=1pt,teal] ([shift={(-1pt,-1pt)}]frame.north east) coordinate (A)--
+	    ($([yshift=-1pt]frame.north west)+(0.75,0)+(1pt,0)$) coordinate (B) arc (0:-90:0.75) coordinate (C)
+	    --([shift={(1pt,1pt)}]frame.south west) coordinate (D);
+	    \foreach \ten in {A,B,C,D}{\fill[teal] (\ten) circle (1.75pt);}
+		\path ($(B)!0.5!(C)+(135:0.4)$) node{\includegraphics[width=1cm]{Khaibao/Icon/Bulb.pdf}};
+		\ifblank{#1}{}{%
+			\path ($(B)+(0,-2pt)$) node[font=\footnotesize\bfseries,text=teal,anchor=south west]{#1};
+		}
+    },
+    overlay middle and last={
+	    \draw[line width=1pt,teal] ([shift={(-1pt,-1pt)}]frame.north east) coordinate (A)--
+	    ($([yshift=-1pt]frame.north west)+(0.75,0)+(1pt,0)$) coordinate (B) arc (0:-90:0.75) coordinate (C)
+	    --([shift={(1pt,1pt)}]frame.south west) coordinate (D);
+	    \foreach \ten in {A,B,C,D}{\fill[teal] (\ten) circle (1.75pt);}
+		\path ($(B)!0.5!(C)+(135:0.4)$) node{\includegraphics[width=1cm]{Khaibao/Icon/Bulb.pdf}};
+    } 
+}
+ 
+%%%===============Hộp lưu ý===============%%%
+\newenvironment{luuy}{\par\noindent%
+\begin{tikzpicture}
+\begin{scope}[rotate=-45,scale=0.5]
+	\draw[line width=1.25pt,magenta] (0,0)--+(0,-0.25) arc (180:360:0.1)--+(0,0.35) arc(0:180:0.115)--+(0,-0.5) arc (180:360:0.13)--+(0,0.4);
+\end{scope}
+\end{tikzpicture}%
+\textcolor{magenta}{\textsf{\textbf{Lưu ý:}}}%
+}{}
+
+%%%===============Hộp lưu ý===============%%%
+\newenvironment{nx}{\par\noindent%
+%\begin{tikzpicture}[anchor=base,baseline=-7pt]
+%\begin{scope}[rotate=-45,scale=0.65]
+%	\draw[line width=1.25pt,magenta] (0,0)--+(0,-0.25) arc (180:360:0.1)--+(0,0.35) arc(0:180:0.115)--+(0,-0.5) arc (180:360:0.13)--+(0,0.4);
+%\end{scope}
+%\path (0.25,-0.15) node[font=\bfseries,anchor=west,outer sep=0pt,magenta]{Nhận xét:};%
+%\end{tikzpicture}%
+%\hspace*{-6pt}
+\textbf{\textcolor{magenta!75!red}{\faSpinner\ Nhận xét:}}%
+}{}
+
+
+\newenvironment{note}{\begin{nx}}{\end{nx}}
+
+\usepackage{marvosym}
+ \definecolor{colbox}{rgb}{0.34, 0.7, 1}
+ \definecolor{mauhophd}{HTML}{E1F0EA}
+ \definecolor{xanhteal}{HTML}{2A5F49}
+ \newcounter{hd}
+%%%=======================Hộp Hoạt động 1==================%%%
+\newtcolorbox{hoatdong}{ 
+enhanced, colback=mauhophd, frame hidden,
+   code={\refstepcounter{hd}},
+    underlay vignette={draw method=clipped, size=2.5mm, semi fade in=gray, east size=1.25mm, south size=1.25mm},
+   top=20pt,left=9pt,right=6pt,bottom=5pt,before skip=12pt,
+     attach boxed title to top left={xshift=-2mm,yshift=-15pt},
+     fonttitle=\fontfamily{ugq}\bfseries\selectfont,
+   	title={
+   	     {\Coffeecup\ HOẠT ĐỘNG \thehd}
+   	},   
+       overlay unbroken and first ={
+   	    \fill[blur shadow={shadow blur extra rounding,
+   	    shadow blur steps=15,
+   	    shadow xshift=0.15ex,shadow yshift=-0.15ex,
+   	    shadow blur radius=0.75ex},
+   	    rounded corners=5pt,
+   	    white] ([shift={(145:5pt)}]title.north west) coordinate (A)
+   	    rectangle 
+   	    ([shift={(-35:5pt)}]title.south east) coordinate (B);
+   	    \path ($(A)!0.5!(B)$) node[font=\fontfamily{ugq}\bfseries\selectfont,text=xanhteal]{\Coffeecup\ HOẠT ĐỘNG \thehd};
+   	    \draw[rounded corners,teal!65] (A) rectangle (B);
+       }
+  }
+%%%=======================Hộp Hoạt động 2==================%%%
+\newtcolorbox{Hhoatdong}{ 
+step=hd,  
+breakable,
+enhanced,
+frame hidden, % hide frame
+interior style={left color=colbox!10,right color=yellow!2},
+toprule=0pt,rightrule=0mm,leftrule=0mm,bottomrule=0mm,
+top=3pt, left=3pt, right=6pt,  
+bottom=5pt,right skip=0.25cm,before skip = 12pt,after skip=3pt,
+	fonttitle=\large\bfseries,
+	title={\color{yellow}{\normalsize \Coffeecup} \fontsize{12pt}{0pt}\fontfamily{ugq}\selectfont HOẠT ĐỘNG \thehd},
+		attach boxed title to top left,
+		boxed title style={
+			enhanced,
+			colframe=red!70!yellow,
+			colback=red!70!yellow,
+			arc=5pt,
+			bottomrule=0pt,
+			leftrule=0pt
+		},
+	overlay={
+		\draw[draw=colbox,line width=1.2pt,rounded corners=2mm]
+		([xshift=4mm,yshift=0.5pt]title.north west)--([xshift=3mm,yshift=0.5pt]title.north east)--
+		([xshift=3mm]title.south east)--(title.south west)|-
+		(interior.south east)-|([yshift=-0.25cm]interior.north east) coordinate (Dt);
+		\path (title.north east) coordinate (A)
+			(title.south east) coordinate (C)
+			($ (A)!0.5!(C) $) coordinate (Bt)
+			([rotate around={90:(Bt)}]C) coordinate (B);
+			\foreach[count=\j ] \x/\y in {10/0.85,15/0.75,20/0.65,25/0.5,30/0.4}{
+			\draw[transform canvas={xshift=\x pt},line width=2pt,rounded corners=3pt,colbox,opacity=\y,
+				shorten >={0.35*\j pt},shorten <={0.35*\j pt},line cap=round] (A)--(B)--(C);
+			},
+		\fill[colbox] (Dt) circle (1.75pt);
+		\path ($(title.north)!0.5!(title.south)+(-0.65pt,-0.25pt)$) node[font=\large\bfseries,text=colbox]{{\normalsize \Coffeecup} \fontsize{12pt}{0pt}\fontfamily{ugq}\selectfont HOẠT ĐỘNG \thehd};
+		} 
+}
+
+%%%===============Hoạt động nhóm===============%%%
+\newenvironment{nhom}[1][Thảo luận]{\par\noindent%
+\begin{tikzpicture}[anchor=base,baseline]
+	\path (-45:1pt) node[scale=1.5,text=gray!25,inner sep=0pt,outer sep=0pt]{\faWechat};
+	\path (0,0) node[scale=1.5,text=red!65!white,inner sep=0pt,outer sep=0pt](A){\faWechat};
+	\path ($(A.east)+(-40:1pt)$) node[anchor=west,text=gray!35,font=\sffamily\bfseries\large]{#1};
+	\path (A.east) node[anchor=west,text=red!65!white,font=\sffamily\bfseries\large]{#1};
+\end{tikzpicture}%
+\par
+}{}
+
+
+%%%==================em có biết======================%%%
+\newtcolorbox{emcobiet}{%
+	enhanced,breakable,
+	attach boxed title to top left={xshift=3mm,yshift=-0.5mm},
+	fonttitle=\bfseries\sffamily,
+	title={\color{mauchuong}EM CÓ BIẾT},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   arc=7pt,
+   interior style={fill=mauchuong!7,rounded corners},
+   left=5pt,right=3pt,top=6pt,bottom=3pt,
+   overlay unbroken and first={
+ 	  \path ($(title.west)+(1pt,-1pt)$) node{
+     	 \begin{tikzpicture}[line cap=round,yscale=0.7,xscale=.85]
+     	 	\begin{scope}[color=mauchuong]
+     	 		\draw[line width=1.2pt] (-0.13,2pt) to[out=85,in=-90]+(0.05,0.1) arc(0:190:0.05);
+     	 		\fill (-0.13,0) circle (0.8pt);
+     	 	\end{scope}
+     	 	\begin{scope}[color=mauchuong,opacity=0.4]
+     	 		\draw[line width=2pt] (0,3pt) to[out=85,in=-90]+(0.1,0.16) arc(0:190:0.1);
+     	 		\fill (0,0.25pt) circle (1.1pt);
+     	 	\end{scope}
+     	 	\end{tikzpicture}    
+    };
+   }
+}
+
+%%%==============================================%%%
+\newtcolorbox{tomtat}[1][TÓM TẮT KIẾN THỨC]{
+enhanced,breakable,
+	attach boxed title to top left={xshift=9pt,yshift=-0.5mm},
+	fonttitle=\bfseries\sffamily,
+	title={\color{mausubsection}\MakeUppercase{#1}},
+	boxed title style={empty,arc=0pt,outer arc=0pt,boxrule=0pt},
+   frame empty,
+   frame hidden,	
+   arc=7pt,
+   interior style={draw=none,fill=none},
+   left=3pt,right=3pt,top=6pt,bottom=3pt,
+   left skip=0.35cm, before skip=0.65cm,
+   overlay unbroken and first={
+   	\path ($(frame.south west)+(0,9pt)$) coordinate (A)--($(frame.north west)+(0,-3pt)$) coordinate (B)
+   	    --+(0,0.35) coordinate (C)--
+   	    ([turn]120:0.75) coordinate (D)--+(9,0) coordinate (E)
+   	    ($(frame.south east)+(-9pt,0)$) coordinate (Bp)
+   	    ($(frame.north east)+(-9pt,0)$) coordinate (Ap)
+   	    ($(frame.south west)+(-9pt,0)$) coordinate (Cp)
+   	    (intersection of D--E and Bp--Ap) coordinate (Ep) ;
+   	\draw[thick,mauchuong] (A)--($(B)!7pt!(A)$)--($(B)!12pt!(Ep)$)--(Ep)
+   		($(Cp)!0.55!(Bp)$) coordinate (Ad)--($(Bp)!17pt!(Cp)+(0.5,0)$) coordinate (Dd)--([turn]45:0.5) coordinate (Bd)
+   		--($(Ap)!0.35!(Bp)+(6pt,0)$) coordinate (Cd)
+   		($(Dd)+(0.12,0)$)--+(45:0.35);
+   	\path ($(B)+(16pt,12pt)$) node[anchor=east,outer sep=0pt]{\includegraphics[width=1.1cm]{Khaibao/Icon/KienThuc.pdf}};
+   	\foreach \diem in {A,Ep,Ad,Cd}{\fill[mauchuong] (\diem) circle (1.5pt);}
+    },
+      overlay middle and last={
+      	\path ($(frame.south west)+(0,9pt)$) coordinate (A)--($(frame.north west)+(0,-3pt)$) coordinate (B)
+      	    --+(0,0.35) coordinate (C)--
+      	    ([turn]120:0.75) coordinate (D)--+(9,0) coordinate (E)
+      	    ($(frame.south east)+(-9pt,0)$) coordinate (Bp)
+      	    ($(frame.north east)+(-9pt,0)$) coordinate (Ap)
+      	    ($(frame.south west)+(-9pt,0)$) coordinate (Cp)
+      	    (intersection of D--E and Bp--Ap) coordinate (Ep) ;
+      	\draw[thick,mauchuong] (A)--($(B)!7pt!(A)$)--($(B)!12pt!(Ep)$)--(Ep)
+      		($(Cp)!0.55!(Bp)$) coordinate (Ad)--($(Bp)!17pt!(Cp)+(0.5,0)$) coordinate (Dd)--([turn]45:0.5) coordinate (Bd)
+      		--($(Ap)!0.35!(Bp)+(6pt,0)$) coordinate (Cd)
+      		($(Dd)+(0.12,0)$)--+(45:0.35);
+      	\path ($(B)+(14pt,10pt)$) node[anchor=east,outer sep=0pt]{\includegraphics[width=1cm]{Khaibao/Icon/KienThuc.pdf}};
+      	\foreach \diem in {A,Ep,Ad,Cd}{\fill[mauchuong] (\diem) circle (1.5pt);}
+       }
+}
+
+%%%==================môi trường dạng=====================%%%
+\newcounter{dang}
+\newtcolorbox{dang}[1]{
+fonttitle=\sffamily\bfseries,%fontupper=\itshape,
+breakable,
+enhanced jigsaw,
+colbacktitle=mauchuong,
+coltitle=white,
+colframe=mauchuong,
+colback=white,
+sharp corners,
+rounded corners=south,
+borderline north={1pt}{0pt}{mausection},
+drop fuzzy shadow=gray!75,
+before skip=3mm,after skip=3mm,
+left=2mm,right=2mm,top=3mm,bottom=2mm,
+title style={left color=mauchuong,right color=mauchuong!65},
+underlay unbroken and first={
+\def\dai{0.75}
+\pgfmathsetmacro{\daih}{\dai/cos(20)}
+\def\cao{0.675}
+\fill[mauchuong!85!black,rounded corners=1pt,drop shadow={shadow xshift=1pt, shadow yshift=-1pt,fill=gray!65}]
+([shift={(2*\dai,5pt)}]title.north west)
+coordinate (A1)
+--+(2*\dai,0) coordinate (A2)
+--([turn]-90:\cao) coordinate (A3)
+--([turn]-70:\daih)
+--([turn]-40:\daih) coordinate (A4)
+--cycle;
+\begin{pgfonlayer}{background}
+\fill[gray!65] (A1)--++(225:0.5)--+(1,0)--cycle;
+\end{pgfonlayer}
+\node[circle,draw=white,fill=mausection,line width=1pt, inner sep=3pt,text=white,font=\sffamily\bfseries] at ($(A1)!0.5!(A3)+(0,-5pt)$){\thedang};
+\path([yshift=-6pt]A4) node[font=\sffamily\bfseries,text=white,anchor=south east]{Dạng};
+},
+overlay middle and last={
+\def\dai{0.75}
+\pgfmathsetmacro{\daih}{\dai/cos(20)}
+\def\cao{0.5}
+\fill[left color=mauchuong,right color=mauchuong!65,draw=mauchuong,line width=1.4pt] ($(frame.north west)+(0.7pt,13pt)$) rectangle ($(frame.north east)+(-0.7pt,-7pt)$);
+\fill[mauchuong!85!black,rounded corners=1pt,drop shadow={shadow xshift=1pt, shadow yshift=-1pt,fill=gray!65}]
+([shift={(2*\dai,17pt)}]frame.north west)
+coordinate (A1)
+--+(2*\dai,0) coordinate (A2)
+--([turn]-90:\cao) coordinate (A3)
+--([turn]-70:\daih)
+--([turn]-40:\daih) coordinate (A4)
+--cycle;
+\begin{pgfonlayer}{background}
+\fill[gray!65] (A1)--++(225:0.5)--+(1,0)--cycle;
+\end{pgfonlayer}
+\node[circle,draw=white,fill=mausection,line width=1pt, inner sep=3pt,text=white,font=\sffamily\bfseries] at ($(A1)!0.5!(A3)+(0,-5pt)$){\thedang};
+\path([yshift=-7pt]A4) node[font=\sffamily\bfseries,text=white,anchor=south east](A5){Dạng};
+\path($(A5)+(2.2,0)$) node[font=\sffamily\bfseries,text=white,anchor=west]{Phần tiếp theo};
+},
+title={\hspace*{2.9cm}\parbox{\textwidth-3cm}{#1}\refstepcounter{dang}},%
+}
