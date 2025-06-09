@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Ultimate Web LaTeX IDE</title>
+    <meta name="description" content="A feature-rich web LaTeX editor supporting ZIP projects, single file uploads, and persistent storage.">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root { --primary-color: #007bff; --secondary-color: #28a745; --dark-bg: #282c34; --light-bg: #f4f4f4; --border-color: #ddd; }
+        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
+        
+        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 15px; }
+        .toolbar-group { display: flex; align-items: center; gap: 8px; }
+        .toolbar button, .toolbar select { padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: #fff; cursor: pointer; }
+        .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; }
+        #compile-btn { background-color: var(--secondary-color); color: white; font-weight: bold; }
+        #compile-btn:hover { background-color: #218838; }
+        #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        #editor { flex: 1; width: 100%; }
+
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; font-size: 13px; margin-top: 5px; }
+        pre#console.collapsed { display: none; }
+        
+        #pdfbox { height: 100%; width: 100%; }
+
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
+        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button onclick="document.getElementById('zip-loader-input').click()">Load Project (.zip)</button>
+            <input type="file" id="zip-loader-input" accept=".zip" style="display: none;">
+        </div>
+        <div class="toolbar-group">
+            <button onclick="document.getElementById('file-loader-input').click()">Add Files</button>
+            <input type="file" id="file-loader-input" multiple style="display: none;">
+        </div>
+        <div class="toolbar-group">
+            <label for="main-file-selector">Main File:</label>
+            <select id="main-file-selector"></select>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+             <button id="compile-btn" disabled>Initializing...</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="editor-pane">
+            <div id="editor">% Welcome!
+% 1. Use "Load Project (.zip)" to start with a full project.
+% 2. Use "Add Files" to add images or other files to the current project.
+% 3. Your custom .sty/.cls files are saved permanently in the browser.
+</div>
+            <div class="controls">
+                <div id="console-header" class="console-header">
+                    <span>Console Output</span>
+                    <span id="console-toggle-icon">▲</span>
+                </div>
+                <pre id="console">Engine will be ready shortly...</pre>
+            </div>
+        </div>
+        <div class="pdf-pane">
+            <div id="pdfbox"></div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span id="loading-text"></span>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+    const editorEl = ace.edit("editor");
+    const compileBtn = document.getElementById("compile-btn");
+    const consoleOutput = document.getElementById("console");
+    const pdfbox = document.getElementById("pdfbox");
+    const zipLoaderInput = document.getElementById('zip-loader-input');
+    const fileLoaderInput = document.getElementById('file-loader-input');
+    const mainFileSelector = document.getElementById('main-file-selector');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    const consoleHeader = document.getElementById("console-header");
+    const consoleToggleIcon = document.getElementById("console-toggle-icon");
+
+    const globalEn = new PdfTeXEngine();
+    let mainTexFile = '';
+    const texFilesInProject = new Set();
+    
+    // --- IndexedDB for Persistent .sty/.cls files ---
+    const DB_NAME = 'LaTeXFilesDB', STORE_NAME = 'StyFilesStore';
+    let db;
+
+    function openDb() { return new Promise((resolve, reject) => { const r = indexedDB.open(DB_NAME, 1); r.onerror = () => reject("Error opening IndexedDB."); r.onsuccess = e => { db = e.target.result; resolve(); }; r.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME, { keyPath: 'name' }); }); }
+    function saveFileToDb(name, data) { if (db) db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).put({ name, data }); }
+    async function loadDbFilesToEngine() { return new Promise(resolve => { if (!db) return resolve(); const r = db.transaction([STORE_NAME], 'readonly').objectStore(STORE_NAME).getAll(); r.onsuccess = e => { e.target.result.forEach(f => globalEn.writeMemFSFile(f.name, f.data)); resolve(); }; });}
+
+    editorEl.setTheme("ace/theme/monokai"); editorEl.session.setMode("ace/mode/latex"); editorEl.session.setUseWrapMode(true); editorEl.setFontSize(16);
+
+    zipLoaderInput.addEventListener('change', handleZipLoad);
+    fileLoaderInput.addEventListener('change', handleFileLoad);
+    mainFileSelector.addEventListener('change', handleMainFileChange);
+    compileBtn.addEventListener('click', compile);
+    consoleHeader.addEventListener('click', toggleConsole);
+
+    async function init() {
+        showLoading("Initializing Engine...");
+        await Promise.all([globalEn.loadEngine(), openDb()]);
+        await loadDbFilesToEngine();
+        compileBtn.innerHTML = "Compile";
+        compileBtn.disabled = false;
+        consoleOutput.innerHTML = "Engine loaded. Ready for a .zip project or single files.";
+        hideLoading();
+    }
+
+    async function handleZipLoad(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        showLoading("Unzipping Project...");
+        try {
+            // Reset project state
+            texFilesInProject.clear();
+            const zip = await JSZip.loadAsync(file);
+            for (const path in zip.files) {
+                const entry = zip.files[path];
+                if (!entry.dir) {
+                    const data = await entry.async('uint8array');
+                    globalEn.writeMemFSFile(path, data);
+                    if (path.endsWith('.tex') && !path.includes('/')) texFilesInProject.add(path);
+                }
+            }
+            mainTexFile = [...texFilesInProject].find(n => /^(main|master)\.tex$/i.test(n)) || [...texFilesInProject][0] || '';
+            if (!mainTexFile) throw new Error("No .tex files found in the ZIP root.");
+            updateMainFileSelector();
+            await displayFileInEditor(mainTexFile);
+        } catch (e) { alert("Failed to process ZIP: " + e.message); } 
+        finally { hideLoading(); event.target.value = ''; }
+    }
+
+    async function handleFileLoad(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+        showLoading("Adding Files...");
+        let filesAddedCount = 0;
+        for (const file of files) {
+            const data = new Uint8Array(await file.arrayBuffer());
+            globalEn.writeMemFSFile(file.name, data);
+            if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) saveFileToDb(file.name, data);
+            filesAddedCount++;
+        }
+        hideLoading();
+        alert(`Added ${filesAddedCount} file(s) to the current project.`);
+        event.target.value = '';
+    }
+
+    async function displayFileInEditor(fileName) {
+        const fileData = await globalEn.readMemFSFile(fileName);
+        if (fileData) editorEl.setValue(new TextDecoder().decode(fileData), -1);
+    }
+
+    function updateMainFileSelector() {
+        mainFileSelector.innerHTML = '';
+        texFilesInProject.forEach(fileName => {
+            const option = document.createElement('option');
+            option.value = option.textContent = fileName;
+            if (fileName === mainTexFile) option.selected = true;
+            mainFileSelector.appendChild(option);
+        });
+    }
+
+    function handleMainFileChange(event) {
+        mainTexFile = event.target.value;
+        displayFileInEditor(mainTexFile);
+    }
+    
+    async function compile() {
+        if (!globalEn.isReady() || !mainTexFile) { alert("Please load a project and select a main file."); return; }
+        showLoading("Compiling...");
+        compileBtn.disabled = true;
+
+        globalEn.writeMemFSFile(mainTexFile, new TextEncoder().encode(editorEl.getValue()));
+        globalEn.setEngineMainFile(mainTexFile);
+        
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX();
+        consoleOutput.innerHTML = "Second pass...";
+        const r = await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        
+        hideLoading();
+        compileBtn.disabled = false;
+
+        if (r.status === 0) {
+            const objectURL = URL.createObjectURL(new Blob([r.pdf], { type: 'application/pdf' }));
+            pdfbox.innerHTML = `<embed src="${objectURL}#toolbar=0&navpanes=1" width="100%" height="100%">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+        }
+    }
+
+    function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
+    function showLoading(text) { loadingText.textContent = text; loadingOverlay.style.display = 'flex'; }
+    function hideLoading() { loadingOverlay.style.display = 'none'; }
+
+    init();
+</script>
+</body>
+</html>
