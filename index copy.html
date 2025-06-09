@@ -2,392 +2,309 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Smart Web LaTeX IDE</title>
-    <meta name="description" content="An advanced, modern web-based LaTeX editor with ZIP uploading and automatic package caching.">
+    <title>Modern Web LaTeX IDE</title>
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
     <meta name="author" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
             --primary-color: #007bff;
-            --danger-color: #dc3545;
             --dark-bg: #282c34;
             --light-bg: #f4f4f4;
             --border-color: #ddd;
         }
         body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
-        
-        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 15px; flex-wrap: wrap; }
+        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
         .toolbar-group { display: flex; align-items: center; gap: 8px; }
         .toolbar button, .toolbar select { padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: #fff; cursor: pointer; }
         .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; }
         #compile-btn { background-color: var(--primary-color); color: white; font-weight: bold; }
         #compile-btn:hover { background-color: #0056b3; }
         #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; }
-        #reset-btn { background-color: var(--danger-color); color: white; }
-        #reset-btn:hover { background-color: #c82333; }
-
         .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
         .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
         #editor { flex: 1; width: 100%; }
-
         .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
         .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .console-header:hover { background-color: #d0d0d0; }
         pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
         pre#console.collapsed { display: none; }
-        
         #pdfbox { height: 100%; width: 100%; }
-
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
-        #loading-message { margin-top: 20px; }
-        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
+        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="toolbar">
         <div class="toolbar-group">
-            <label for="file-loader-input" class="toolbar-button-label">
-                <button onclick="document.getElementById('file-loader-input').click()">Load Project (.zip, .tex...)</button>
-            </label>
-            <input type="file" id="file-loader-input" multiple style="display: none;" accept=".tex,.sty,.cls,.bib,.png,.jpg,.jpeg,.zip">
+            <button onclick="document.getElementById('file-loader-input').click()">Load Files</button>
+            <input type="file" id="file-loader-input" multiple style="display: none;">
+            
+            <button onclick="document.getElementById('project-loader-input').click()">Load Project Folder</button>
+            <input type="file" id="project-loader-input" webkitdirectory directory multiple style="display: none;">
         </div>
         <div class="toolbar-group">
             <label for="main-file-selector">Main File:</label>
             <select id="main-file-selector"></select>
         </div>
-        <div class="toolbar-group">
-            <label for="template-selector">Template:</label>
-            <select id="template-selector">
-                <option value="">-- Select a Template --</option>
-                <option value="article">Simple Article</option>
-                <option value="tikz-demo">TikZ Demo</option>
-            </select>
-        </div>
         <div class="toolbar-group" style="margin-left: auto;">
              <button id="compile-btn" disabled>Initializing...</button>
-             <button id="reset-btn">Reset Storage</button>
         </div>
     </div>
 
     <div class="main-container">
         <div class="editor-pane">
-            <div id="editor">% Welcome to the Smart LaTeX IDE!
-% 1. Use "Load Project" to upload a .zip file or individual files.
-% 2. After a successful compile, the IDE automatically caches packages for faster future use.
-% 3. If you encounter storage issues, use the "Reset Storage" button.
-</div>
+            <div id="editor">% Loading default project...</div>
             <div class="controls">
-                <div id="console-header" class="console-header">
-                    <span>Console Output</span>
-                    <span id="console-toggle-icon">▲</span>
-                </div>
+                <div id="console-header" class="console-header"><span>Console Output</span><span id="console-toggle-icon">▲</span></div>
                 <pre id="console">Engine will be ready shortly...</pre>
             </div>
         </div>
-        <div class="pdf-pane">
-            <div id="pdfbox"></div>
-        </div>
+        <div class="pdf-pane"><div id="pdfbox"></div></div>
     </div>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <span id="loading-message">Compiling...</span>
-    </div>
+    <div id="loading-overlay"><div class="spinner"></div><span>Compiling...</span></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="PdfTeXEngine.js"></script>
 <script>
     // --- DOM Elements ---
     const editorEl = ace.edit("editor");
     const compileBtn = document.getElementById("compile-btn");
-    const resetBtn = document.getElementById('reset-btn');
     const consoleOutput = document.getElementById("console");
     const pdfbox = document.getElementById("pdfbox");
     const fileLoaderInput = document.getElementById('file-loader-input');
+    const projectLoaderInput = document.getElementById('project-loader-input'); // Nút mới
     const mainFileSelector = document.getElementById('main-file-selector');
-    const templateSelector = document.getElementById('template-selector');
     const loadingOverlay = document.getElementById('loading-overlay');
-    const loadingMessage = document.getElementById('loading-message');
     const consoleHeader = document.getElementById("console-header");
     const consoleToggleIcon = document.getElementById("console-toggle-icon");
 
     // --- State Management ---
     const globalEn = new PdfTeXEngine();
-    let mainTexFile = 'main.tex';
+    let mainTexFile = ''; // Để trống ban đầu
     const loadedFiles = new Map();
-    const cachedFileNames = new Set(); 
 
-    // --- IndexedDB for Persistent files ---
+    // --- IndexedDB for Persistent .sty/.cls files ---
     const DB_NAME = 'LaTeXFilesDB';
-    const DB_VERSION = 1; // Keep version consistent.
     const STORE_NAME = 'StyFilesStore';
     let db;
 
-    function openDb() {
+    function openDb() { /* ... code không đổi ... */ 
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onerror = (event) => reject(`Error opening IndexedDB: ${event.target.error}. Your browser might be in private mode.`);
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                resolve();
-            };
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME, { keyPath: 'name' });
-                }
-            };
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onerror = () => reject("Error opening IndexedDB.");
+            request.onsuccess = (event) => { db = event.target.result; resolve(); };
+            request.onupgradeneeded = (event) => { event.target.result.createObjectStore(STORE_NAME, { keyPath: 'name' }); };
         });
     }
-
-    function saveFileToDb(name, data) {
-        if (!db || cachedFileNames.has(name)) return;
-        try {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
-            store.put({ name, data });
-            cachedFileNames.add(name);
-            console.log(`[Cache] Saved ${name} to persistent storage.`);
-        } catch (e) {
-            console.error(`Failed to save ${name} to DB:`, e);
-        }
+    function saveFileToDb(name, data) { /* ... code không đổi ... */ 
+        if (!db) return;
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        transaction.objectStore(STORE_NAME).put({ name, data });
     }
-
-    function loadFilesFromDb() {
+    function loadFilesFromDb() { /* ... code không đổi ... */ 
         return new Promise((resolve) => {
             if (!db) return resolve();
             const transaction = db.transaction([STORE_NAME], 'readonly');
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.getAll();
-            request.onsuccess = (event) => {
-                const files = event.target.result;
-                files.forEach(file => {
-                    if (!loadedFiles.has(file.name)) {
+            transaction.objectStore(STORE_NAME).getAll().onsuccess = (event) => {
+                event.target.result.forEach(file => {
+                    if (!loadedFiles.has(file.name)) { // Chỉ tải nếu chưa có
                         loadedFiles.set(file.name, file.data);
-                        cachedFileNames.add(file.name);
+                        console.log(`Loaded ${file.name} from IndexedDB.`);
                     }
                 });
-                console.log(`[Cache] Loaded ${cachedFileNames.size} files from persistent storage.`);
-                resolve();
-            };
-            request.onerror = (e) => {
-                console.error("Error loading files from DB:", e);
                 resolve();
             };
         });
     }
 
+    // --- Editor Setup ---
+    editorEl.setTheme("ace/theme/monokai");
+    editorEl.session.setMode("ace/mode/latex");
+    editorEl.session.setUseWrapMode(true);
+    editorEl.setFontSize(16);
+
     // --- Event Listeners ---
     fileLoaderInput.addEventListener('change', handleFileLoad);
+    projectLoaderInput.addEventListener('change', handleFileLoad); // Dùng chung một hàm xử lý
     mainFileSelector.addEventListener('change', handleMainFileChange);
-    templateSelector.addEventListener('change', handleTemplateChange);
     compileBtn.addEventListener('click', compile);
-    resetBtn.addEventListener('click', handleResetStorage);
     consoleHeader.addEventListener('click', toggleConsole);
-    
-    // --- Core Functions ---
-    function handleResetStorage() {
-        if (!confirm("This will delete all cached packages (.sty, .cls) from your browser, fixing storage errors. Are you sure?")) {
-            return;
-        }
-        if (db) {
-            db.close(); // Close any open connection before deleting.
-        }
-        loadingMessage.innerText = "Resetting Storage...";
-        loadingOverlay.style.display = 'flex';
 
-        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-
-        deleteRequest.onsuccess = () => {
-            alert("Storage has been reset. The page will now reload.");
-            window.location.reload();
-        };
-        deleteRequest.onerror = (event) => {
-            alert(`Could not delete the database. Error: ${event.target.error}. Please try clearing your browser's site data manually.`);
-            loadingOverlay.style.display = 'none';
-        };
-        deleteRequest.onblocked = () => {
-            alert("Could not delete the database because it's in use. Please close any other tabs with this page open and click Reset again.");
-            loadingOverlay.style.display = 'none';
-        };
+    // =========================================================================
+    // NÂNG CẤP 1: HÀM TỰ ĐỘNG TẢI DỰ ÁN MẶC ĐỊNH
+    // =========================================================================
+    async function loadDefaultProjectFiles() {
+        console.log("Loading default project files...");
+        
+        // **QUAN TRỌNG**: TÙY CHỈNH DANH SÁCH FILE CỦA BẠN TẠI ĐÂY
+        // Đường dẫn phải khớp với cấu trúc thư mục trên server của bạn.
+        const filesToPreload = [
+            'main.tex',                // File tex chính của dự án mặc định
+            'ex_test.sty',             // File .sty của bạn
+            'UnT18.4.6.png',           // File ảnh của bạn
+            'ans/answer-key.tex',      // File ví dụ trong thư mục ans
+            'khaibao/common.sty',      // File ví dụ trong thư mục khaibao
+            'khaibao/math-symbols.tex' // File ví dụ khác
+        ];
+        
+        const promises = filesToPreload.map(async (filePath) => {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) throw new Error(`HTTP ${response.status} for ${filePath}`);
+                const fileData = new Uint8Array(await response.arrayBuffer());
+                loadedFiles.set(filePath, fileData);
+                console.log(`Default file loaded: ${filePath}`);
+            } catch (e) {
+                console.error(`Failed to load default file ${filePath}:`, e);
+            }
+        });
+        
+        await Promise.all(promises);
+        
+        // Tự động đặt file chính sau khi tải xong
+        mainTexFile = 'main.tex'; // Đặt tên file .tex chính của bạn ở đây
     }
 
+    // --- Main Functions ---
     async function init() {
         try {
-            loadingMessage.innerText = "Initializing Engine...";
-            loadingOverlay.style.display = 'flex';
-            await openDb();
-            await globalEn.loadEngine();
-            await loadFilesFromDb();
+            // Chạy song song các tác vụ khởi tạo để tăng tốc
+            await Promise.all([
+                globalEn.loadEngine(), 
+                openDb(),
+                loadDefaultProjectFiles() // Gọi hàm tự động tải dự án
+            ]);
+            
+            await loadFilesFromDb(); // Tải thêm các file đã lưu trong IndexedDB
+            
+            // Cập nhật giao diện sau khi đã tải xong tất cả
             updateMainFileSelector();
+            handleMainFileChange(); // Tải nội dung file chính vào editor
+            
             compileBtn.innerHTML = "Compile";
             compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+            consoleOutput.innerHTML = "Engine loaded. Default project is ready.";
+
         } catch (err) {
             console.error(err);
-            consoleOutput.innerHTML = `Initialization failed: ${err}. Try the 'Reset Storage' button.`;
-            compileBtn.innerHTML = "Error";
-        } finally {
-            loadingOverlay.style.display = 'none';
+            consoleOutput.innerHTML = `Initialization failed: ${err}`;
         }
     }
 
-    async function handleFileLoad(event) {
+    // =========================================================================
+    // NÂNG CẤP 2: HÀM TẢI FILE/THƯ MỤC THÔNG MINH HƠN
+    // =========================================================================
+    function handleFileLoad(event) {
         const files = event.target.files;
         if (!files.length) return;
-        loadedFiles.clear();
-        await loadFilesFromDb(); 
-        let potentialMainFile = null;
 
-        for (const file of Array.from(files)) {
-            if (file.name.endsWith('.zip')) {
-                loadingMessage.innerText = "Unzipping project...";
-                loadingOverlay.style.display = 'flex';
-                try {
-                    const jszip = new JSZip();
-                    const zip = await jszip.loadAsync(file);
-                    for (const relativePath in zip.files) {
-                        const zipEntry = zip.files[relativePath];
-                        if (zipEntry.dir) continue;
-                        const fileData = await zipEntry.async('uint8array');
-                        loadedFiles.set(relativePath, fileData);
-                        if (relativePath.endsWith('.tex')) {
-                            if (!potentialMainFile || relativePath.toLowerCase() === 'main.tex') {
-                                potentialMainFile = relativePath;
-                            }
+        // Xóa các file cũ (trừ file trong IndexedDB) để bắt đầu một dự án mới
+        loadedFiles.clear(); 
+        loadFilesFromDb().then(() => {
+            const filePromises = Array.from(files).map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileData = new Uint8Array(e.target.result);
+                        // QUAN TRỌNG: Giữ lại cấu trúc thư mục khi tải cả project
+                        const fileName = file.webkitRelativePath || file.name;
+                        
+                        loadedFiles.set(fileName, fileData);
+
+                        // Lưu file .sty/.cls để dùng lại sau này
+                        if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) {
+                            saveFileToDb(fileName, fileData);
                         }
-                        if (relativePath.endsWith('.sty') || relativePath.endsWith('.cls')) {
-                            saveFileToDb(relativePath, fileData);
-                        }
-                    }
-                } catch (e) {
-                    alert(`Error unzipping file: ${e.message}`);
-                } finally {
-                    loadingOverlay.style.display = 'none';
-                }
-            } 
-            else {
-                const fileData = new Uint8Array(await file.arrayBuffer());
-                loadedFiles.set(file.name, fileData);
-                if (file.name.endsWith('.tex')) potentialMainFile = file.name; 
-                if (file.name.endsWith('.sty') || file.name.endsWith('.cls')) saveFileToDb(file.name, fileData);
-            }
-        }
-        
-        if (potentialMainFile) {
-            mainTexFile = potentialMainFile;
-            const fileContent = loadedFiles.get(mainTexFile);
-            if(fileContent) {
-                editorEl.setValue(new TextDecoder().decode(fileContent), -1);
-            }
-        }
-        updateMainFileSelector();
-        event.target.value = '';
-    }
-    
-    function cacheSystemFilesFromLog(logContent) {
-        const fileRegex = /\(([^()\s]+\.(?:sty|cls|def|code\.tex|fd|ldf))/g;
-        const filesToCache = new Map();
-        let match;
-        while ((match = fileRegex.exec(logContent)) !== null) {
-            const fileName = match[1].split('/').pop().split('\\').pop();
-            if (!cachedFileNames.has(fileName)) filesToCache.set(fileName, match[1]);
-        }
-        if (filesToCache.size === 0) return;
+                        resolve();
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            });
 
-        console.log(`[Cache] Found ${filesToCache.size} new system packages to cache...`);
-        for (const [fileName, fullPath] of filesToCache.entries()) {
-            try {
-                const fileData = globalEn.readMemFSFile(fileName);
-                if (fileData && fileData.length > 0) saveFileToDb(fileName, fileData);
-            } catch (e) {
-                console.warn(`[Cache] Could not read system file '${fileName}'.`);
-            }
-        }
+            Promise.all(filePromises).then(() => {
+                // Tự động tìm file .tex đầu tiên và đặt làm file chính
+                mainTexFile = Array.from(loadedFiles.keys()).find(name => name.endsWith('.tex')) || '';
+                updateMainFileSelector();
+                handleMainFileChange(); // Cập nhật editor
+                alert(`Loaded ${files.length} files successfully!`);
+            });
+        });
+        
+        event.target.value = ''; 
     }
 
-    async function compile() {
-        if (!globalEn.isReady()) {
-            alert("Engine not ready. Please wait or reload.");
-            return;
-        }
-        loadingMessage.innerText = "Compiling...";
-        loadingOverlay.style.display = 'flex';
-        compileBtn.disabled = true;
-
-        loadedFiles.set(mainTexFile, new TextEncoder().encode(editorEl.getValue()));
-        for (const [name, data] of loadedFiles.entries()) {
-            globalEn.writeMemFSFile(name, data);
-        }
-        globalEn.setEngineMainFile(mainTexFile);
-        
-        await globalEn.compileLaTeX(); // First pass
-        const r = await globalEn.compileLaTeX(); // Second pass
-        
-        consoleOutput.innerHTML = r.log || "No log output.";
-        if (consoleOutput.classList.contains('collapsed')) toggleConsole();
-        
-        loadingOverlay.style.display = 'none';
-        compileBtn.disabled = false;
-
-        if (r.status === 0) {
-            pdfbox.innerHTML = `<embed src="${URL.createObjectURL(new Blob([r.pdf], {type: 'application/pdf'}))}" width="100%" height="100%" type="application/pdf">`;
-            if (r.log) cacheSystemFilesFromLog(r.log);
-        } else {
-            pdfbox.innerHTML = `<div style="padding: 20px; color: red; font-family: monospace; white-space: pre-wrap;">Compilation failed. Check console output.</div>`;
-        }
-    }
-
-    function handleMainFileChange(event) {
-        mainTexFile = event.target.value;
+    function handleMainFileChange() {
+        mainTexFile = mainFileSelector.value;
         const fileContent = loadedFiles.get(mainTexFile);
-        if (fileContent) editorEl.setValue(new TextDecoder().decode(fileContent), -1);
+        if (fileContent) {
+            try {
+                const textDecoder = new TextDecoder("utf-8", { fatal: true });
+                editorEl.setValue(textDecoder.decode(fileContent), -1);
+            } catch (e) {
+                editorEl.setValue(`// Cannot display binary file: ${mainTexFile}`, -1);
+            }
+        }
     }
     
     function updateMainFileSelector() {
         mainFileSelector.innerHTML = '';
-        const texFiles = Array.from(loadedFiles.keys()).filter(name => name.endsWith('.tex')).sort();
-        
-        if (texFiles.length === 0 && mainTexFile) {
-            texFiles.push(mainTexFile);
+        const texFiles = [];
+        for (const fileName of loadedFiles.keys()) {
+            if (fileName.endsWith('.tex')) {
+                texFiles.push(fileName);
+            }
         }
+        texFiles.sort(); // Sắp xếp cho đẹp
         
         texFiles.forEach(fileName => {
             const option = document.createElement('option');
             option.value = fileName;
             option.textContent = fileName;
-            if (fileName === mainTexFile) option.selected = true;
             mainFileSelector.appendChild(option);
         });
+
+        if (mainTexFile && texFiles.includes(mainTexFile)) {
+            mainFileSelector.value = mainTexFile;
+        } else if (texFiles.length > 0) {
+            mainFileSelector.value = texFiles[0];
+            mainTexFile = texFiles[0];
+        }
     }
 
-    function toggleConsole() {
+    async function compile() { /* ... code không đổi ... */ 
+        if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; }
+        loadingOverlay.style.display = 'flex';
+        compileBtn.disabled = true;
+        const textEncoder = new TextEncoder();
+        loadedFiles.set(mainTexFile, textEncoder.encode(editorEl.getValue()));
+        for (const [name, data] of loadedFiles.entries()) { globalEn.writeMemFSFile(name, data); }
+        globalEn.setEngineMainFile(mainTexFile);
+        consoleOutput.innerHTML = "First pass...";
+        await globalEn.compileLaTeX();
+        consoleOutput.innerHTML += "\nSecond pass...";
+        const r = await globalEn.compileLaTeX();
+        consoleOutput.innerHTML = r.log || "No log output.";
+        if (consoleOutput.classList.contains('collapsed')) { toggleConsole(); }
+        loadingOverlay.style.display = 'none';
+        compileBtn.disabled = false;
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+            pdfbox.innerHTML = `<embed src="${URL.createObjectURL(pdfblob)}" width="100%" height="100%" type="application/pdf">`;
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check the console output.</div>`;
+        }
+    }
+
+    function toggleConsole() { /* ... code không đổi ... */ 
         consoleOutput.classList.toggle('collapsed');
         consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
     }
     
-    function handleTemplateChange(event) {
-        const templateName = event.target.value;
-        if (!templateName) return;
-        const templates = {
-            'article': `\\documentclass[12pt]{article}\n\\usepackage{amsmath}\n\\title{Simple Article}\n\\begin{document}\n\\maketitle\n$E=mc^2$\n\\end{document}`,
-            'tikz-demo': `\\documentclass[tikz,border=5mm]{standalone}\n\\usetikzlibrary{shapes.geometric,arrows}\n\\begin{document}\n\\begin{tikzpicture}\n\\node[draw,circle] (A) {A};\n\\node[draw,rectangle,right of=A] (B) {B};\n\\draw[->] (A) -- (B);\n\\end{tikzpicture}\n\\end{document}`
-        };
-        loadedFiles.clear();
-        cachedFileNames.clear(); 
-        loadFilesFromDb().then(() => {
-            mainTexFile = `${templateName}.tex`;
-            const content = templates[templateName];
-            editorEl.setValue(content, -1);
-            loadedFiles.set(mainTexFile, new TextEncoder().encode(content));
-            updateMainFileSelector();
-        });
-    }
-
     // --- Start the application ---
     init();
+
 </script>
 </body>
 </html>
