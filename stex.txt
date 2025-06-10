@@ -1,1 +1,16 @@
 soạn latexonlie
+
+
+
+const predefinedFiles = [
+        'ex_test.sty', 
+        'twemojis.sty',
+        'casiovn.sty',
+        'titledot.sty',
+        'tkz-tab-vn.sty',
+        'ex_tkz-euclide.sty',
+        'ex_beamer.sty',
+        'slashbox.sty',
+        'fontspec-doc-style.sty',
+        'graphtabvar.sty'
+    ];

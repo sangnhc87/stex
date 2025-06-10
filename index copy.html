@@ -249,7 +249,7 @@ editorEl.setTheme("ace/theme/monokai");
 editorEl.session.setMode("ace/mode/latex");
 editorEl.session.setUseWrapMode(true);
 editorEl.setFontSize(16);
-
+editorEl.resize(true); // << THÊM DÒNG NÀY VÀO
 // --- Event Listeners ---
 fileLoaderInput.addEventListener('change', handleFileLoad);
 mainFileSelector.addEventListener('change', handleMainFileChange);

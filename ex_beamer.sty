@@ -1,0 +1,653 @@
+\ProvidesPackage{ex_beamer}[2020/04/23 for Ex_beamer version 2.4.5 beta 7.4, Tran Anh Tuan]
+\RequirePackage{ifthen}
+\RequirePackage{fancyhdr}
+\RequirePackage{multicol}
+\RequirePackage{answers}
+\RequirePackage{array}
+\RequirePackage{multirow}
+\RequirePackage{longtable}
+\RequirePackage[utf8]{vietnam}
+\RequirePackage{tikz}
+\RequirePackage{amsthm}
+\RequirePackage{calc}
+\RequirePackage{etoolbox}
+\RequirePackage{probsoln}
+\RequirePackage{picinpar}
+\RequirePackage{environ}
+\RequirePackage{varwidth}
+%
+\newcommand{\showlabelchoice}{%
+}
+%Ẩn hiện công thức tự động
+\newlength\wsh
+\newlength\hsh
+\newlength\dsh
+\newcommand{\sh}[1]{%
+\settowidth\wsh{#1}%
+\settoheight\hsh{#1}%
+\settodepth\dsh{#1}%
+\raisebox{0pt}[\hsh][\dsh]{
+\rule{\wsh}{0.1pt}}}
+\newcommand{\TF}[1]{\EXboxTF{\textbf{\colorEX#1}}}
+\newcommand{\boxEX}[2][9pt]{%
+	\def\sizeboxEX{#1}%
+	\setbox1=\hbox{#2}%
+	\ \EXbox{#2}\ %
+}
+%Lệnh tagEX gán nhãn công thức thủ công
+\newcommand{\tagEX}[1]{%
+	\hfill{\rm (#1)}%
+	\par
+	\@ifnextchar\begin%
+	{\vspace{-\baselineskip}}
+	{}
+}
+%Tuỳ chọn pause
+\newcommand{\pauseEX}{}
+\let\itemold\item
+\renewcommand{\item}{\pauseEX\itemold}
+\newcommand{\nameex}{Câu}
+%Khoanh tròn
+\newcommand*\circEX[1]{\tikz[baseline=(char.base)]{\node[shape=circle,draw=red,inner sep=1pt,fill=yellow!50] (char) {\color{red} #1};}}
+%Gói beamer
+\RequirePackage{ragged2e}
+\justifying
+%Dấu chấm, phảy sau mỗi phương án
+\def\dotEX{.}
+%Tương thích gói picinpar
+\def\picinpar{\setlength{\textwidth}{\textwidth}}
+\AtBeginEnvironment{window}{\def\picinpar{\setlength{\textwidth}{\textwidth-\picwd-\lwindowsep-2\fboxsep}}}
+%Tùy chọn lời giải
+\newcommand{\choicew}[1]{\setlength{\widthch}{#1}}
+\newcommand{\loigiai}[1]{}
+\DeclareOption{pause}{%
+\def\True{\colorEX\setcounter{numTrue}{\thedapan}\setcounter{numTrueSol}{\thedapan}}
+\def\loigiaiEX{\color{blue} Lời giải.}
+\showanswers
+\renewcommand{\pauseEX}{\pause}
+\renewcommand{\loigiai}[1]{
+\let\oldnewline\\
+\renewcommand{\\}{\oldnewline\pauseEX}
+\let\oldcenter\center
+\let\oldendcenter\endcenter
+\renewenvironment{center}{\setlength\topsep{0pt}\oldcenter}{\oldendcenter \pauseEX}
+\let\oldmath\[
+\let\oldendmath\]
+\def\[{\pauseEX\oldmath}
+\def\]{\oldendmath\pauseEX}
+\renewcommand{\IMrightleft}[2]{
+\vspace*{-\parskip}
+\par\noindent
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		##2
+	\end{minipage}\pauseEX
+	\hspace{2\fboxsep}
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep}
+	\let\oldnewline\\
+	\renewcommand{\\}{\oldnewline\pauseEX}
+		##1
+	\end{minipage}
+	\par\nointerlineskip
+}
+\renewcommand{\immini}[3][]{
+	\setbox\imbox=\vbox{\hbox{##3}}
+	\widthimmini=\wd\imbox
+	\IMrightleft{##2}{##3}
+}
+\pauseEX\par\begin{onlysolution}{
+  \begin{beamercolorbox}[colsep*=.75ex]{block title}
+\loigiaiEX\pauseEX
+  \end{beamercolorbox}
+}\@ifnextchar\immini
+	{\vspace*{-\parskip}}
+	{\par\noindent}#1\showlabelchoice%
+\end{onlysolution}
+}
+\renewcommand{\nextEX}[1]{%
+\renewcommand{\IMrightleft}[2]{
+\vspace*{-\parskip}
+\par\noindent
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		##2
+	\end{minipage}\pauseEX
+	\hspace{2\fboxsep}
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep}
+	\let\oldnewline\\
+	\renewcommand{\\}{\oldnewline\pauseEX}
+		##1
+	\end{minipage}
+	\par\nointerlineskip
+}
+\renewcommand{\immini}[3][]{
+	\setbox\imbox=\vbox{\hbox{##3}}
+	\widthimmini=\wd\imbox
+	\IMrightleft{##2}{##3}
+}
+\newpage
+\begin{frame}
+\let\oldnewline\\
+\renewcommand{\\}{\oldnewline\pauseEX}
+\let\oldcenter\center
+\let\oldendcenter\endcenter
+\renewenvironment{center}{\setlength\topsep{0pt}\oldcenter}{\oldendcenter \pauseEX}
+\let\oldmath\[
+\let\oldendmath\]
+\def\[{\pauseEX\oldmath}
+\def\]{\oldendmath\pauseEX}
+%\begin{frame}[allowframebreaks,t]
+#1
+\end{frame}
+}
+}%
+\DeclareOption{loigiai}{
+\renewcommand{\nextEX}[1]{%
+\newpage
+\begin{frame}
+#1
+\end{frame}
+}
+\def\True{\colorEX\setcounter{numTrue}{\thedapan}\setcounter{numTrueSol}{\thedapan}}
+\def\loigiaiEX{\color{blue} Lời giải.}
+\showanswers
+\renewcommand{\loigiai}[1]{
+\pauseEX\par\begin{onlysolution}{
+  \begin{beamercolorbox}[colsep*=.75ex]{block title}
+\loigiaiEX\pauseEX
+  \end{beamercolorbox}
+}\@ifnextchar\immini
+	{\vspace*{-\parskip}}
+	{\par\noindent}#1\showlabelchoice%
+\end{onlysolution}}
+}
+%\def\colorEX{\color{black}}
+\def\colorEX{}
+\newcounter{numTrue}
+\newcounter{numTrueSol}
+\newcommand{\nextEX}[1]{%
+}%
+\DeclareOption{choice}{
+\renewcommand{\showlabelchoice}{%
+	\ifnum\the\value{numTrueSol}=1
+	\par\noindent Chọn đáp án \circEX{A}
+	\fi
+	\ifnum\the\value{numTrueSol}=2
+	\par\noindent Chọn đáp án \circEX{B}
+	\fi
+	\ifnum\the\value{numTrueSol}=3
+	\par\noindent Chọn đáp án \circEX{C}
+	\fi
+	\ifnum\the\value{numTrueSol}=4
+	\par\noindent Chọn đáp án \circEX{D}
+	\fi
+	\ifnum\the\value{numTrueSol}=5
+	\par\noindent Chọn đáp án \circEX{E} 
+	\fi
+	\setcounter{numTrueSol}{0}
+}
+}
+\DeclareOption{dethi}{
+\renewcommand{\loigiai}[1]{%
+}
+\def\True{\setcounter{numTrue}{\thedapan}\setcounter{numTrueSol}{\thedapan}} 
+}
+\ExecuteOptions{dethi}
+\ProcessOptions
+%Nội dung gói ex_test
+\newlength\dorongfix
+\dorongfix=\textwidth
+\newlength\dorong
+\dorong=\textwidth
+\Newassociation{solbook}{Solbook}{ansbook}
+\renewcommand{\Solbooklabel}[1]{\textbf{Câu #1.}}
+\Newassociation{solEX}{Solution}{ans}
+\Newassociation{sol}{Solution}{ans_old}
+\theoremstyle{definition}
+\newtheorem{exb}{\nameex}
+\AtBeginEnvironment{exb}{\setcounter{numTrueSol}{0}\def\dotEX{.}}
+\AtEndEnvironment{exb}{
+\ifnum\the\value{numTrue}=1
+\scantokens{\begin{solEX}A\end{solEX}}
+\fi
+\ifnum\the\value{numTrue}=2
+\scantokens{\begin{solEX}B\end{solEX}}
+\fi
+\ifnum\the\value{numTrue}=3
+\scantokens{\begin{solEX}C\end{solEX}}
+\fi
+\ifnum\the\value{numTrue}=4
+\scantokens{\begin{solEX}D\end{solEX}}
+\fi
+\setcounter{numTrue}{0}
+\setcounter{numTrueSol}{0}
+}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+\newcounter{dapan}
+\newcommand{\dapan}{\stepcounter{dapan}{\textbf{\Alph{dapan}.}}}
+%\newcommand{\dapan}{\stepcounter{dapan}{\circled{\Alph{dapan}}}}%Đáp án khoanh tròn
+% \newcommand{\dapan}{\stepcounter{dapan}{\textbf{\color{mau}\Alph{dapan}.}}} %Tô màu đáp án
+\newcommand{\boncot}[4]{
+\picinpar
+\setlength{\dorong}{(\textwidth-0.02\dorongfix)/4-\fboxsep}
+\par\setcounter{dapan}{0}
+\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #1\dotEX
+\end{minipage}
+\noindent\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #2\dotEX
+\end{minipage}
+\noindent\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #3\dotEX
+\end{minipage}
+\noindent\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #4\dotEX
+\end{minipage}
+
+}
+\newcommand{\haicot}[4]{
+\picinpar
+\setlength{\dorong}{0.5\textwidth-0.01\dorongfix-\fboxsep}
+\setcounter{dapan}{0}
+\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #1\dotEX
+\end{minipage}
+\noindent\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #2\dotEX
+\end{minipage}
+\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #3\dotEX
+\end{minipage}
+\noindent\begin{minipage}[t]{\dorong}
+\leavevmode\dapan\ #4\dotEX
+\end{minipage}
+
+}
+\newcommand{\motcot}[4]{
+\picinpar
+\setlength{\dorong}{\textwidth-0.02\dorongfix}
+\par\setcounter{dapan}{0}
+\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\strut\leavevmode\dapan\ #1\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\strut\leavevmode\dapan\ #2\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\strut\leavevmode\dapan\ #3\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+\strut\leavevmode\dapan\ #4\dotEX\strut
+\end{minipage}
+
+}
+%%%%%%%Tự động chọn \motcot, \haicot, \boncot
+      \newlength\widthcha
+        \newlength\widthchb
+        \newlength\widthchc
+        \newlength\widthchd
+        \newlength\widthch
+        \newlength\tabmaxwidth
+        \newlength\fourthtabwidth
+        \newlength\halftabwidth
+      \newcommand{\choice}[4]{%
+       \setlength\tabmaxwidth{\textwidth-\picwd-\lwindowsep}
+        \setlength\fourthtabwidth{0.25\textwidth-0.25\picwd-0.25\lwindowsep}
+        \setlength\halftabwidth{0.5\textwidth-0.5\picwd-0.5\lwindowsep}
+      \settowidth\widthcha{AM.#1}
+      \ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+      \settowidth\widthchb{BM.#2}%
+      \ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+      \settowidth\widthchc{CM.#3}%
+      \ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+      \settowidth\widthchd{DM.#4}%
+      \ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+      \ifdim\widthch<\fourthtabwidth
+        \boncot{#1}{#2}{#3}{#4}
+      \else\ifdim\widthch<\halftabwidth
+          \haicot{#1}{#2}{#3}{#4}
+        \else
+          \motcot{#1}{#2}{#3}{#4}
+      \fi\fi
+    }
+      \newcommand{\choicefix}[4]{%
+       \setlength\tabmaxwidth{\textwidth-\picwd-\lwindowsep}
+        \setlength\fourthtabwidth{0.25\textwidth-0.25\picwd-0.25\lwindowsep}
+        \setlength\halftabwidth{0.5\textwidth-0.5\picwd-0.5\lwindowsep}
+      \settowidth\widthcha{AM.#1}
+      \ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+      \settowidth\widthchb{BM.#2}%
+      \ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+      \settowidth\widthchc{CM.#3}%
+      \ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+      \settowidth\widthchd{DM.#4}%
+      \ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+      \ifdim\widthch<\fourthtabwidth
+        \boncot{#1}{#2}{#3}{#4}
+      \else\ifdim\widthch<\halftabwidth
+          \haicot{#1}{#2}{#3}{#4}
+        \else
+          \motcot{#1}{#2}{#3}{#4}
+      \fi\fi
+    }
+%Gói beamer
+\setbeamertemplate{theorem begin}
+{%
+  \par\vskip\medskipamount%
+  \begin{beamercolorbox}[colsep*=0.75ex]{block title}
+    \usebeamerfont*{block title}%
+    \inserttheoremname\inserttheoremnumber
+    \ifx\inserttheoremaddition\empty.\else\ (\inserttheoremaddition).\fi%
+  \end{beamercolorbox}%
+}
+\setbeamertemplate{theorem end}{}
+\newbox\mb
+\NewEnviron{ex}[1][]{%
+\setbox\mb=\vbox{\hbox{\begin{varwidth}{\textwidth}\BODY\end{varwidth}}}
+\ifdim\ht\mb>0.5\paperheight
+\renewcommand{\loigiai}[1]{%
+\renewcommand{\pauseEX}{}	
+\newpage\begin{frame}[allowframebreaks]\begin{onlysolution}{%
+\begin{beamercolorbox}[colsep*=.75ex]{block title}
+\loigiaiEX
+\end{beamercolorbox}
+}##1\showlabelchoice%
+\end{onlysolution}\end{frame}}
+\newpage
+%\addtolength{\footskip}{-5pt}
+
+\vspace*{\headsep}
+
+\begin{exb}[#1]
+\BODY
+\end{exb}
+\else
+\newpage
+%\addtolength{\headsep}{-8pt}
+%\addtolength{\footskip}{8pt}
+\begin{frame}[t]
+\begin{exb}[#1]
+\BODY
+\end{exb}
+\end{frame}
+\fi
+}
+%Các phương pháp đưa hình vào văn bản
+\def\vspaceIM{\vspace{-13pt}}
+\def\breakIM{}
+\def\numpicinpar{0}
+\newdimen\widthimmini
+\newdimen\heightimmini
+\newdimen\spaceleft
+\newbox\imbox
+\newcommand{\IMleftright}[2]{
+\vspace*{-\parskip}
+\par\noindent
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-6\fboxsep}
+		#1
+	\end{minipage}
+	\hspace{2\fboxsep}
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		#2
+	\end{minipage}
+	\par\nointerlineskip
+}
+\newcommand{\immini}[3][]{
+	\setbox\imbox=\vbox{\hbox{#3}}
+	\widthimmini=\wd\imbox
+	\IMleftright{#2}{#3}
+}
+\newcommand{\IMrightleft}[2]{
+\vspace*{-\parskip}
+\par\noindent
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		#2
+	\end{minipage}
+	\hspace{2\fboxsep}
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep}
+		#1
+	\end{minipage}
+	\par\nointerlineskip
+}
+\newcommand{\imminiL}[3][]{
+	\setbox\imbox=\vbox{\hbox{#3}}
+	\widthimmini=\wd\imbox
+	\IMrightleft{#2}{#3}
+}
+\newcommand{\impicinpar}[2]{
+\begin{window}[\numpicinpar,r,{
+#2
+}, {}]
+\begin{flushleft}
+#1
+\end{flushleft}
+\end{window}
+}
+%Hết cách đưa hình vào văn bản
+% Biểu diễn khoảng, đoạn trên trục số
+\usetikzlibrary{decorations.pathreplacing,decorations.markings,patterns}
+\def\colorInterval{black}
+\def\skipInterval{0.4cm}
+\newcommand{\Interval}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw[color=\colorInterval] decorate[decoration={ticks,amplitude=3pt,segment length=1mm}] {(a)--(b)};
+}
+\newcommand{\IntervalR}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,-3pt) -- (3pt,3pt);
+      }}] {(a)--(b)};
+}
+\newcommand{\IntervalL}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw decorate[decoration={
+		markings,
+		mark=between positions 0 and 1 step 1mm
+      	with
+      	{
+		\draw[color=\colorInterval] (-3pt,3pt) -- (3pt,-3pt);
+      	}
+		}
+		] {(a)--(b)};
+}
+\newcommand{\IntervalLF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+   		\fill[pattern=north west lines,pattern color=\colorInterval](#2,-3pt)rectangle(#4,3pt);
+}
+\newcommand{\IntervalRF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+   		\fill[pattern=north east lines,pattern color=\colorInterval](#2,-3pt)rectangle(#4,3pt);
+}
+\def\pre{0}
+\def\next{2}
+\newcommand{\IntervalLR}[2]{
+\def\pre{#1}
+\def\next{#2}
+}
+\newcommand{\IntervalG}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+       \draw[color=\colorInterval] decorate[decoration={ticks,amplitude=3pt,segment length=1mm}] {(a)--(b)};
+}
+\newcommand{\IntervalGL}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,3pt) -- (3pt,-3pt);
+      }}] {(a)--(b)};
+}
+\newcommand{\IntervalGR}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,-3pt) -- (3pt,3pt);
+      }}] {(a)--(b)};
+}
+
+\newcommand{\IntervalGLF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \fill[pattern=north west lines,pattern color=\colorInterval](\pre,-3pt)rectangle(\next,3pt);
+}
+\newcommand{\IntervalGRF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \fill[pattern=north east lines,pattern color=\colorInterval](\pre,-3pt)rectangle(\next,3pt);
+}
+%Định nghĩa fill dots
+\newcommand{\dotlineEX}[1]{
+	\def\numlinedot{#1}
+	\par
+	\foreach \x in{1,...,\numlinedot}
+	{
+		\noindent\dotfill
+		\par
+	}
+}
+%Liệt kê danh sách đáp án
+\newsavebox{\mybox}
+\newcommand{\listans}
+{
+\renewenvironment{Solution}[1]
+{##1\hspace*{-4pt}}
+{\hspace*{-5pt}}
+}
+\newcommand{\rowans}
+{
+\renewenvironment{Solution}[1]
+{\begin{minipage}{0.1\textwidth-\fboxsep}\color{blue}##1.\color{violet}}
+{\end{minipage}}
+}
+%Đường tròn LG
+\usetikzlibrary{plotmarks}
+\newcommand{\trucLG}{
+\draw[->] (0,-1.3) -- (0,1.3) node[left] {$\sin$};
+\draw[->] (-1.3,0) -- (1.3,0) node[below] {$\cos$};
+\draw (0,0) circle (1cm);
+}
+\newcommand{\pointLG}[4]
+{
+\foreach \i in {0,...,#2}
+{
+ \draw[color=#4]
+      plot[mark=#3] coordinates {({#1+\i*360/#2}:1)};
+}
+}
+\makeatletter
+\def\sizeboxEX{9pt}
+\def\EXbox#1{%
+	\begingroup%
+	\setlength{\fboxsep}{0.3ex}%
+	\setlength{\@tempdima}{\sizeboxEX}%
+	\setlength{\@tempdimb}{(\@tempdima-\ht1+\dp1)/2}%
+	\raise-\@tempdimb\hbox{\fbox{\vbox to \@tempdima{%
+				\vfil\hbox to \@tempdima{\hfil#1\hfil}\vfil}}}%
+	\endgroup%
+}
+\def\EXboxTF#1{%
+	\begingroup%
+	\setlength{\fboxsep}{0.3ex}%
+	\setbox1=\hbox{#1}%
+	\setlength{\@tempdima}{\sizeboxEX}%
+	\fbox{\vbox to \@tempdima{%
+				\vfil\hbox to \@tempdima{\hfil\copy1\hfil}\vfil}}%
+	\endgroup%
+}
+\makeatother
+\newcommand{\inputans}[2]{
+\begin{multicols}{10}
+\input{#2} 
+\end{multicols}
+}
+\newcommand{\inputansbox}[2]{
+\begin{multicols}{10}
+\input{#2} 
+\end{multicols}
+}
+% Môi trường liệt kê dàn theo nhiều dòng khác nhau
+\newcounter{numlistEX}
+\setcounter{numlistEX}{0}
+\def\numlistEX{\alph{numlistEX})}
+\newcommand{\listEXnum}{\stepcounter{numlistEX}{\numlistEX}}
+\newlength{\indentlistEX}
+\newenvironment{listEX}[1][]
+{%
+\setlength\topsep{0pt}
+\hfill
+\flushleft
+\ifstrempty{#1}%
+  {%
+\settowidth{\indentlistEX}{\space\thenumlistEX\space\space\,}
+\leftskip=\dimexpr\indentlistEX+10pt\relax
+\rightskip=0pt plus 0cm
+\vspace*{-\baselineskip}
+\def\item{\hfil\egroup\penalty50
+\par
+\leavevmode\bgroup\space\hspace*{-\indentlistEX}\listEXnum\space} %
+  }
+  {%
+\ifthenelse{#1=1}{
+\settowidth{\indentlistEX}{\space\thenumlistEX\space\space\,}
+\leftskip=\dimexpr\indentlistEX+10pt\relax
+\rightskip=0pt plus 0cm
+\vspace*{-\baselineskip}
+\def\item{\hfil\egroup\penalty50
+\par
+\leavevmode\bgroup\space\hspace*{-\indentlistEX}\listEXnum\space} %
+}{
+\dimen0 \linewidth
+\divide\dimen0 by #1\relax
+\advance\dimen0 0pt\relax
+\def\item{\hfil\egroup\penalty50
+\leavevmode\hbox to \dimen0 \bgroup\space\hspace*{10pt}\listEXnum\space}%
+  }}
+\leavevmode\bgroup\hskip 0pt plus -1fill
+}
+{%
+\hfil\egroup\endflushleft%
+\setcounter{numlistEX}{0}%
+}
+%Lệnh enumEX
+\newenvironment{enumEX}[2][a)]
+ {  
+\ifthenelse{#2=1}{
+\vspace{-\topsep}
+\enumerate[\hspace*{14pt}#1]
+\setlength{\itemsep}{1pt}
+\setlength{\parskip}{0pt}
+\setlength{\parsep}{0pt}
+\def\eenumEX{\endenumerate}
+}{
+\NumTabs{#2}
+\setlength\topsep{0pt}
+\flushleft
+\inparaenum[#1]
+\let\latexitem\item
+\def\item{\def\item{\tab\hspace*{14pt}\latexitem}\hspace*{14pt}\latexitem}
+\def\eenumEX{\endinparaenum}
+}
+} 
+{
+\eenumEX\endflushleft
+}
+%Tương thích item
+\makeatletter
+\def\beamer@cramped{}%%%%%%
+\makeatother
+%% End of file `ex_beamer.sty'.

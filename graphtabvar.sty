@@ -1,0 +1,2116 @@
+%Gói lệnh graphtabvar.sty mục đích:
+%1. Làm các bảng biến thiên hàm số phổ thông tự động
+%Lệnh \BBTbacmot{a}{b}, |BBTbachai{a}{b}{c},....
+%2. Vẽ hình tương ứng với bảng biến thiên |DTbachai{a}{b}{c},....
+%Tác giả Nguyễn Hữu Điển (ĐHKHTN, Hà Nội)
+%Mail: nvvietex.gmail.com, Phone: 0989061951
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ProvidesPackage{graphtabvar}[24/08/2018, ver. 1.0]
+\RequirePackage{fp}
+\RequirePackage{tkz-tab}
+\newif\ifctham
+\cthamtrue
+\newcommand{\@ctham}[1]{
+\ifctham\noindent #1\\ \fi }
+\newcommand{\@heesoaps}[1]{
+\FPabs{\@hsduong}{\hsa}
+\FPiflt{\@hsduong}{1}  (#1) \else 
+#1
+\fi
+}
+
+\newcommand{\@heesoa}[1]{
+\FPifeq{\hso}{-1} - \else
+\@heesoaps{#1}
+\fi
+}
+\newcommand{\hesoa}[1]{
+\FPeval{\hso}{(#1)}
+\FPifeq{\hso}{1} \else 
+\@heesoa{#1}
+\fi
+}
+\newcommand{\@heeso}[1]{
+\FPifneg{\hso} #1\else +#1\fi
+}
+
+\newcommand{\heso}[1]{
+\FPeval{\hso}{(#1)}
+\FPifzero{\hso} \else 
+\@heeso{#1}
+\fi
+}
+
+\newcommand{\@heesox}[2]{
+\FPifneg{\hso} #1x^{#2}\else +#1x^{#2} \fi 
+}
+\newcommand{\@heeesox}[2]{
+\FPifeq{\hso}{-1} -x^{#2} \else
+\@heesox{#1}{#2}
+\fi
+}
+\newcommand{\@heeeesox}[2]{
+\FPifeq{\hso}{1} +x^{#2} \else 
+\@heeesox{#1}{#2}
+\fi
+}
+\newcommand{\hesox}[2]{
+\FPeval{\hso}{(#1)}
+\FPifzero{\hso} 
+\else 
+\@heeeesox{#1}{#2}
+\fi 
+}
+%%%%Bac mot
+\newcommand{\BBTbacmot}[3][]{
+\FPeval{\hsa}{(#2)} 
+\@ctham{Bảng biến thiên của $y=\hesoa{#2} x\heso{#3}$}
+\FPifneg{\hsa}
+{\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1,espcl=5]{$x$ /1,$y$ /1.5}
+{$-\infty$,$+\infty$}%
+\tkzTabVar{+/ $+\infty$ / , -/ $-\infty$ / }
+\end{tikzpicture}}
+\else 
+{\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1,espcl=5]{$x$ /1,$y$ /1.5}
+{$-\infty$,$+\infty$}%
+\tkzTabVar{-/ $-\infty$ / , +/ $+\infty$ / }
+\end{tikzpicture}}
+\fi
+}
+%%%%%%%%%Bậc 2
+\newcommand{\@bachai}[1]{
+\FPifneg{\hsa} 
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.0,deltacl=.5]
+{$x$ /.6, $y'$ /.6,$y$ /1.5}
+{$-\infty$ , \xx,  $+\infty$}
+\tkzTabLine{,+,z,-,}
+\tkzTabVar{-/$-\infty$ ,+/ \fx ,-/$-\infty$}
+\end{tikzpicture}
+\else
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.0,deltacl=.5]
+{$x$ /.6, $y'$ /.6,$y$ /1.5}
+{$+\infty$ , \xx,  $+\infty$}
+\tkzTabLine{,-,z,+,}
+\tkzTabVar{+/$+\infty$ ,-/ \fx ,+/$+\infty$}
+\end{tikzpicture} 
+\fi
+}
+\newcommand{\BBTbachai}[4][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\xx}{clip(round(-\hsb/(2*\hsa),2))}
+\FPeval{\dta}{clip(round(\hsb*\hsb-4*\hsa*\hsc,2))}
+\FPifneg{\dta}
+\noindent Hàm số $y=\hesoa{#2} x^2\hesox{#3}{ }\heso{#4}$, Delta âm: \dta.
+Không có bảng biến thiên.
+\else 
+\@ctham{Bảng biến thiên của $y=\hesoa{#2} x^2\hesox{#3}{ }\heso{#4}$}
+  \FPeval{\fx}{clip(round(-\dta/(4*\hsa),2))}
+\@bachai{#1}
+\fi 
+}
+%%%%%%%Bậc 3
+\newcommand{\@hsaam}[1]{
+\FPifpos{\dta}
+\FProot{\cand}{\dta}{2}
+\FPeval{\xm}{clip(round((-2*\hsb+\cand)/(6*\hsa),2))}
+\FPeval{\xh}{clip(round((-2*\hsb-\cand)/(6*\hsa),2))}
+\FPmin{\minx}{\xm}{\xh}	% #1 = min(#2,#3)
+\FPmax{\maxx}{\xm}{\xh}	% #1 = max(#2,#3)
+\FPeval{\fmin}{clip(round(\hsa*\minx*\minx*\minx+\hsb*\minx*\minx+\hsc*\minx+\hsd,2))}
+\FPeval{\fmax}{clip(round(\hsa*\maxx*\maxx*\maxx+\hsb*\maxx*\maxx+\hsc*\maxx+\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.0,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /1.5}
+{$-\infty$ , \minx , \maxx , $+\infty$}
+\tkzTabLine{,-,z,+,z,-,}
+\tkzTabVar{+/$+\infty$ ,-/ \fmin,+/\fmax, -/$-\infty$}
+\end{tikzpicture}
+\else
+\begin{tikzpicture}
+\tkzTabInit[#1,color,espcl=4]%
+{$x$ /.7, $y'$ /.7,$y$ /1.5}
+{$-\infty$,$+\infty$}%
+\tkzTabLine{,-,}%
+\tkzTabVar{+/$+\infty$,-/ $-\infty$ /}
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@hsaduong}[1]{
+\FPifpos{\dta}
+\FProot{\cand}{\dta}{2}
+\FPeval{\xm}{clip(round((-2*\hsb+\cand)/(6*\hsa),2))}
+\FPeval{\xh}{clip(round((-2*\hsb-\cand)/(6*\hsa),2))}
+\FPmin{\minx}{\xm}{\xh}	% #1 = min(#2,#3)
+\FPmax{\maxx}{\xm}{\xh}	% #1 = max(#2,#3)
+\FPeval{\fmax}{clip(round(\hsa*\minx*\minx*\minx+\hsb*\minx*\minx+\hsc*\minx+\hsd,2))}
+\FPeval{\fmin}{clip(round(\hsa*\maxx*\maxx*\maxx+\hsb*\maxx*\maxx+\hsc*\maxx+\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.0,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /1.5}
+{$-\infty$ , \minx , \maxx , $+\infty$}
+\tkzTabLine{,+,z,-,z,+,}
+\tkzTabVar{-/$-\infty$ ,+/ \fmax ,-/\fmin, +/$+\infty$}
+\end{tikzpicture}
+\else
+\begin{tikzpicture}
+\tkzTabInit[#1,color,espcl=4]%
+{$x$ /.7, $y'$ /.7,$y$ /1.5}
+{$-\infty$,$+\infty$}%
+\tkzTabLine{,+,}%
+\tkzTabVar{-/$-\infty$,+/ $+\infty$ /}
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@deltakhongduong}[1]{
+\FPifzero{\dta}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,espcl=2.5]%
+{$x$/1,$f’(x)$/1, $y$/2}{$-\infty$,\xt,$+\infty$}%
+\tkzTabLine{, +,z,+,}
+\tkzTabVar{-/ $-\infty$, R/ , +/$+\infty$ }
+\tkzTabImaFrom{1}{3}{N21}{\fxt}
+\end{tikzpicture}
+\else
+\@hsaduong{#1}
+\fi 
+}
+
+\newcommand{\@deltakhongam}[1]{
+\FPifzero{\dta}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,espcl=2.5]%
+{$x$/1,$f’(x)$/1, $y$/3}{$-\infty$,\xt,$+\infty$}%
+\tkzTabLine{, -,z,-,}
+\tkzTabVar{+/ $+\infty$, R/ , -/$-\infty$ }
+\tkzTabImaFrom[draw]{1}{3}{N21}{\fxt}
+\end{tikzpicture}
+\else
+\@hsaam{#1}
+\fi 
+}
+
+\newcommand{\BBTbacba}[5][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\dta}{clip(round(4*\hsb*\hsb-12*\hsa*\hsc,2))}
+\@ctham{Bảng biến thiên của $y= \hesoa{#2} x^3\hesox{#3}{2}\hesox{#4}{ }\heso{#5}$}
+\FPifpos{\hsa}
+\@deltakhongduong{#1}
+\else
+\@deltakhongam{#1}
+\fi
+}
+%%%%%%%%Ham trung phuong
+\newcommand{\@hsaduongtp}[1]{
+\FPifneg{\hsb}
+\FPeval{\temp}{clip(round((-\hsb)/(2*\hsa),2))}
+\FProot{\cand}{\temp}{2}
+\FPeval{\xminh}{clip(round(\cand,2))} 
+\FPeval{\fmax}{clip(round(\hsc,2))} 
+\FPeval{\fmin}{clip(round(\hsa*\xminh*\xminh*\xminh*\xminh+\hsb*\xminh*\xminh+\hsc,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=1.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $-\xminh$ , $0$ , $\xminh$ , $+\infty$}
+\tkzTabLine{ ,-,z,+,z,-,z,+, }
+\tkzTabVar{+/$+\infty$ ,-/ $\fmin$ ,+/$\fmax$, -/$\fmin$,+/$+\infty$}
+\end{tikzpicture}
+\else
+\FPeval{\fmax}{clip(round(\hsc,2))} 
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $0$,  $+\infty$}
+\tkzTabLine{,-,z,  + ,}
+\tkzTabVar{+/$+\infty$ ,-/$\fmax$ ,+/$+\infty$}
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@hsaamtp}[1]{
+\FPifpos{\hsb}
+\FPeval{\temp}{clip(round((-\hsb)/(2*\hsa),2))}
+\FProot{\cand}{\temp}{2}
+\FPeval{\xmaxh}{clip(round(\cand,2))} 
+\FPeval{\fmax}{clip(round(\hsa*\xmaxh*\xmaxh*\xmaxh*\xmaxh+\hsb*\xmaxh*\xmaxh+\hsc,2))}
+\FPeval{\fmin}{clip(round(\hsc,2))} 
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=1.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $-\xmaxh$ , $0$ , $\xmaxh$ , $+\infty$}
+\tkzTabLine{ ,+,z,-,z,+,z,-, }
+\tkzTabVar{-/$-\infty$ ,+/$\fmax$ ,-/$\fmin$, +/$\fmax$,-/$-\infty$}
+\end{tikzpicture}
+\else
+\FPeval{\xminh}{clip(round(\hsc,2))} 
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $0$,  $+\infty$}
+\tkzTabLine{,+,z,-,}
+\tkzTabVar{-/$-\infty$ ,+/$\xminh$ ,-/$-\infty$}
+\end{tikzpicture}
+\fi
+}
+
+
+\newcommand{\BBTtrungphuong}[4][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\dta}{clip(round(4*\hsb*\hsb-12*\hsa*\hsc,2))}
+\@ctham{Bảng biến thiên của $y=\hesoa{#2} x^4\hesox{#3}{2}\heso{#4} $}
+\FPifpos{\hsa}
+\@hsaduongtp{#1}
+\else
+\@hsaamtp{#1}
+\fi
+}
+%%%%%%Hàm phân thức bậc một
+\newcommand{\BBTptbacmot}[5][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\dta}{clip(round(\hsa*\hsd-\hsb*\hsc,2))}
+\ifctham \noindent
+Bảng biến thiên của $y=\dfrac{\hesoa{#2} x\heso{#3}}{\hesoa{#4} x\heso{#5}}$\\
+\fi
+\FPeval{\hsdc}{clip(round((-\hsd)/\hsc,2))}
+\FPeval{\hsac}{clip(round(\hsa/\hsc,2))}
+\FPifneg{\dta}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ ,$\hsdc$ , $+\infty$}
+\tkzTabLine{ ,-,d,-, }
+\tkzTabVar{ + / $\hsac$ ,-D+ /$-\infty$/ $+\infty$ , - / $\hsac$ }%
+\end{tikzpicture}
+\else
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ ,$\hsdc$ , $+\infty$}
+\tkzTabLine{ ,+,d,+, }
+\tkzTabVar{ - / $\hsac$ ,+D- /$+\infty$/ $-\infty$ , + / $\hsac$ }%
+\end{tikzpicture}
+\fi
+}
+%%%%%%Hàm phân thức bậc hai
+\newcommand\@adam[1]{
+\FPifpos{\dta}
+\FProot{\tempa}{\dta}{2}
+\FPeval{\xmot}{clip(round((-2*\hsa*\hse+\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xhai}{clip(round((-2*\hsa*\hse-\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xed}{clip(round(-\hse/\hsd,2))}
+\FPmin{\xmin}{\xmot}{\xhai}	
+\FPmax{\xmax}{\xmot}{\xhai}	
+\FPeval{\fmin}{clip(round((\hsa*\xmin*\xmin+\hsb*\xmin+\hsc)/(\hsd*\xmin+\hse),2))}
+\FPeval{\fmax}{clip(round((\hsa*\xmax*\xmax+\hsb*\xmax+\hsc)/(\hsd*\xmax+\hse),2))}
+\begin{tikzpicture}
+\tkzTabInit[#1, lgt=1.5,espcl=1.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $\xmin$ , $\xed$ , $\xmax$ , $+\infty$}
+\tkzTabLine{ ,-,z,+,d,+,z,-, }
+\tkzTabVar{+/$+\infty$ , -/$\fmin$, +D- /$+\infty$/ $-\infty$ , + / $\fmax$, -/$-\infty$ }%
+\end{tikzpicture}
+\else
+\FPeval{\xed}{clip(round(-\hse/\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ ,$\xed$ , $+\infty$}
+\tkzTabLine{ ,-,d,-, }
+\tkzTabVar{ + / $+\infty$ ,-D+ /$-\infty$/ $+\infty$ , - / $-\infty$ }%
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@adduong}[1]{
+\FPifpos{\dta}
+\FProot{\tempa}{\dta}{2}
+\FPeval{\xmot}{clip(round((-2*\hsa*\hse+\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xhai}{clip(round((-2*\hsa*\hse-\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xed}{clip(round(-\hse/\hsd,2))}
+\FPmin{\minx}{\xmot}{\xhai}	
+\FPmax{\maxx}{\xmot}{\xhai}	
+\FPeval{\fmin}{clip(round((\hsa*\minx*\minx+\hsb*\minx+\hsc)/(\hsd*\minx+\hse),2))}
+\FPeval{\fmax}{clip(round((\hsa*\maxx*\maxx+\hsb*\maxx+\hsc)/(\hsd*\maxx+\hse),2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=1.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ , $\minx$ , $\xed$ , $\maxx$ , $+\infty$}
+\tkzTabLine{ ,+,z,-,d,-,z,+, }
+\tkzTabVar{-/$-\infty$ , +/$\fmin$, -D+ /$-\infty$/ $+\infty$ , - / $\fmax$, +/$+\infty$ }%
+\end{tikzpicture}
+\else
+\FPeval{\xed}{clip(round(-\hse/\hsd,2))}
+\begin{tikzpicture}
+\tkzTabInit[#1,lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y'$ /.7,$y$ /2}
+{$-\infty$ ,$\xed$ , $+\infty$}
+\tkzTabLine{ ,+,d,+, }
+\tkzTabVar{ - / $-\infty$ ,+D- /$+\infty$/ $-\infty$ , + / $+\infty$ }%
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\BBTptbachai}[6][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\hse}{(#6)} 
+\FPeval{\dta}{clip(round(4*\hsa*\hsa*\hse*\hse-4*\hsa*\hsd*(\hsb*\hse-\hsc*\hsd),2))}
+\@ctham{
+Bảng biến thiên của $y=\dfrac{\hesoa{#2} x^2\hesox{#3}{ }\heso{#4}}{\hesoa{#5}x\heso{#6}}$}
+\FPeval{\hsad}{clip(round(\hsa*\hsd,2))}
+\FPifneg{\hsad}
+\@adam{#1}
+\else
+\@adduong{#1}
+\fi
+}
+%%%%%%%%%%%%%%%
+\newlength\widthfig
+% \newlength\widthtemp
+\setlength{\widthfig}{0pt}
+\newcommand{\hinhm}[3][r]{
+\settowidth\widthfig{#3}
+\if #1r
+\par\noindent
+\parbox[b]{\dimexpr\linewidth-\widthfig-2em}{
+#2
+}
+\quad
+\parbox[b]{\widthfig}{
+\centering
+#3
+}
+\par
+\else \if #1l
+\par\noindent
+\begin{minipage}[b]{\widthfig}
+\centering
+#3
+\end{minipage}
+\quad
+\begin{minipage}[b]{\dimexpr\linewidth-\widthfig-2em}
+#2
+\end{minipage}
+\par
+\else  \if #1d
+#2\par
+\begin{minipage}[b]{\linewidth}
+\centering
+#3
+\end{minipage}
+\par
+\else  \if #1u
+\begin{minipage}[b]{\linewidth}
+\centering
+#3
+\end{minipage}\par
+#2
+\par
+\else \if #1n
+\begin{minipage}[b]{\dimexpr\linewidth/2-1em}
+#2
+\end{minipage}
+\quad
+\begin{minipage}[b]{\dimexpr\linewidth/2-1em}
+\centering
+#3
+\end{minipage}
+\par
+\fi\fi
+\fi \fi \fi
+\setlength{\widthfig}{0pt}
+}
+%%%%%%%%
+\newcommand{\hinhmf}[4][r]{
+\settowidth\widthfig{#3}
+\if #1r
+\par\noindent
+\parbox[b]{\dimexpr\linewidth-\widthfig-2em}{
+#2
+}
+\quad
+\parbox[b]{\widthfig}{
+\centering
+#3
+\figcaption{}#4
+}
+\par
+\else \if #1l
+\par\noindent
+\begin{minipage}[b]{\widthfig}
+\centering
+#3
+\figcaption{}#4
+\end{minipage}
+\quad
+\begin{minipage}[b]{\dimexpr\linewidth-\widthfig-2em}
+#2
+\end{minipage}
+\par
+\else  \if #1d
+#2\par
+\begin{minipage}[b]{\linewidth}
+\centering
+#3
+\figcaption{}#4
+\end{minipage}
+\par
+% \else if #1u
+% \begin{minipage}[b]{\linewidth}
+% #2
+% \end{minipage}\\
+% \begin{minipage}[b]{\linewidth}
+% \centering
+% #3
+% \figcaption{}#4
+% \end{minipage}
+% \par
+\else \if #1n
+\begin{minipage}[b]{\dimexpr\linewidth/2-1em}
+#2
+\end{minipage}
+\quad
+\begin{minipage}[b]{\dimexpr\linewidth/2-1em}
+\centering
+#3
+\figcaption{}#4
+\end{minipage}
+\par
+\fi\fi
+\fi \fi
+\setlength{\widthfig}{0pt}
+}
+
+%%%%%%%%%%%%%%%
+\newcommand{\hinhw}[3][r]{
+\if #1r
+\begin{window}[0,r,{#3}, { }] 
+#2
+\end{window}
+\else \if #1l
+\begin{window}[0,l,{#3}, { }] 
+#2
+\end{window}
+\fi \fi
+}
+
+\newcommand{\hinhwf}[4][r]{
+\if #1r
+\begin{figwindow}[0,r,{\hspace*{0.1cm} #3}, {#4}] 
+#2
+\end{figwindow}
+\else \if #1l
+\begin{figwindow}[0,l,{\hspace*{0.1cm} #3}, {#4}] 
+#2
+\end{figwindow}
+\fi \fi
+}
+%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%Bậc 2
+\newcommand{\@bachaidt}[1]{
+\FPifneg{\hsa} 
+\FPeval{\fx}{clip(round(-\dta/(4*\hsa),2))}
+\FPmin{\xminx}{0}{\xx}
+\FPeval{\xmin}{clip(round(2*\xminx-1.5,2))}
+\FPmax{\xmaxx}{0}{\xx}
+\FPeval{\xmax}{clip(round(2*\xmaxx+1.5,2))}
+\FPmax{\ymaxx}{0}{\fx}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\hsc}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^2)+\hsb*\x+\hsc});
+\tkzDefPoint(\xx,\fx){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\else
+\FPeval{\fx}{clip(round(-\dta/(4*\hsa),2))}
+\FPmin{\xminx}{0}{\xx}
+\FPeval{\xmin}{clip(round(2*\xminx-1.5,2))}
+\FPmax{\xmaxx}{0}{\xx}
+\FPeval{\xmax}{clip(round(2*\xmaxx+1.5,2))}
+\FPmax{\ymaxx}{0}{\hsc}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\fx}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY 
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^2)+\hsb*\x+\hsc});
+\tkzDefPoint(\xx,\fx){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\fi
+}
+\newcommand{\DTbachai}[4][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\xx}{clip(round(-\hsb/(2*\hsa),2))}
+\FPeval{\dta}{clip(round(\hsb*\hsb-4*\hsa*\hsc,2))}
+\FPifneg{\dta}
+\noindent Hàm số $y=\hesoa{#2} x^2\heso{#3}{ }\heso{#4}$, Delta âm: \dta.
+Không có đồ thị.
+\else 
+\@ctham{Đồ thị hàm số $y=\hesoa{#2} x^2\hesox{#3}{ }\heso{#4}$}
+  \FPeval{\fx}{clip(round(-\dta/(4*\hsa),2))}
+\@bachaidt{#1}
+\fi 
+}
+
+%%%%%%%%%%%%%%%%%%%%%dt bac 3
+\newcommand{\@hsaamdt}[1]{
+\FPifpos{\dta}
+\FProot{\cand}{\dta}{2}
+\FPeval{\xm}{clip(round((-2*\hsb+\cand)/(6*\hsa),2))}
+\FPeval{\xh}{clip(round((-2*\hsb-\cand)/(6*\hsa),2))}
+\FPmin{\minx}{\xm}{\xh}	
+\FPmax{\maxx}{\xm}{\xh}	
+\FPeval{\fmin}{clip(round(\hsa*\minx*\minx*\minx+\hsb*\minx*\minx+\hsc*\minx+\hsd,2))}
+\FPeval{\fmax}{clip(round(\hsa*\maxx*\maxx*\maxx+\hsb*\maxx*\maxx+\hsc*\maxx+\hsd,2))}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\FPmax{\ymaxx}{0}{\fmax}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\fmin}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\FPeval{\xmin}{clip(round(\xm-2.0,2))}
+\FPeval{\xmax}{clip(round(\xh+2.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\tkzDefPoint(\xt,\fxt){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\minx,\fmin){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\maxx,\fmax){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\end{tikzpicture}
+\else
+\FPeval{\ymax}{clip(round(\hsd+4.0,2))}
+\FPeval{\ymin}{clip(round(\hsd-4.0,2))}
+\FPeval{\xmin}{clip(round(-3.0,2))}
+\FPeval{\xmax}{clip(round(3.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@hsaduongdt}[1]{
+\FPifpos{\dta}
+\FProot{\cand}{\dta}{2}
+\FPeval{\xm}{clip(round((-2*\hsb+\cand)/(6*\hsa),2))}
+\FPeval{\xh}{clip(round((-2*\hsb-\cand)/(6*\hsa),2))}
+\FPmin{\minx}{\xm}{\xh}	
+\FPmax{\maxx}{\xm}{\xh}	
+\FPeval{\fmax}{clip(round(\hsa*\minx*\minx*\minx+\hsb*\minx*\minx+\hsc*\minx+\hsd,2))}
+\FPeval{\fmin}{clip(round(\hsa*\maxx*\maxx*\maxx+\hsb*\maxx*\maxx+\hsc*\maxx+\hsd,2))}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\FPmax{\ymaxx}{0}{\fmax}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\fmin}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\FPeval{\xmin}{clip(round(\minx-2.0,2))}
+\FPeval{\xmax}{clip(round(\maxx+2.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\tkzDefPoint(\xt,\fxt){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\minx,\fmax){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\maxx,\fmin){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\end{tikzpicture}
+\else
+\FPeval{\ymax}{clip(round(\hsd+4.0,2))}
+\FPeval{\ymin}{clip(round(\hsd-4.0,2))}
+\FPeval{\xmin}{clip(round(-3.0,2))}
+\FPeval{\xmax}{clip(round(3.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@deltakhongduongdt}[1]{
+\FPifzero{\dta}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\FPmax{\ymaxx}{0}{\hsd}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\fxt}
+\FPeval{\ymin}{clip(round(\yminx-4.0,2))}
+\FPmax{\xmaxx}{0}{\xt}
+\FPeval{\xmax}{clip(round(\xmaxx+2.0,2))}
+\FPmin{\xminx}{0}{\xt}
+\FPeval{\xmin}{clip(round(2*\xminx-2.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\tkzDefPoint(\xt,\fxt){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\else
+\@hsaduongdt{#1}
+\fi 
+}
+
+\newcommand{\@deltakhongamdt}[1]{
+\FPifzero{\dta}
+\FPeval{\xt}{clip(round((-\hsb)/(3*\hsa),2))}
+\FPeval{\fxt}{clip(round(\hsa*\xt*\xt*\xt+\hsb*\xt*\xt+\hsc*\xt+\hsd,2))}
+\FPmax{\ymaxx}{0}{\hsd}
+\FPeval{\ymax}{clip(round(\ymaxx+2.0,2))}
+\FPmin{\yminx}{0}{\fxt}
+\FPeval{\ymin}{clip(round(\yminx-2.0,2))}
+\FPmax{\xmaxx}{0}{\xt}
+\FPeval{\xmax}{clip(round(\xmaxx+2.0,2))}
+\FPmin{\xminx}{0}{\xt}
+\FPeval{\xmin}{clip(round(2*\xminx-2.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^3)+\hsb*((\x)^2)+\hsc*(\x)+\hsd});
+\tkzDefPoint(\xt,\fxt){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\else
+\@hsaamdt{#1}
+\fi 
+}
+
+\newcommand{\DTbacba}[5][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\dta}{clip(round(4*\hsb*\hsb-12*\hsa*\hsc,2))}
+\@ctham{Đồ thị hàm $y= \hesoa{#2} x^3\hesox{#3}{2}\hesox{#4}{ }\heso{#5}$}
+\FPifpos{\hsa}
+\@deltakhongduongdt{#1}
+\else
+ \@deltakhongamdt{#1}
+\fi
+}
+%%%%%%%%%%%%%%%%%%
+\newcommand{\@hsaduongtpdt}[1]{
+\FPifneg{\hsb}
+\FPeval{\temp}{clip(round((-\hsb)/(2*\hsa),2))}
+\FProot{\cand}{\temp}{2}
+\FPeval{\xminh}{clip(round(\cand,2))} 
+\FPeval{\fmax}{clip(round(\hsc,2))} 
+\FPeval{\fmin}{clip(round(\hsa*\xminh*\xminh*\xminh*\xminh+\hsb*\xminh*\xminh+\hsc,2))}
+\FPmax{\ymaxx}{0}{\fmax}
+\FPeval{\ymax}{clip(round(\ymaxx+2.0,2))}
+\FPmin{\yminx}{0}{\fmin}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\FPeval{\xmax}{clip(round(2*\xminh+1.0,2))}
+\FPeval{\xmin}{clip(round(-2*\xminh-1.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^4)+\hsb*((\x)^2)+\hsc});
+\tkzDefPoint(0,\fmax){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(-\xminh,\fmin){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xminh,\fmin){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\end{tikzpicture}
+\else
+\FPeval{\fmin}{clip(round(\hsc,2))} 
+\FPmin{\yminx}{0}{\fmin}
+\FPeval{\ymin}{clip(round(\yminx-1.0,2))}
+\FPeval{\ymax}{clip(round(\yminx+4.0,2))}
+\FPeval{\xmax}{clip(round(3.0,2))}
+\FPeval{\xmin}{clip(round(-3.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^4)+\hsb*((\x)^2)+\hsc});
+\tkzDefPoint(0,\fmin){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\fi
+}
+%%%%%%%%%%%%%Trùng phuong
+\newcommand{\@hsaamtpdt}[1]{
+\FPifpos{\hsb}
+\FPeval{\temp}{clip(round((-\hsb)/(2*\hsa),2))}
+\FProot{\cand}{\temp}{2}
+\FPeval{\xmaxh}{clip(round(\cand,2))} 
+\FPeval{\fmax}{clip(round(\hsa*\xmaxh*\xmaxh*\xmaxh*\xmaxh+\hsb*\xmaxh*\xmaxh+\hsc,2))}
+\FPeval{\fmin}{clip(round(\hsc,2))} 
+\FPmax{\ymaxx}{0}{\fmax}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPmin{\yminx}{0}{\fmin}
+\FPeval{\ymin}{clip(round(\yminx-2.0,2))}
+\FPeval{\xmax}{clip(round(2*\xmaxh+1.0,2))}
+\FPeval{\xmin}{clip(round(-2*\xmaxh-1.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^4)+\hsb*((\x)^2)+\hsc});
+\tkzDefPoint(0,\fmin){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(-\xmaxh,\fmax){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xmaxh,\fmax){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\end{tikzpicture}
+\else
+\FPeval{\fmax}{clip(round(\hsc,2))} 
+\FPmax{\ymaxx}{0}{\fmax}
+\FPeval{\ymin}{clip(round(\ymaxx-4.0,2))}
+\FPeval{\ymax}{clip(round(\ymaxx+1.0,2))}
+\FPeval{\xmax}{clip(round(3.0,2))}
+\FPeval{\xmin}{clip(round(-3.0,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*((\x)^4)+\hsb*((\x)^2)+\hsc});
+\tkzDefPoint(0,\fmax){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\end{tikzpicture}
+\fi
+}
+
+
+\newcommand{\DTtrungphuong}[4][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\dta}{clip(round(4*\hsb*\hsb-12*\hsa*\hsc,2))}
+\@ctham{Đồ thị của hàm số $y=\hesoa{#2} x^4\hesox{#3}{2}\heso{#4}$}
+\FPifpos{\hsa}
+\@hsaduongtpdt{#1}
+\else
+\@hsaamtpdt{#1}
+\fi
+}
+
+
+\def\@datcho{
+\FPifgt{\tcd}{0}
+\FPeval{\xmax}{clip(round(\tcd+4.0,2))}
+\FPeval{\xmin}{clip(round(-3.0,2))}
+\else
+\FPeval{\xmax}{clip(round(3,2))}
+\FPeval{\xmin}{clip(round(\tcd-4.0,2))}
+\fi
+}
+
+\newcommand{\DTptbacmot}[5][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\dta}{clip(round(\hsa*\hsd-\hsb*\hsc,2))}
+\@ctham{Đồ thị hàm số $y=\dfrac{\hesoa{#2} x\heso{#3}}{\hesoa{#4} x\heso{#5}}$}
+\FPeval{\hsdc}{clip(round((-\hsd)/\hsc,2))}
+\FPeval{\hsac}{clip(round(\hsa/\hsc,2))}
+\FPifneg{\dta}
+\FPeval{\tcn}{clip(round(\hsa/\hsc,2))}
+\FPeval{\tcd}{clip(round((-\hsd)/\hsc,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm+\hsb)/(\hsc*\xtcdm+\hsd),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{((\hsa*\xtcdh+\hsb)/(\hsc*\xtcdh+\hsd))}
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+ \FPeval{\fxtcdb}{((\hsa*\xtcdb+\hsb)/(\hsc*\xtcdb+\hsd))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt+\hsb)/(\hsc*\xtcdt+\hsd),2))}
+\FPeval{\ymin}{clip(round(\fxtcdb-2,2))}
+\FPeval{\ymax}{clip(round(\fxtcdm+2,2))}
+\@datcho
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[dashed] (\xmin,\tcn)--(\xmax,\tcn);
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[smooth,thick, samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*(\x)+\hsb)/(\hsc*(\x)+\hsd)});
+\draw[smooth,thick, samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*(\x)+\hsb)/(\hsc*(\x)+\hsd)});
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\else
+\FPeval{\tcn}{clip(round(\hsa/\hsc,2))}
+\FPeval{\tcd}{clip(round((-\hsd)/\hsc,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm+\hsb)/(\hsc*\xtcdm+\hsd),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{clip(round((\hsa*\xtcdh+\hsb)/(\hsc*\xtcdh+\hsd),2))}
+
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+ \FPeval{\fxtcdb}{((\hsa*\xtcdb+\hsb)/(\hsc*\xtcdb+\hsd))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt+\hsb)/(\hsc*\xtcdt+\hsd),2))}
+\FPeval{\ymin}{clip(round(\fxtcdm-3,2))}
+\FPeval{\ymax}{clip(round(\fxtcdb+3,2))}
+\@datcho
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[dashed] (\xmin,\tcn)--(\xmax,\tcn);
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[smooth,thick, samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*(\x)+\hsb)/(\hsc*(\x)+\hsd)});
+\draw[smooth,thick, samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*(\x)+\hsb)/(\hsc*(\x)+\hsd)});
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\fi
+}
+%%%%%%%%%%%%%%%%%%
+\def\@datchoy{
+\FPifgt{\ftcdx}{0}
+\FPeval{\ymax}{clip(round(\ftcdx+4.0,2))}
+\FPeval{\ymin}{clip(round(-3.0,2))}
+\else
+\FPeval{\ymax}{clip(round(3,2))}
+\FPeval{\ymin}{clip(round(\ftcdx-4.0,2))}
+\fi
+}
+
+\def\@tcdbkhong{
+\FPifzero{\tcd}
+ \FPeval{\xmin}{clip(round(-7,2))}
+ \FPeval{\xmax}{clip(round(7,2))}
+\else
+ \@datcho
+\fi
+}
+%%%%%%Hàm phân thức bậc hai
+\newcommand{\@adamdt}[1]{
+\FPifpos{\dta}
+\FProot{\tempa}{\dta}{2}
+\FPeval{\xmot}{clip(round((-2*\hsa*\hse+\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xhai}{clip(round((-2*\hsa*\hse-\tempa)/(2*\hsa*\hsd),2))}
+\FPmin{\minx}{\xmot}{\xhai}	
+\FPmax{\maxx}{\xmot}{\xhai}	
+\FPeval{\fmin}{clip(round((\hsa*\minx*\minx+\hsb*\minx+\hsc)/(\hsd*\minx+\hse),2))}
+\FPeval{\fmax}{clip(round((\hsa*\maxx*\maxx+\hsb*\maxx+\hsc)/(\hsd*\maxx+\hse),2))}
+\FPeval{\tcd}{clip(round((-\hse)/\hsd,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm*\xtcdm+\hsb*\xtcdm+\hsc)/(\hsd*\xtcdm+\hse),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{clip(round((\hsa*\xtcdh*\xtcdh+\hsb*\xtcdh+\hsc)/(\hsd*\xtcdh+\hse),2))}
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+\FPeval{\fxtcdb}{clip(round((\hsa*\xtcdb*\xtcdb+\hsb*\xtcdb+\hsc)/(\hsd*\xtcdb+\hse),2))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt*\xtcdt+\hsb*\xtcdt+\hsc)/(\hsd*\xtcdt+\hse),2))}
+ \FPmin{\yminx}{\fmax}{0}
+\FPeval{\ymin}{clip(round(\yminx-2,2))}
+ \FPmax{\ymaxx}{\fmin}{0}
+\FPeval{\ymax}{clip(round(\ymaxx+2,2))}
+% \@datcho
+\@tcdbkhong
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\FPeval{\atcx}{clip(round(\hsa/\hsd,2))}
+\FPeval{\btcx}{clip(round((\hsb-\hse*\atcx)/\hsd,2))}
+\draw[dashed,domain=\xmin:\xmax] plot (\x,{\atcx*(\x)+\btcx});
+\draw[smooth,thick,samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\draw[smooth,thick,samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+ \tkzDefPoint(\minx,\fmin){e}
+ \tkzPointShowCoord(e) \tkzDrawPoint(e)
+ \tkzDefPoint(\maxx,\fmax){f}
+ \tkzPointShowCoord(f) \tkzDrawPoint(f)
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\else
+\FPeval{\tcd}{clip(round((-\hse)/\hsd,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm*\xtcdm+\hsb*\xtcdm+\hsc)/(\hsd*\xtcdm+\hse),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{clip(round((\hsa*\xtcdh*\xtcdh+\hsb*\xtcdh+\hsc)/(\hsd*\xtcdh+\hse),2))}
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+\FPeval{\fxtcdb}{clip(round((\hsa*\xtcdb*\xtcdb+\hsb*\xtcdb+\hsc)/(\hsd*\xtcdb+\hse),2))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt*\xtcdt+\hsb*\xtcdt+\hsc)/(\hsd*\xtcdt+\hse),2))}
+\FPeval{\atcx}{clip(round(\hsa/\hsd,2))}
+\FPeval{\btcx}{clip(round((\hsb-\hse*\atcx)/\hsd,2))}
+\FPeval{\ftcdx}{clip(round(\atcx*\tcd+\btcx,2))}
+\@datchoy
+\@datcho
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\draw[dashed,domain=\xmin:\xmax] plot (\x,{\atcx*(\x)+\btcx});
+\draw[smooth,thick,samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\draw[smooth,thick,samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\@adduongdt}[1]{
+\FPifpos{\dta}
+\FProot{\tempa}{\dta}{2}
+\FPeval{\xmot}{clip(round((-2*\hsa*\hse+\tempa)/(2*\hsa*\hsd),2))}
+\FPeval{\xhai}{clip(round((-2*\hsa*\hse-\tempa)/(2*\hsa*\hsd),2))}
+\FPmin{\maxx}{\xmot}{\xhai}	
+\FPmax{\minx}{\xmot}{\xhai}	
+\FPeval{\fmin}{clip(round((\hsa*\minx*\minx+\hsb*\minx+\hsc)/(\hsd*\minx+\hse),2))}
+\FPeval{\fmax}{clip(round((\hsa*\maxx*\maxx+\hsb*\maxx+\hsc)/(\hsd*\maxx+\hse),2))}
+
+\FPeval{\tcd}{clip(round((-\hse)/\hsd,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm*\xtcdm+\hsb*\xtcdm+\hsc)/(\hsd*\xtcdm+\hse),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{clip(round((\hsa*\xtcdh*\xtcdh+\hsb*\xtcdh+\hsc)/(\hsd*\xtcdh+\hse),2))}
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+\FPeval{\fxtcdb}{clip(round((\hsa*\xtcdb*\xtcdb+\hsb*\xtcdb+\hsc)/(\hsd*\xtcdb+\hse),2))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt*\xtcdt+\hsb*\xtcdt+\hsc)/(\hsd*\xtcdt+\hse),2))}
+ \FPmin{\yminx}{\fmax}{0}
+\FPeval{\ymin}{clip(round(\yminx-2,2))}
+ \FPmax{\ymaxx}{\fmin}{0}
+\FPeval{\ymax}{clip(round(\ymaxx+2,2))}
+% \@datcho
+\@tcdbkhong
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\FPeval{\atcx}{clip(round(\hsa/\hsd,2))}
+\FPeval{\btcx}{clip(round((\hsb-\hse*\atcx)/\hsd,2))}
+\draw[dashed,domain=\xmin:\xmax] plot (\x,{\atcx*(\x)+\btcx});
+\draw[smooth,thick,samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\draw[smooth,thick,samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+ \tkzDefPoint(\minx,\fmin){e}
+ \tkzPointShowCoord(e) \tkzDrawPoint(e)
+ \tkzDefPoint(\maxx,\fmax){f}
+ \tkzPointShowCoord(f) \tkzDrawPoint(f)
+% \tkzLabelPoint[left](0,\fmax){$\fmax$}
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\else
+\FPeval{\tcd}{clip(round((-\hse)/\hsd,2))}
+\FPeval{\xtemp}{clip(\tcd+1)}
+\FPtrunc{\xtcdm}{\xtemp}{0} 
+\FPeval{\fxtcdm}{clip(round((\hsa*\xtcdm*\xtcdm+\hsb*\xtcdm+\hsc)/(\hsd*\xtcdm+\hse),2))}
+\FPeval{\xtcdh}{clip(\xtcdm+1)}
+\FPeval{\fxtcdh}{clip(round((\hsa*\xtcdh*\xtcdh+\hsb*\xtcdh+\hsc)/(\hsd*\xtcdh+\hse),2))}
+\FPeval{\xxtemp}{clip(\tcd-1)}
+\FPtrunc{\xtcdb}{\xxtemp}{0} 
+\FPeval{\fxtcdb}{clip(round((\hsa*\xtcdb*\xtcdb+\hsb*\xtcdb+\hsc)/(\hsd*\xtcdb+\hse),2))}
+\FPeval{\xtcdt}{clip(\xtcdb-1)}
+\FPeval{\fxtcdt}{clip(round((\hsa*\xtcdt*\xtcdt+\hsb*\xtcdt+\hsc)/(\hsd*\xtcdt+\hse),2))}
+\FPeval{\atcx}{clip(round(\hsa/\hsd,2))}
+\FPeval{\btcx}{clip(round((\hsb-\hse*\atcx)/\hsd,2))}
+\FPeval{\ftcdx}{clip(round(\atcx*\tcd+\btcx,2))}
+\@datchoy
+\@datcho
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\vtcdt}{clip(round(\tcd-0.1,2))}
+\FPeval{\vtcdp}{clip(round(\tcd+0.1,2))}
+\draw[dashed] (\tcd,\ymin)--(\tcd,\ymax);
+\draw[dashed,domain=\xmin:\xmax] plot (\x,{\atcx*(\x)+\btcx});
+\draw[smooth,thick,samples=200,domain=\xmin:\vtcdt] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\draw[smooth,thick,samples=200,domain=\vtcdp:\xmax] plot (\x,{(\hsa*((\x)^2)+\hsb*(\x)+\hsc)/(\hsd*(\x)+\hse)});
+\tkzDefPoint(\xtcdm,\fxtcdm){a}
+\tkzPointShowCoord(a) \tkzDrawPoint(a)
+\tkzDefPoint(\xtcdh,\fxtcdh){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(\xtcdb,\fxtcdb){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\tkzDefPoint(\xtcdt,\fxtcdt){d}
+\tkzPointShowCoord(d) \tkzDrawPoint(d)
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\DTptbachai}[6][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\FPeval{\hsc}{(#4)} 
+\FPeval{\hsd}{(#5)} 
+\FPeval{\hse}{(#6)} 
+\FPeval{\dta}{clip(round(4*\hsa*\hsa*\hse*\hse-4*\hsa*\hsd*(\hsb*\hse-\hsc*\hsd),2))}
+\@ctham{Đồ thị hàm số $y=\dfrac{\hesoa{#2} x^2\hesox{#3}{ }\heso{#4}}{\hesoa{#5}x\heso{#6}}$}
+\FPeval{\hsad}{clip(round(\hsa*\hsd,2))}
+\FPifneg{\hsad}
+\@adamdt{#1}
+\else
+\@adduongdt{#1}
+\fi
+}
+%%%%%%%%%%%%%%%%
+\def\@timchoy{
+\FPifneg{\ytung}
+\FPeval{\ymin}{clip(round(\ytung-2,2))}
+\FPeval{\ymax}{clip(round(2,2))}
+\else
+\FPeval{\ymin}{clip(round(-2,2))}
+\FPeval{\ymax}{clip(round(\ytung+2,2))}
+\fi
+}
+
+\def\@timchox{
+\FPifneg{\xhoanh}
+\FPeval{\xmin}{clip(round(\xhoanh-2,2))}
+\FPeval{\xmax}{clip(round(2,2))}
+\else
+\FPeval{\xmin}{clip(round(-2,2))}
+\FPeval{\xmax}{clip(round(\xhoanh+2,2))}
+\fi
+}
+%%%%Bac mot
+\newcommand{\DTbacmot}[3][1]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+\@ctham{Đồ thị hàm số $y=\hesoa{#2} x\heso{#3}$}
+\FPeval{\ytung}{clip(round(\hsb,2))}
+\FPeval{\xhoanh}{clip(round((-\hsb)/\hsa,2))}
+\@timchoy
+\@timchox
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=#1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*(\x)+\hsb}) ;
+\tkzDrawPoint((0,\ytung));
+\tkzDrawPoint(\xhoanh,0)
+\end{tikzpicture}
+}
+
+\newcommand{\DThammu}[2][black]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\ymin}{clip(round(-1,2))}
+\FPeval{\xmin}{clip(round(-2.5,2))}
+\FPeval{\xmax}{clip(round(2.5,2))}
+\FPiflt{\hsa}{1}
+\FPeval{\ymax}{clip(round(\hsa+4,2))}
+\@ctham{Đồ thị hàm số $y={(#2)}^x$}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\xxmin}{clip(round(\xmin-0.1,2))}
+\draw[smooth,thick,samples=200,domain=\xxmin:0,color={#1}] plot (\x,{(\hsa)^(\x)});
+\draw[smooth,thick,samples=200,domain=0:\xmax,,color={#1}] plot (\x,{1/((\hsa)^\x)});
+\tkzDefPoint(0,1){a}
+\tkzDrawPoint(a)
+\tkzDefPoint(1,\hsa){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\end{tikzpicture}
+\else
+\FPeval{\ymax}{clip(round(\hsa+2,2))}
+\@ctham{Đồ thị hàm số $y={#2}^x$}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\xxmin}{clip(round(\xmin-0.1,2))}
+ \draw[smooth,thick,samples=200,domain=\xxmin:0,color={#1}] plot (\x,{1/((\hsa)^\x)});
+\draw[smooth,thick,samples=200,domain=0:\xmax,color={#1}] plot (\x,{(\hsa)^(\x)});
+\tkzDefPoint(0,1){a}
+%\tkzPointShowCoord(a) 
+\tkzDrawPoint(a)
+\tkzDefPoint(1,\hsa){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\hscanb}[1]{
+\FPeval{\canbx}{(#1)}
+ \FPifeq{\canbx}{2}
+$y=\sqrt{x}$
+\else
+$y=\sqrt[#1]{x}$
+\fi
+}
+
+\newcommand{\DTcanbac}[2][black]{
+\FPeval{\canb}{(#2)} 
+\FPeval{\ymin}{clip(round(-1,2))}
+\FPeval{\xmin}{clip(round(-1,2))}
+\FPeval{\xmax}{clip(round(4,2))}
+\FPeval{\ymax}{clip(round(3,2))}
+\@ctham{Đồ thị hàm số \hscanb{#2}}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\FPeval{\fxm}{3^(1/\canb)}
+ \FPeval{\xminx}{0.001}
+ \draw[smooth,thick, samples=200,domain=\xminx:1,color={#1}] plot (\x,{\x^(1/\canb)});
+\draw[smooth,thick, samples=200,domain=1:\xmax,color={#1}] plot (\x,{1/(\x^(1/\canb))});
+\tkzDefPoint(1,1){a}
+\tkzPointShowCoord(a)
+\tkzDrawPoint(a)
+\tkzDefPoint(3,\fxm){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\end{tikzpicture}
+}
+
+\newcommand{\DTtuyetdoi}[2][black]{
+\FPeval{\hsa}{(#2)} 
+\FPmin{\yminy}{\hsa}{0}
+\FPeval{\ymin}{clip(round(\yminy-1,2))}
+\FPeval{\xmin}{clip(round(-4,2))}
+\FPeval{\xmax}{clip(round(4,2))}
+\FPeval{\ymax}{clip(round(\hsa+3,2))}
+\@ctham{Đồ thị hàm số $y=|x\heso{#2}|$}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,scale=1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+ \draw[smooth,thick, samples=200,domain=\xmin:0,color={#1}] plot (\x,{-\x+\hsa});
+\draw[smooth,thick, samples=200,domain=0:\xmax,color={#1}] plot (\x,{\x+\hsa});
+\tkzDefPoint(0,\hsa){a}
+\tkzDrawPoint(a)
+\FPeval{\xminl}{clip(round(1+\hsa,2))}
+\tkzDefPoint(1,\xminl){b}
+\tkzPointShowCoord(b) \tkzDrawPoint(b)
+\tkzDefPoint(-1,\xminl){c}
+\tkzPointShowCoord(c) \tkzDrawPoint(c)
+\end{tikzpicture}
+}
+
+\newcommand{\BBTtuyetdoi}[2][1]{
+\FPeval{\hsa}{(#2)} 
+\@ctham{Bảng biến thiên hàm số $y=|x\heso{#2}|$}
+\begin{tikzpicture}
+\tkzTabInit[lgt=1.5,espcl=2.5,deltacl=.5]
+{$x$ /.7, $y$ /2}
+{$-\infty$ , $0$,  $+\infty$}
+\tkzTabVar{+/$+\infty$ ,-/ $\hsa$ ,+/$+\infty$}
+\end{tikzpicture}
+}
+
+\newcommand{\BBTcanbac}[2][1]{
+\FPeval{\canb}{(#2)} 
+\@ctham{Bảng biến thiên hàm số \hscanb{#2}}
+\begin{tikzpicture}
+\tkzTabInit[espcl=5]%
+{$x$/1,$y$/1.5}{$0$,$+\infty$}%
+\tkzTabVar{D- / , + / $+\infty$ }%
+\tkzTabIma{1}{2}{1}{$0$}
+\end{tikzpicture}
+}
+
+
+\newcommand{\BBThammu}[2][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\ymin}{clip(round(-1,2))}
+\FPiflt{\hsa}{1}
+\@ctham{Đồ thị hàm số $y={(#2)}^x$}
+\begin{tikzpicture}
+\tkzTabInit[#1, lgt=2.5,espcl=5] {$x$/1, 
+$y={(#2)}^x$/1.5} {$-\infty$ , $+\infty$}%
+\tkzTabVar[color=red]{ + /$+\infty$, - /$0$ }
+\tkzTabVal{1}{2}{0.33}{0}{1}
+\tkzTabVal{1}{2}{0.66}{1}{${#2}$}
+\end{tikzpicture}
+\else
+\@ctham{Đồ thị hàm số $y={#2}^x$}
+\begin{tikzpicture}
+\tkzTabInit[#1, lgt=2,espcl=5] {$x$/1, 
+$y={#2}^x$/1.5} {$-\infty$ , $+\infty$}%
+\tkzTabVar[color=red]{ - /$0$, + /$+\infty$ }
+\tkzTabVal{1}{2}{0.33}{0}{1}
+\tkzTabVal{1}{2}{0.66}{1}{${#2}$}
+\end{tikzpicture}
+\fi
+}
+
+\newcommand{\BBThamlog}[2][]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\ymin}{clip(round(-1,2))}
+\FPiflt{\hsa}{1}
+ \@ctham{Đồ thị hàm số $y=\log{(#2)}x$}
+\begin{tikzpicture}
+\tkzTabInit[#1, lgt=2.5,espcl=5] {$x$/1, 
+$y=\log_{(#2)}x$/1.5} {$0$ , $+\infty$}%
+\tkzTabVar[color=red]{ + /$+\infty$, - /$-\infty$ }
+\tkzTabVal{1}{2}{0.33}{${#2}$}{1}
+\tkzTabVal{1}{2}{0.66}{1}{0}
+\end{tikzpicture}
+\else
+ \@ctham{Đồ thị hàm số $y=\log_{#2}x$}
+\begin{tikzpicture}
+\tkzTabInit[#1, lgt=2,espcl=5] {$x$/1, 
+$y=\log_{#2}x$/1.5} {$0$ , $+\infty$}%
+\tkzTabVar[color=red]{ - /$-\infty$, + /$+\infty$ }
+\tkzTabVal{1}{2}{0.33}{1}{0}
+\tkzTabVal{1}{2}{0.66}{${#2}$}{1}
+\end{tikzpicture}
+\fi
+}
+
+%%%%%%%%Biểu diễn đoạn thẳng
+\newcommand{\@mdk}{black}
+\newcommand{\@mtruc}{black}
+\newcommand{\maudk}[1]{\renewcommand{\@mdk}{#1}}
+\newcommand{\mautruc}[1]{\renewcommand{\@mtruc}{#1}}
+\newif\ifphanbu
+\phanbufalse
+\newif\ifnhantruc
+\nhantrucfalse
+\newif\ifndiem
+\ndiemfalse
+\newif\ifctdoan
+\ctdoanfalse
+\newcommand{\@ndiema}{A}
+\newcommand{\@ndiemb}{B}
+\newcommand{\ndiem}[2]{
+\ndiemtrue
+\renewcommand{\@ndiema}{#1}
+\renewcommand{\@ndiemb}{#2}
+}
+
+
+\newcommand{\ndoan}[5][r]{
+\ifphanbu
+\if #1r
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1l
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1v
+\def\dke{
+\fill[pattern=vertical lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1p
+\def\dke{\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#4,3pt);
+}
+\else \if #1t
+\def\dke{\fill[pattern=north east lines,pattern color=\@mdk](#3,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1k
+\def\dke{ }
+\fi \fi \fi \fi \fi \fi
+\else
+\if #1r
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#3,3pt);
+\fill[pattern=north east lines,pattern color=\@mdk](#4,-3pt)rectangle(\xmax,3pt);}
+\else \if #1l
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#3,3pt);
+\fill[pattern=north west lines,pattern color=\@mdk](#4,-3pt)rectangle(\xmax,3pt);}
+\else \if #1v
+\def\dke{
+\fill[pattern=vertical lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#3,3pt);
+\fill[pattern=vertical lines,pattern color=\@mdk](#4,-3pt)rectangle(\xmax,3pt);
+ }
+\else \if #1t
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#3,3pt);
+}
+\else \if #1p
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](#4,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1k
+\def\dke{ }
+\fi \fi \fi \fi \fi \fi
+\fi
+\coordinate [label={center:\textbf{#2}}] (a) at (#3,0); 
+\coordinate [label={center:\textbf{#5}}] (b) at (#4,0); 
+\dke
+\ifndiem
+\tkzLabelPoint[above=4pt](a){$\@ndiema$}
+\tkzLabelPoint[above=4pt](b){$\@ndiemb$}
+\ndiemfalse
+\else
+\tkzLabelPoint[above=4pt](a){$#3$}
+\tkzLabelPoint[above=4pt](b){$#4$}
+\fi
+}
+
+
+\newenvironment{ndoanthang}[3][1]{
+\begin{tikzpicture}[scale=#1]
+\def\xmin{#2}
+\def\xmax{#3}
+\tkzInit[xmin=\xmin,xmax=\xmax,ymin = -1,ymax = 1]
+\ifnhantruc \tkzLabelX \fi
+\tkzDrawX[label={},thick,color=\@mtruc,\ifnhantruc \else noticks\fi ]
+}{\end{tikzpicture}}
+
+
+\newcommand{\cuoiam}[2]{
+\FPifneg{\tdce}
+\FPeval{\xmint}{clip(round(#1,8))}
+\FPeval{\xmaxt}{clip(round(#2,8))}
+\FPeval{\xmin}{clip(round(#1-1,8))}
+\FPeval{\xmax}{clip(round(0,8))}
+\else
+\FPeval{\xmint}{clip(round(#1,8))}
+\FPeval{\xmaxt}{clip(round(#2,8))}
+\FPeval{\xmin}{clip(round(#1-1,8))}
+\FPeval{\xmax}{clip(round(#2+1,8))}
+\fi
+}
+
+\newcommand{\doan}[5][r]{
+\ifphanbu
+\if #1r
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1l
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1v
+\def\dke{
+\fill[pattern=vertical lines,pattern color=\@mdk](#3,-3pt)rectangle(#4,3pt);
+}
+\else \if #1p
+\def\dke{\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(#4,3pt);
+}
+\else \if #1t
+\def\dke{\fill[pattern=north east lines,pattern color=\@mdk](#3,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1k
+\def\dke{ }
+\fi \fi \fi \fi \fi \fi
+\else
+\if #1r
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](\xmin,-3pt)rectangle(\xmint,3pt);
+\fill[pattern=north east lines,pattern color=\@mdk](\xmaxt,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1l
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(\xmint,3pt);
+\fill[pattern=north west lines,pattern color=\@mdk](\xmaxt,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1v
+\def\dke{
+\fill[pattern=vertical lines,pattern color=\@mdk](\xmin,-3pt)rectangle(\xmint,3pt);
+\fill[pattern=vertical lines,pattern color=\@mdk](\xmaxt,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1t
+\def\dke{
+\fill[pattern=north west lines,pattern color=\@mdk](\xmin,-3pt)rectangle(\xmint,3pt);
+}
+\else \if #1p
+\def\dke{
+\fill[pattern=north east lines,pattern color=\@mdk](\xmaxt,-3pt)rectangle(\xmax,3pt);
+}
+\else \if #1k
+\def\dke{ }
+\fi \fi \fi  \fi \fi \fi
+\fi
+\begin{tikzpicture}[scale=1]
+\FPeval{\tdve}{clip(round(#3,8))}
+\FPeval{\tdce}{clip(round(#4,8))}
+\FPifneg{\tdve}
+\cuoiam{#3}{#4}
+\else
+\FPeval{\xmint}{clip(round(#3,8))}
+\FPeval{\xmaxt}{clip(round(#4,8))}
+\FPeval{\xmin}{clip(round(0,8))}
+\FPeval{\xmax}{clip(round(#4+1,8))}
+\fi
+\tkzInit[xmin=\xmin,xmax=\xmax,ymin = -1,ymax = 1]
+ \ifnhantruc \tkzLabelX  \fi
+\tkzDrawX[label={},thick,color=\@mtruc, \ifnhantruc \else noticks\fi ]
+  \coordinate [label={center:\textbf{#2}}] (a) at (\xmint,0); 
+  \coordinate [label={center:\textbf{#5}}] (b) at (\xmaxt,0); 
+\dke
+\ifndiem
+\tkzLabelPoint[above=4pt](a){$\@ndiema$}
+\tkzLabelPoint[above=4pt](b){$\@ndiemb$}
+\else
+\tkzLabelPoint[above=4pt](a){$#3$}
+\tkzLabelPoint[above=4pt](b){$#4$}
+\fi
+%\tkzLabelPoint[below right=6pt](\xmin,0){Biểu diễn khoảng #2$#3;#4$#5}
+\end{tikzpicture}
+\ifndiem
+\ifctdoan
+\par Biểu diễn khoảng #2$\@ndiema;\@ndiemb$#5
+\fi
+\ndiemfalse
+\else
+\ifctdoan
+\par Biểu diễn khoảng #2$#3;#4$#5
+\fi
+\fi
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\xmin}{-5}
+\newcommand{\xmax}{5}
+\newcommand{\ymin}{-5}
+\newcommand{\ymax}{5}
+
+\newcommand{\cotruc}[4]{
+\FPeval{\xmin}{clip(round(#1,2))}
+\FPeval{\xmax}{clip(round(#2,2))}
+\FPeval{\ymin}{clip(round(#3,2))}
+\FPeval{\ymax}{clip(round(#4,2))}
+}
+
+\newcommand{\xscale}{1}
+\newcommand{\yscale}{1}
+\newcommand{\trucscale}[2]{
+\renewcommand{\xscale}{#1}
+\renewcommand{\yscale}{#2}
+}
+
+\newcommand{\xtrig}{0}
+\newcommand{\ytrig}{0}
+\newcommand{\tructrig}[2]{
+\renewcommand{\xtrig}{#1}
+\renewcommand{\ytrig}{#2}
+}
+
+\newcommand{\xfrac}{0}
+\newcommand{\yfrac}{0}
+\newcommand{\trucfrac}[2]{
+\renewcommand{\xfrac}{#1}
+\renewcommand{\yfrac}{#2}
+}
+
+% \newcommand{\mautruc}{red}
+\newcommand{\mdk}{blue}
+\renewcommand{\maudk}[1]{\renewcommand{\mdk}{#1}}
+\newif\ifcoluoi
+\coluoitrue
+\newif\iftrucpi
+\trucpifalse
+
+\newenvironment{hetoado}[1][black]{
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth,
+xscale=\xscale,yscale=\yscale]
+\tkzInit[xmin=\xmin,xmax=\xmax,ymin = \ymin,ymax =\ymax]
+\iftrucpi
+\let\tkzmathstyle\displaystyle
+\tkzAxeX[orig = false, trig = 2, label options={below = 10pt}, ticks,color=#1]
+\tkzAxeY[orig = false,ticks,color=#1] 
+\else
+\tkzAxeX[orig=false,thick,color=#1] \tkzAxeY[orig=false,thick,color=#1] 
+\tkzDrawXY[thick,color=#1]
+\draw (0,0) node [below left] {\footnotesize $O$};
+\fi
+ \tkzClip
+\ifcoluoi \tkzGrid \fi
+}{
+\end{tikzpicture}
+\coluoitrue
+}
+% 
+%%%%%%%%%%%%%
+\def\timchoy{
+\FPifneg{\ytung}
+\FPeval{\ymin}{clip(round(\ytung-3,2))}
+\FPeval{\ymax}{clip(round(3,2))}
+\else
+\FPeval{\ymin}{clip(round(-3,2))}
+\FPeval{\ymax}{clip(round(\ytung+3,2))}
+\fi
+}
+
+\def\timchox{
+\FPifneg{\xhoanh}
+\FPeval{\xmin}{clip(round(\xhoanh-3,2))}
+\FPeval{\xmax}{clip(round(3,2))}
+\else
+\FPeval{\xmin}{clip(round(-3,2))}
+\FPeval{\xmax}{clip(round(\xhoanh+3,2))}
+\fi
+}
+
+\newcommand{\bdttuyentinh}[3][r]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+%\@ctham{Đồ thị hàm số $y=\hesoa{#2} x\heso{#3}$}
+\if #1r
+\def\dke{\path [pattern=north east  lines,pattern color=\mdk]}
+\else \if #1l
+\def\dke{\path [pattern=north west lines,pattern color=\mdk]}
+\else \if #1v
+\def\dke{\path [pattern=vertical  lines,pattern color=\mdk]}
+\else \if #1h
+\def\dke{\path [pattern=horizontal lines,pattern color=\mdk]}
+\else \if #1k
+\def\dke{\path [pattern color=\mdk]}
+\fi \fi \fi
+\fi \fi
+
+\FPeval{\ytung}{clip(round(\hsb,2))}
+\FPeval{\xhoanh}{clip(round((-\hsb)/\hsa,2))}
+\timchoy
+\timchox
+
+\FPeval{\xmint}{clip(round((\ymin-\hsb)/\hsa,2))}
+\FPeval{\fymin}{clip(round(\hsa*\xmint+\hsb,2))}
+\FPeval{\xmaxt}{clip(round((\ymax-\hsb)/\hsa,2))}
+\FPeval{\fymax}{clip(round(\hsa*\xmaxt+\hsb,2))}
+\begin{tikzpicture}[line join=round, line cap=round,scale=1]
+\tkzInit[xmin = \xmin,xmax =\xmax, ymin = \ymin,ymax = \ymax]
+\tkzLabelX[orig=false] \tkzLabelY[orig=false]
+\tkzDrawXY
+\draw (0,0) node [below left] {\footnotesize $O$};
+ \tkzClip
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*(\x)+\hsb});
+\FPeval{\tocheo}{clip(round(\hsb*hsa,2))}
+ \FPifneg{\tocheo}
+ \draw (0,\ytung) -- node[below,sloped] {\small $y=\hesoa{#2} x\heso{#3}$} (\xhoanh,0);
+ \dke (\xmint,\fymin) -- (\xmax,\fymin) -- (\xmax,\fymax) -- (\xmaxt,\fymax)  ;
+\else
+ \draw (0,\ytung) -- node[above,sloped] {\small $y=\hesoa{#2} x\heso{#3}$} (\xhoanh,0);
+  \dke (\xmint,\fymin) -- (\xmin,\fymin) -- (\xmin,\fymax) -- (\xmaxt,\fymax)  ;
+\fi
+\tkzDrawPoint((0,\ytung))
+\tkzDrawPoint(\xhoanh,0)
+\end{tikzpicture}
+}
+%%%%%%
+\newcommand{\hamtuyentinh}[3][r]{
+\FPeval{\hsa}{(#2)} 
+\FPeval{\hsb}{(#3)} 
+%\@ctham{Đồ thị hàm số $y=\hesoa{#2} x\heso{#3}$}
+\if #1r
+\def\dke{\path [pattern=north east  lines,pattern color=\mdk]}
+\else \if #1l
+\def\dke{\path [pattern=north west lines,pattern color=\mdk]}
+\else \if #1v
+\def\dke{\path [pattern=vertical  lines,pattern color=\mdk]}
+\else \if #1h
+\def\dke{\path [pattern=horizontal lines,pattern color=\mdk]}
+\else \if #1k
+\def\dke{\path [pattern color=\mdk]}
+\fi \fi \fi
+\fi\fi
+
+\FPeval{\ytung}{clip(round(\hsb,2))}
+\FPeval{\xhoanh}{clip(round((-\hsb)/\hsa,2))}
+\FPeval{\xmint}{clip(round((\ymin-\hsb)/\hsa,2))}
+\FPeval{\fymin}{clip(round(\hsa*\xmint+\hsb,2))}
+\FPeval{\xmaxt}{clip(round((\ymax-\hsb)/\hsa,2))}
+\FPeval{\fymax}{clip(round(\hsa*\xmaxt+\hsb,2))}
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax] plot (\x,{\hsa*(\x)+\hsb});
+\FPeval{\tocheo}{clip(round(\hsb*hsa,2))}
+ \FPifneg{\tocheo}
+ \draw (0,\ytung) -- node[above,sloped] {\small $y=\hesoa{#2} x\heso{#3}$} (\xhoanh,0);
+ \dke (\xmint,\fymin) -- (\xmax,\fymin) -- (\xmax,\fymax) -- (\xmaxt,\fymax)  ;
+\else
+ \draw (0,\ytung) -- node[below,sloped] {\small $y=\hesoa{#2} x\heso{#3}$} (\xhoanh,0);
+  \dke (\xmint,\fymin) -- (\xmin,\fymin) -- (\xmin,\fymax) -- (\xmaxt,\fymax)  ;
+\fi
+\tkzDrawPoint((0,\ytung))
+\tkzDrawPoint(\xhoanh,0)
+% \end{tikzpicture}
+}
+%%%
+\newcommand{\ntrucx}[2][r]{
+\FPeval{\hsaa}{(#2)} 
+\FPeval{\hsa}{clip(round(\hsaa,2))}
+% \FPeval{\hsb}{(#3)} 
+%\@ctham{Đồ thị hàm số $y=\hesoa{#2} x\heso{#3}$}
+\if #1r
+\def\dke{\path [pattern=north east  lines,pattern color=\mdk]}
+\else \if #1l
+\def\dke{\path [pattern=north west lines,pattern color=\mdk]}
+\else \if #1v
+\def\dke{\path [pattern=vertical  lines,pattern color=\mdk]}
+\else \if #1h
+\def\dke{\path [pattern=horizontal lines,pattern color=\mdk]}
+\fi \fi \fi
+\fi
+ \FPifneg{\hsa}
+\draw[-] (\hsa,\ymin)-- node[below,sloped] {\footnotesize $x=\hsa$} (\hsa,\ymax) ;
+ \dke (\hsa,\ymin) -- (\xmax,\ymin) -- (\xmax,\ymax) -- (\hsa,\ymax)  ;
+\else
+\draw[-] (\hsa,\ymin)--  (\hsa,\ymax) node[above,sloped] {\footnotesize $x=\hsa$} ;
+  \dke (\hsa,\ymin) -- (\xmin,\ymin) -- (\xmin,\ymax) -- (\hsa,\ymax)  ;
+\fi
+\tkzDrawPoint((\hsa,0))
+% \tkzDrawPoint(\xhoanh,0)
+% \end{tikzpicture}
+}
+%%%%
+\newcommand{\ntrucy}[2][r]{
+\FPeval{\hsaa}{(#2)} 
+\FPeval{\hsa}{clip(round(\hsaa,2))}
+% \FPeval{\hsb}{(#3)} 
+%\@ctham{Đồ thị hàm số $y=\hesoa{#2} x\heso{#3}$}
+\if #1r
+\def\dke{\path [pattern=north east  lines,pattern color=\mdk]}
+\else \if #1l
+\def\dke{\path [pattern=north west lines,pattern color=\mdk]}
+\else \if #1v
+\def\dke{\path [pattern=vertical  lines,pattern color=\mdk]}
+\else \if #1h
+\def\dke{\path [pattern=horizontal lines,pattern color=\mdk]}
+\fi \fi \fi
+\fi
+ \FPifneg{\hsa}
+\draw[-] (\xmin,\hsa)-- node[below,sloped] {\footnotesize $x=\hsa$} (\xmax,\hsa) ;
+ \dke (\xmax,\hsa) -- (\xmax,\ymax) -- (\xmin,\ymax) -- (\xmin,\hsa)  ;
+\else
+\draw[-] (\hsa,\xmin)--  (\hsa,\xmax) node[above,sloped] {\footnotesize $x=\hsa$} ;
+  \dke (\xmin,\hsa) -- (\xmin,\ymin) -- (\xmax,\ymin) -- (\xmax,\hsa)  ;
+\fi
+\tkzDrawPoint((0,\hsa))
+% \tkzDrawPoint(\xhoanh,0)
+% \end{tikzpicture}
+}
+%%%%
+\newcommand{\hamtuyetdoi}[2][black]{
+\FPeval{\hsa}{(#2)} 
+ \draw[smooth,thick, samples=200,domain=\xmin:0,color={#1}] plot (\x,{-\x+\hsa}) ;
+\draw[smooth,thick, samples=200,domain=0:\xmax,color={#1}] plot (\x,{\x+\hsa})node[below, left] {$y = |x|$};
+}
+
+\newcommand{\hamcanbac}[2][black]{
+\FPeval{\canb}{(#2)} 
+ %\draw[smooth,thick, samples=200,domain=\xmin:1,color={#1}] plot (\x,{\x^(1/\canb)}) node[left=12pt] {\hscanb{#2}};
+ \draw[smooth,thick, samples=200,domain=0.1:1,color={#1}] plot (\x,{\x^(1/\canb)});
+% node[left=12pt] {\hscanb{#2}};
+ \draw[smooth,thick, samples=200,domain=1:\xmax,color={#1}] plot (\x,{1/(\x^(1/\canb))}) node[left=12pt] {\hscanb{#2}};
+}
+
+\newcommand{\hammu}[2][black]{
+\FPeval{\hsa}{(#2)} 
+\FPiflt{\hsa}{1}
+\draw[smooth,thick,samples=200,domain=\xmin:0,color={#1}] plot (\x,{(\hsa)^(\x)});
+\draw[smooth,thick,samples=200,domain=0:\xmax,color={#1}] plot (\x,{1/((\hsa)^(\x))});
+\FPeval{\fymax}{\hsa^(\xmax)+0.2} 
+\tkzText[left,color={#1}](\xmax,\fymax){$y={(#2)}^x$}
+\else
+\draw[smooth,thick,samples=200,domain=\xmin-0.5:0,color={#1}] plot (\x,{1/((\hsa)^(\x))});
+\draw[smooth,thick,samples=200,domain=0:\xmax,color={#1}] plot (\x,{(\hsa)^(\x)});
+ \FPeval{\fymax}{\hsa^(1)} 
+\tkzText[right,color={#1}](1,\fymax){$y={#2}^x$}
+\fi
+}
+
+\newcommand{\hamloga}[2][black]{
+\FPeval{\hsa}{(#2)} 
+\FPiflt{\hsa}{1}
+\draw[smooth, domain = -1.4:3.5, color={#1}, thick] plot ({#2^(\x)},\x);
+\node at (4.6,-1.4)[above] {\small\color{blue}$y^{-1}=\log_{#2} x$};
+\else
+\draw[smooth, domain = 0.1:1, color=#1, thick] plot (#2^(\x),\x);
+\draw[smooth, domain = 0.1:\xmax, color=#1, thick] plot ({#2^(\x)},\x);
+\node at (4.6,1.4)[above] {\small\color{blue}$y^{-1}=\log_{#2} x$};
+\fi
+% \draw[smooth,thick,samples=200,domain=0.06:\xmax,color={#1}] plot (\x,{#2(\x)}) node[left=6pt] {$y=\mbox{#2}(x)$};
+}
+
+\newcommand{\hamlog}[2][black]{
+\FPeval{\hsa}{(#2)} 
+\FPiflt{\hsa}{1}
+\draw[smooth,thick,samples=200,domain=\xmin:0,color={#1}] plot ({(\hsa)^(\x)},\x);
+\draw[smooth,thick,samples=200,domain=0:\xmax,color={#1}] plot ({1/((\hsa)^(\x))},\x);
+\FPeval{\fymax}{(1/(\hsa))} 
+\tkzText[left,color={#1}](\fymax,-1){$y=\log_{#2} x$}
+\else
+\draw[smooth,thick,samples=200,domain=0.01:\ymin,color={#1}] plot ({1/((\hsa)^(\x))},\x);
+\draw[smooth,thick,samples=200,domain=0:\xmax,color={#1}] plot ({(\hsa)^(\x)},\x);
+ \FPeval{\fymax}{\hsa} 
+\tkzText[right,color={#1}](\fymax,1){$y=\log_{#2} x$}
+\fi
+}
+
+\newcommand{\hamluong}[2][black]{
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax,color={#1}] plot (\x,{#2(deg(\x))}) node[left=6pt] {$y = \mbox{#2}(x)$};
+}
+
+\newcommand{\hamso}[2][black]{
+\draw[smooth,thick,samples=200,domain=\xmin:\xmax,color={#1}] plot (\x,{#2}) node[left=6pt] {$y = \mbox{#2}(x)$};
+}
+
+\newcommand{\diem}[4][black]{
+\FPeval{\tdm}{(#2)} 
+\FPeval{\tdh}{(#3)} 
+\tkzDefPoint(\tdm,\tdh){a} 
+%\tkzDrawPoint[color={#1}](a)
+\if #4s
+\tkzLabelPoint[right](a){$(#2,#3)$}
+\else
+\tkzLabelPoint[right](a){#4}
+\fi
+% \tkzPointShowCoord(a)
+%\tkzLabelPoint(a){$(#2,#3)$}
+}
+
+\newcommand{\diemtd}[3][s]{
+\FPeval{\tdm}{(#2)} 
+\FPeval{\tdh}{(#3)} 
+\tkzDefPoint(\tdm,\tdh){a} 
+% \tkzDrawPoint[color={#1}](a)
+ \tkzPointShowCoord(a)
+}
+%%%%%%%%%%%%%%%%
+\def\chonxtrig{
+\FPifgt{\xtrig}{0} 
+\tkzAxeX[orig=false,thick, trig=\xtrig, frac=\xfrac, label options={below = 10pt}] 
+\else
+\tkzAxeX[orig=false,thick, trig=\xtrig, frac=\xfrac] 
+\fi
+}
+
+\def\chonxfrac{
+\FPifgt{\xfrac}{0} 
+\tkzAxeX[orig=false,thick, trig=\xtrig, frac=\xfrac, label options={below = 10pt}] 
+\else
+\chonxtrig
+\fi
+}
+\newenvironment{hetd}[7][2]{
+\FPeval{\xmin}{clip(round(#2,2))}
+\FPeval{\xmax}{clip(round(#3,2))}
+\FPeval{\ymin}{clip(round(#4,2))}
+\FPeval{\ymax}{clip(round(#5,2))}
+\begin{tikzpicture}[line join=round, line cap=round,>=stealth, xscale=\xscale,yscale=\yscale]
+\tkzInit[xmin=\xmin,xmax=\xmax,xstep={#6}, ymin = \ymin,ymax =\ymax, ystep={#7}]
+\ifcase#1
+\or %%1
+\chonxfrac
+%\tkzAxeX[orig=false,thick, frac=\xfrac] 
+\tkzAxeY[orig=false,thick, trig=\ytrig, frac=\yfrac] 
+\tkzDrawXY[orig=false,label={},swap, thick,noticks]
+\draw (0,0) node [below left] {\footnotesize $O$};
+\or %%2
+\chonxfrac
+\tkzAxeY[orig=false,thick, trig=\ytrig, frac=\yfrac] 
+\tkzDrawXY[orig=false,label={},swap, thick,noticks]
+\draw (0,0) node [below left] {\footnotesize $O$};
+\tkzGrid
+\or %%3
+\chonxfrac
+\tkzAxeY[orig=false,thick, trig=\ytrig, frac=\yfrac] 
+\tkzDrawXY[orig=false,label={},swap, thick,noticks]
+\draw (0,0) node [below left] {\footnotesize $O$};
+\tkzGrid[sub]
+\or %%4
+%\chonxfrac
+% \tkzAxeX[orig=false,thick, noticks, frac=\xfrac] 
+% \tkzAxeY[orig=false,thick, noticks, trig=\ytrig, frac=\yfrac] 
+\tkzDrawXY[orig=false,  thick,noticks]
+\draw (0,0) node [below left] {\footnotesize $O$};
+
+% \or %%3
+% \let\tkzmathstyle\displaystyle
+% \tkzAxeX[orig = false, trig = 2, label options={below = 10pt}, ticks]
+% \tkzAxeY[orig = false,ticks] 
+% \or  %%4
+% \let\tkzmathstyle\displaystyle
+% \tkzAxeX[orig = false, trig = 2, label options={below = 10pt}, ticks]
+% \tkzAxeY[orig = false, trig = 2, ticks] 
+% \or  %%5
+% \let\tkzmathstyle\displaystyle
+% \tkzAxeX[orig = false, frac = \xfrac, label options={below = 10pt}, ticks]
+% \tkzAxeY[orig = false, frac = \yfrac, trig = 2, ticks] 
+\fi
+ \tkzClip
+}{
+\end{tikzpicture}
+}
+
+% \newcommand{\gandiem}[4][0]{
+% \FPeval{\tdm}{(#2)} 
+% \FPeval{\tdh}{(#3)}
+% \ifcase #1
+% \tkzDefPoint(\tdm,\tdh){#4}
+% \or
+% \tkzDefPoint(\tdm:\tdh){#4}
+% \fi
+% }
+\newcommand{\veduongthang}[2][thick]{
+\tkzDrawLine[#1](#2)
+}
+
+
+\newcommand{\vedoan}[2][black,thick]{
+\tkzDrawSegment[#1](#2)
+}
+
+\newcommand{\vendoan}[2][black,thick]{
+\tkzDrawSegments[#1](#2)
+}
+
+\newcommand{\nhandoan}[3][above]{
+\tkzLabelSegment[#1](#2){#3}
+}
+
+\newcommand{\nhanndoan}[3][above=4pt]{
+\tkzLabelSegments[#1](#2){#3}
+}
+
+%\tkzLabelSegments[color=red,above=4pt](O,A A,B){$a$}
+
+\newcommand{\gandiem}[2]{
+\tkzDefPoint(#1){#2}
+}
+
+\newcommand{\ganndiem}[1]{
+\tkzDefPoints{#1}
+}
+
+
+
+\newcommand{\nhandiem}[3][below right]{
+\tkzLabelPoint[#1](#2){#3}
+}
+
+\newcommand{\nhanndiem}[2][below right]{
+\tkzLabelPoints[#1](#2)
+}
+
+\newcommand{\vediem}[2][shape=circle,size=6,color=black,fill=black]{
+\tkzDrawPoint[#1](#2)
+}
+
+\newcommand{\vendiem}[2][shape=circle,size=6,color=black,fill=black]{
+\tkzDrawPoints[#1](#2)
+}
+
+\newcommand{\vetoadodiem}[1]{
+\tkzPointShowCoord({#1})
+}
+
+\newcommand{\vecung}[8][-,black,thick]
+{
+\draw[#1] ([shift={(#2)}]#4:#3) arc(#4:#5:#3);
+\draw([shift={(#2)}]{#4+#5}/2:#3) node[#6]{#7};
+}
+
+\newcommand{\vecunga}[5][-,black,thick]
+{
+\pic [draw,#1,angle radius=#2,"#5"{anchor=#4,text =
+             black,font=\footnotesize}, angle eccentricity=1] {angle = #3}; 
+}
+
+%%%%%%%%%%%%%
+\newcommand{\dothiquayo}[6][]{
+\draw[smooth,  #1, rotate=#2, color=#3, domain = #4, thick] plot (\x,{#5{\x}}) node [above] {#6};
+}
+
+
+\newcommand{\dothi}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot (\x,{#4{\x}}) node [above] {#5};
+}
+
+\newcommand{\dothidx}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot ({#4{\x}},\x)  node [right] {#5};
+}
+
+\newcommand{\dothidxp}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot ({-#4{\x}},\x)  node [right] {#5};
+}
+
+\newcommand{\dothidxx}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot (\x, {-(#4{\x})})  node [below] {#5};
+}
+
+\newcommand{\dothidxy}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot (\x, {(#4{-\x})})  node [below] {#5};
+}
+
+\newcommand{\dothidxo}[5][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot (\x, {-(#4{-\x})})  node [below] {#5};
+}
+
+\newcommand{\dothitty}[6][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot (\x, {(#4{\x})+#5})  node [below] {#6};
+}
+
+\newcommand{\dothittx}[6][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot ({(\x+#5)}, {#4{\x}})  node [below] {#6};
+}
+
+\newcommand{\dothittv}[7][]{
+\draw[smooth,  #1, color=#2, domain = #3, thick] plot ({(\x+#5)}, {(#4{\x})+#6})  node [below] {#7};
+}
+
+\newcommand{\daugocvuong}[2][size=0.2]{
+\tkzMarkRightAngle[#1](#2)
+}
+
+\newcommand{\veduongtron}[2][black]{
+\tkzDrawCircle[#1](#2)
+}
+
+\newcommand{\veduongtronr}[3][thick]{
+ \draw[#1] (#2) circle(#3);
+}
+
+\newcommand{\vedtngang}[2][line width = 1pt]{
+\tkzHLine[#1]{#2}
+}
+
+\newcommand{\vendtngang}[2][line width = 1pt]{
+\tkzHLines[#1]{#2}
+}
+
+\newcommand{\vedtdung}[2][line width = 1pt]{
+\tkzVLine[#1]{#2}
+}
+
+\newcommand{\vendtdung}[2][line width = 1pt]{
+\tkzVLines[#1]{#2}
+}
+
+\newcommand{\vevecto}[4][->,thick]{
+\draw[#1] (#2)--(#3) node[midway,above,sloped] {#4}; 
+}
+
+\endinput
