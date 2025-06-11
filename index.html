@@ -15,7 +15,7 @@
             --danger-color: #dc3545;
         }
         body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
-        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 15px; }
+        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 15px; flex-wrap: wrap; }
         .toolbar-group { display: flex; align-items: center; gap: 8px; }
         .toolbar button, .toolbar select { padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: #fff; cursor: pointer; }
         .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; }
@@ -47,19 +47,21 @@
             <input type="file" id="file-loader-input" multiple style="display: none;">
         </div>
         <div class="toolbar-group">
-            <label for="main-file-selector">Main File:</label>
+            <label for="main-file-selector">Main File</label>
             <select id="main-file-selector"></select>
         </div>
         <div class="toolbar-group">
-            <label for="template-selector">Template:</label>
+            <label for="template-selector">Chọn Mẫu:</label>
             <select id="template-selector">
-                <option value="">-- Select a Template --</option>
-                <option value="article">Simple Article</option>
-                <option value="cv">Stylish CV</option>
+                <option value="">-- Chọn Mẫu --</option>
+                <option value="DeThi">Main_DeThi</option>
+                <option value="VeHinh">Main_VeHinh</option>
+                <option value="Beamer">Main_Beamer</option>
+                <option value="ChuyenDe">Main_ChuyenDe</option>
             </select>
         </div>
         <div class="toolbar-group">
-            <button id="clear-cache-btn">Clear .sty Cache</button>
+            <button id="clear-cache-btn">Clear Cache</button>
         </div>
         <div class="toolbar-group" style="margin-left: auto;">
              <button id="compile-btn" disabled>Initializing...</button>
@@ -68,11 +70,38 @@
 
     <div class="main-container">
         <div class="editor-pane">
-            <div id="editor">% Welcome to the Modern Web LaTeX IDE!
-% 1. Use the toolbar above to load your .tex, .sty, images, etc.
-% 2. Or, select a template to get started.
-% 3. Your .sty/.cls files will be saved for future sessions!
-% 4. Use "Clear .sty Cache" to remove saved files.
+            <div id="editor">\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{vietnam}
+\usepackage{amsmath, amssymb}
+
+% Đây là gói style tùy chỉnh của bạn đã được nạp sẵn!
+\usepackage{myexamstyle} 
+
+\title{Tổng Hợp Đề Thi}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Hướng dẫn}
+Trang web đã nạp sẵn các file: 
+\begin{itemize}
+    \item \texttt{de01.tex} đến \texttt{de05.tex}
+    \item \texttt{myexamstyle.sty} (gói tùy chỉnh cho đề thi)
+    \item \texttt{mycustomcolors.sty} (gói màu sắc)
+\end{itemize}
+Bạn có thể dùng lệnh \verb|\input{de01.tex}| để chèn nội dung của đề 1 vào đây.
+
+%== Bắt đầu chèn các đề thi ở đây ==
+\input{de01.tex}
+\clearpage
+\input{de02.tex}
+
+%== Kết thúc ==
+
+\end{document}
 </div>
             <div class="controls">
                 <div id="console-header" class="console-header">
@@ -95,6 +124,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
 <script src="PdfTeXEngine.js"></script>
 <script>
+// --- CÁC HẰNG SỐ VÀ BIẾN TOÀN CỤC ---
 const editorEl = ace.edit("editor");
 const compileBtn = document.getElementById("compile-btn");
 const consoleOutput = document.getElementById("console");
@@ -108,8 +138,7 @@ const consoleToggleIcon = document.getElementById("console-toggle-icon");
 const clearCacheBtn = document.getElementById('clear-cache-btn');
 
 const globalEn = new PdfTeXEngine();
-let mainTexFile = 'main.tex';
-const loadedFiles = new Map();
+let mainTexFile = 'main.tex'; // File mặc định khi bắt đầu
 
 const DB_NAME = 'LaTeXFilesDB';
 const STORE_NAME = 'StyFilesStore';
@@ -118,14 +147,29 @@ let db;
 const TEXLIVE_BASE_URL = "https://texlive2.swiftlatex.com/pdftex/";
 const TEXLIVE_VERSION = '26';
 
+// --- BƯỚC 1: ĐỊNH NGHĨA CÁC FILE NẠP SẴN ---
+const PREPACKAGED_FILES = {
+    // Các file đề thi
+    'de01.tex': `\\section*{ĐỀ THI SỐ 01}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...\n\n\\subsection*{Câu 2}\nNội dung câu hỏi 2...`,
+    'de02.tex': `\\section*{ĐỀ THI SỐ 02}\n\\subsection*{Câu 1}\nGiải phương trình $x^2 - 5x + 6 = 0$.`,
+    'de03.tex': `\\section*{ĐỀ THI SỐ 03}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'de04.tex': `\\section*{ĐỀ THI SỐ 04}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'de05.tex': `\\section*{ĐỀ THI SỐ 05}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'ans-phanI':'',
+    'ans-phanII':'',
+    'ans-phanIII':'',
+    // Các file .sty tùy chỉnh
+    'myexamstyle.sty': `\\NeedsTeXFormat{LaTeX2e}\n\\ProvidesPackage{myexamstyle}\n\n\\RequirePackage{geometry}\n\\geometry{a4paper, top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}\n\n\\RequirePackage{titlesec}\n\\titleformat{\\section*}[hang]{\\bfseries\\Large}{\\thesection}{1em}{}\n\n\\newcommand{\\dapan}[1]{\\textbf{Đáp án: } #1}\n\n\\endinput`,
+    'mycustomcolors.sty': `\\NeedsTeXFormat{LaTeX2e}\n\\ProvidesPackage{mycustomcolors}\n\n\\RequirePackage{xcolor}\n\\definecolor{myblue}{rgb}{0.2, 0.4, 0.8}\n\\definecolor{mygreen}{rgb}{0, 0.6, 0.2}\n\n\\endinput`
+};
+
+
+// --- CÁC HÀM XỬ LÝ DATABASE (IndexedDB) ---
 function openDb() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 2);
         request.onerror = () => reject("Error opening IndexedDB.");
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            resolve();
-        };
+        request.onsuccess = (event) => { db = event.target.result; resolve(); };
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -154,26 +198,23 @@ function getFileFromDb(name) {
         const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.get(cleanName);
-        request.onsuccess = (event) => {
-            resolve(event.target.result ? event.target.result.data : null);
-        };
+        request.onsuccess = (event) => resolve(event.target.result ? event.target.result.data : null);
         request.onerror = (e) => reject(`Failed to get ${cleanName}: ${e.target.error}`);
     });
 }
 
 function clearStyCache() {
     if (!db) { alert("Database not available."); return; }
-    if (!confirm("Are you sure you want to delete all cached .sty/.cls files? This action cannot be undone and will reload the page.")) { return; }
+    if (!confirm("Are you sure you want to delete all cached files? This action cannot be undone and will reload the page.")) { return; }
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.clear();
-    request.onsuccess = () => {
-        alert("Cache cleared successfully. The page will now reload.");
-        location.reload();
-    };
+    request.onsuccess = () => { alert("Cache cleared successfully. The page will now reload."); location.reload(); };
     request.onerror = (event) => { alert(`Failed to clear cache: ${event.target.error}`); };
 }
 
+
+// --- CẤU HÌNH TRÌNH SOẠN THẢO VÀ GÁN SỰ KIỆN ---
 editorEl.setTheme("ace/theme/monokai");
 editorEl.session.setMode("ace/mode/latex");
 editorEl.session.setUseWrapMode(true);
@@ -188,6 +229,26 @@ compileBtn.addEventListener('click', compile);
 consoleHeader.addEventListener('click', toggleConsole);
 clearCacheBtn.addEventListener('click', clearStyCache);
 
+
+// --- LOGIC CHÍNH CỦA ỨNG DỤNG ---
+
+// BƯỚC 2: HÀM NẠP CÁC FILE CÓ SẴN KHI KHỞI ĐỘNG
+async function preloadPackagedFiles() {
+    console.log("Checking for pre-packaged files...");
+    const textEncoder = new TextEncoder();
+    for (const fileName in PREPACKAGED_FILES) {
+        // Chỉ thêm file nếu nó chưa tồn tại trong DB để tránh ghi đè file của người dùng
+        const existingFile = await getFileFromDb(fileName);
+        if (!existingFile) {
+            console.log(`[Preload] Adding new file to cache: ${fileName}`);
+            const fileContent = PREPACKAGED_FILES[fileName];
+            const fileData = textEncoder.encode(fileContent);
+            await saveFileToDb(fileName, fileData);
+        }
+    }
+    console.log("Pre-packaged file check complete.");
+}
+
 async function loadCacheIntoEngine() {
     console.log("Loading cached files into engine's virtual file system...");
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -198,15 +259,14 @@ async function loadCacheIntoEngine() {
             const files = event.target.result;
             if (files.length > 0) {
                  console.log(`Found ${files.length} files in cache. Writing to engine...`);
-                 files.forEach(file => { globalEn.writeMemFSFile(file.name, file.data); });
+                 files.forEach(file => {
+                     globalEn.writeMemFSFile(file.name, file.data);
+                 });
                 console.log("Finished writing cache to engine.");
             } else { console.log("No files found in cache."); }
             resolve();
         };
-        request.onerror = () => {
-            console.error("Could not load cache from IndexedDB.");
-            resolve();
-        }
+        request.onerror = () => { console.error("Could not load cache from IndexedDB."); resolve(); }
     });
 }
 
@@ -230,6 +290,7 @@ async function parseLogAndCacheDependencies(logContent) {
             if (response.ok) {
                 const fileData = await response.arrayBuffer();
                 await saveFileToDb(fileName, new Uint8Array(fileData));
+                globalEn.writeMemFSFile(fileName, new Uint8Array(fileData)); // Nạp luôn vào engine để lần biên dịch sau (nếu có) dùng được ngay
                 console.log(`[Cache SAVE] Successfully cached ${fileName}.`);
             } else { console.warn(`Could not fetch dependency ${fileName}. Status: ${response.status}`); }
         } catch (error) { console.error(`Error fetching dependency ${fileName}:`, error); }
@@ -237,18 +298,26 @@ async function parseLogAndCacheDependencies(logContent) {
     console.log("Dependency caching process finished.");
 }
 
+// BƯỚC 3: CẬP NHẬT HÀM KHỞI TẠO
 async function init() {
     try {
         await openDb();
+        await preloadPackagedFiles(); // Nạp file có sẵn vào DB
         await globalEn.loadEngine();
-        await loadCacheIntoEngine();
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-        request.onsuccess = (event) => {
-            event.target.result.forEach(file => { if(file.name.endsWith('.tex')) { loadedFiles.set(file.name, file.data); } });
-            updateMainFileSelector();
-        };
+        await loadCacheIntoEngine(); // Nạp tất cả file từ DB vào Engine
+
+        // Lưu nội dung ban đầu của editor vào main.tex nếu chưa có
+        const mainFileContent = await getFileFromDb(mainTexFile);
+        if (!mainFileContent) {
+            const initialContent = editorEl.getValue();
+            const textEncoder = new TextEncoder();
+            const initialData = textEncoder.encode(initialContent);
+            await saveFileToDb(mainTexFile, initialData);
+            globalEn.writeMemFSFile(mainTexFile, initialData);
+        }
+
+        updateMainFileSelector();
+
         compileBtn.innerHTML = "Compile";
         compileBtn.disabled = false;
         consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
@@ -269,11 +338,10 @@ function handleFileLoad(event) {
             console.log(`Saved user file ${file.name} to cache.`);
             globalEn.writeMemFSFile(file.name, fileData);
             if (file.name.endsWith('.tex')) {
-                // loadedFiles.set(file.name, fileData); <--- Dòng này không còn cần thiết lắm
+                mainTexFile = file.name;
                 const textDecoder = new TextDecoder();
                 editorEl.setValue(textDecoder.decode(fileData), -1);
-                mainTexFile = file.name;
-                updateMainFileSelector(); // Cập nhật lại combobox sau khi tải file
+                updateMainFileSelector();
             }
         };
         reader.readAsArrayBuffer(file);
@@ -290,57 +358,82 @@ function handleMainFileChange(event) {
         }
     });
 }
-
 function updateMainFileSelector() {
+    // Xóa các lựa chọn cũ trong combobox
     mainFileSelector.innerHTML = '';
     
-    // THAY ĐỔI: Mảng các tiền tố hợp lệ (dạng chữ thường)
-    const validPrefixes = ['de', 'file', 'main']; 
+    // DANH SÁCH CÁC TÊN BẮT ĐẦU HỢP LỆ MÀ BẠN MUỐN HIỂN THỊ
+    const validPrefixes = ['main', 'de', 'file']; 
 
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.getAll();
 
+    // Thêm xử lý lỗi cho chắc chắn
+    request.onerror = (event) => {
+        console.error("Lỗi khi lấy file từ database:", event.target.error);
+    };
+
+    // Khi lấy dữ liệu thành công
     request.onsuccess = (event) => {
-        let foundMainFile = false;
-        event.target.result.forEach(file => {
-            const fileName = file.name;
-            const fileNameLower = fileName.toLowerCase();
-
-            // THAY ĐỔI: Kiểm tra tiền tố của file
-            const hasValidPrefix = validPrefixes.some(prefix => fileNameLower.startsWith(prefix));
-
-            if (fileName.endsWith('.tex') && hasValidPrefix) {
-                const option = document.createElement('option');
-                option.value = fileName;
-                option.textContent = fileName;
-                mainFileSelector.appendChild(option);
-                if (fileName === mainTexFile) {
-                    option.selected = true;
-                    foundMainFile = true;
-                }
+        const allFiles = event.target.result;
+        
+        // 1. LỌC VÀ TẠO MỘT MẢNG MỚI chứa các file hợp lệ
+        const filteredTexFiles = [];
+        allFiles.forEach(file => {
+            // Điều kiện: Phải là file .tex VÀ tên file phải bắt đầu bằng một trong các tiền tố hợp lệ
+            if (file.name.endsWith('.tex') && validPrefixes.some(prefix => file.name.startsWith(prefix))) {
+                filteredTexFiles.push(file.name);
             }
         });
         
-        if (!foundMainFile && mainTexFile) {
-             const option = document.createElement('option');
-             option.value = mainTexFile;
-             option.textContent = mainTexFile;
-             option.selected = true;
-             mainFileSelector.appendChild(option);
+        // 2. SẮP XẾP danh sách đã lọc để dễ nhìn
+        filteredTexFiles.sort();
+
+        // Nếu không có file nào hợp lệ thì dừng lại
+        if (filteredTexFiles.length === 0) {
+            console.warn("Không tìm thấy file .tex hợp lệ với các tiền tố:", validPrefixes);
+            return;
         }
-    }
+
+        // 3. TẠO CÁC LỰA CHỌN (option) từ danh sách đã lọc
+        filteredTexFiles.forEach(fileName => {
+            const option = document.createElement('option');
+            option.value = fileName;
+            option.textContent = fileName;
+            mainFileSelector.appendChild(option);
+        });
+
+        // 4. ĐẶT FILE ĐƯỢC CHỌN một cách chính xác
+        // Kiểm tra xem `mainTexFile` hiện tại có trong danh sách đã lọc không
+        if (filteredTexFiles.includes(mainTexFile)) {
+            // Nếu có, chọn nó trong combobox
+            mainFileSelector.value = mainTexFile;
+        } else {
+            // Nếu không có (ví dụ sau khi xóa cache hoặc chọn template khác),
+            // thì tự động chọn file đầu tiên trong danh sách làm file chính mới.
+            mainTexFile = filteredTexFiles[0];
+            mainFileSelector.value = mainTexFile;
+            
+            // Và cập nhật nội dung trong editor để khớp với file mới này
+            handleMainFileChange({ target: { value: mainTexFile } });
+        }
+    };
 }
 
 async function compile() {
     if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; }
     loadingOverlay.style.display = 'flex';
     compileBtn.disabled = true;
+
+    // Lưu nội dung hiện tại của file đang mở
     const currentContent = editorEl.getValue();
     const textEncoder = new TextEncoder();
     const currentContentData = textEncoder.encode(currentContent);
     globalEn.writeMemFSFile(mainTexFile, currentContentData);
     await saveFileToDb(mainTexFile, currentContentData);
+    
+    // Bắt đầu biên dịch
     globalEn.setEngineMainFile(mainTexFile);
     const r = await globalEn.compileLaTeX();
     
@@ -363,21 +456,28 @@ function toggleConsole() {
     consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
 }
 
+// BƯỚC 4: THÊM NỘI DUNG CHO CÁC MẪU MỚI
 async function handleTemplateChange(event) {
     const templateName = event.target.value;
+    if (!templateName) return;
+
     const templates = {
-        'article': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\title{Simple Article}\n\\author{Me}\n\\date{\\today}\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\n\nHello, world!\n\n\\end{document}`,
-        'cv': `\\documentclass[a4paper]{scrartcl}\n\\usepackage{scrlayer-scrpage}\n\\usepackage{titlesec}\n\\usepackage{marvosym}\n\\usepackage{tabularx,colortbl}\n\\usepackage[T1]{fontenc}\n\\titleformat{\\section}{\\large\\scshape\\raggedright}{}{0em}{}[\\titlerule]\n\n\\begin{document}\n\\begin{center}\n{\\fontsize{36}{36}\\selectfont\\scshape John Smith}\n\n\\vspace{1cm}\n\n\\section{Objective}\n\nA great job.\n\n\\section{Education}\n\nMy University, 2024.\n\n\\end{center}\n\\end{document}`
+        'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\usepackage{myexamstyle}\n\n\\begin{document}\n\n\\input{de01.tex}\n\n\\end{document}`,
+        'VeHinh': `\\documentclass[tikz, border=5mm]{standalone}\n\\usepackage{tikz}\n\\begin{document}\n\\begin{tikzpicture}\n  \\draw[blue, thick] (0,0) circle (2cm);\n  \\fill[red] (0,0) circle (2pt);\n\\end{tikzpicture}\n\\end{document}`,
+        'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\usepackage[utf8]{vietnam}\n\n\\title{Bài trình bày Beamer}\n\\author{Tên của bạn}\n\\institute{Trường/Cơ quan}\n\\date{\\today}\n\n\\begin{document}\n\n\\begin{frame}\n  \\titlepage\n\\end{frame}\n\n\\begin{frame}{Nội dung}\n  \\tableofcontents\n\\end{frame}\n\n\\section{Giới thiệu}\n\\begin{frame}{Đây là slide đầu tiên}\n  \\begin{itemize}\n    \\item Mục 1\n    \\item Mục 2\n  \\end{itemize}\n\\end{frame}\n\n\\end{document}`,
+        'ChuyenDe': `\\documentclass[12pt,a4paper]{report}\n\\usepackage[utf8]{vietnam}\n\\usepackage{myexamstyle}\n\\usepackage{mycustomcolors}\n\\usepackage{hyperref}\n\\hypersetup{colorlinks=true, linkcolor=myblue, urlcolor=mygreen}\n\n\\title{Tên Chuyên Đề}\n\\author{Tên tác giả}\n\n\\begin{document}\n\n\\maketitle\n\n\\tableofcontents\n\n\\chapter{Mở đầu}\nNội dung chương mở đầu...\n\n\\chapter{Nội dung chính}\nNội dung chương chính...\n\n\\end{document}`
     };
+    
     if (templates[templateName]) {
-        // Tạo một tên file mặc định dựa trên template, ví dụ 'main-article.tex'
-        mainTexFile = `main-${templateName}.tex`;
+        mainTexFile = `main-${templateName.toLowerCase()}.tex`;
+        const templateContent = templates[templateName];
         const textEncoder = new TextEncoder();
-        const templateData = textEncoder.encode(templates[templateName]);
-        editorEl.setValue(templates[templateName], -1);
+        const templateData = textEncoder.encode(templateContent);
+
+        editorEl.setValue(templateContent, -1);
         await saveFileToDb(mainTexFile, templateData);
         globalEn.writeMemFSFile(mainTexFile, templateData);
-        updateMainFileSelector(); // Cập nhật combobox để file mới hiện ra
+        updateMainFileSelector();
     }
 }
 
