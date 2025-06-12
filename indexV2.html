@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Ultimate LaTeX Web IDE</title>
+    <meta name="description" content="A professional, feature-rich, and user-friendly web-based LaTeX editor.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: #007bff; --dark-bg: #282c34; --light-bg: #f4f4f4; --border-color: #ddd;
+            --danger-color: #dc3545; --success-color: #28a745; --sidebar-bg: #f7f7f7; --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body, html { margin: 0; padding: 0; font-family: var(--font-family); background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        .toolbar { display: flex; align-items: center; padding: 8px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 15px; flex-wrap: wrap; }
+        .toolbar-group { display: flex; align-items: center; gap: 8px; }
+        .toolbar button, .toolbar select { padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: #fff; cursor: pointer; transition: all 0.2s; }
+        .toolbar button:hover, .toolbar select:hover { background-color: #f0f0f0; border-color: #bbb; }
+        .icon-btn { padding: 6px; line-height: 0; }
+        .icon-btn svg { width: 18px; height: 18px; vertical-align: middle; }
+        #compile-btn { background-color: var(--success-color); color: white; font-weight: bold; border-color: var(--success-color); }
+        #compile-btn:hover { background-color: #218838; }
+        #compile-btn:disabled { background-color: #aaa; cursor: not-allowed; border-color: #aaa; }
+        .main-container { display: flex; flex-grow: 1; min-height: 0; }
+        .sidebar { flex: 0 0 250px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: all 0.3s ease; overflow: hidden; }
+        .sidebar.collapsed { flex-basis: 0; border: none; }
+        .sidebar-header { padding: 10px 15px; font-weight: bold; background-color: #e9e9e9; display: flex; justify-content: space-between; align-items: center; }
+        .file-list { flex-grow: 1; overflow-y: auto; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; white-space: nowrap; }
+        .file-item:hover { background-color: #e0e0e0; }
+        .file-item.active { background-color: var(--primary-color); color: white; }
+        .file-item-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; }
+        .delete-file-btn { background: none; border: none; cursor: pointer; opacity: 0.5; padding: 4px; }
+        .delete-file-btn:hover { opacity: 1; color: var(--danger-color); }
+        .editor-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        #editor { flex: 1; width: 100%; }
+        .status-bar { padding: 4px 12px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); font-size: 12px; color: #555; user-select: none; }
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .pdf-pane { flex: 1; background-color: white; border-left: 1px solid var(--border-color); }
+        #pdfbox { height: 100%; width: 100%; background-color: #e9e9e9; }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
+        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        .toast-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: var(--dark-bg); color: white; padding: 12px 20px; border-radius: 8px; z-index: 10000; opacity: 0; transition: opacity 0.5s, bottom 0.5s; font-size: 14px; }
+        .toast-notification.show { opacity: 1; bottom: 30px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button id="toggle-sidebar-btn" class="icon-btn" title="Toggle File Explorer (Ctrl+B)">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" /></svg>
+            </button>
+        </div>
+        <div class="toolbar-group">
+            <label for="main-file-selector">Main File:</label>
+            <select id="main-file-selector"></select>
+        </div>
+        <div class="toolbar-group">
+            <label for="file-loader-input" class="toolbar-button-label">
+                <button onclick="document.getElementById('file-loader-input').click()">Load Files</button>
+            </label>
+            <input type="file" id="file-loader-input" multiple style="display: none;">
+        </div>
+        <div class="toolbar-group">
+            <button id="clear-cache-btn">Clear All</button>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+             <button id="compile-btn" disabled>Initializing...</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <span>File Explorer</span>
+                <button id="add-file-btn" class="icon-btn" title="New File">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13,9V3.5L18.5,9H13M12,14H14V16H16V18H14V20H12V18H10V16H12V14Z" /></svg>
+                </button>
+            </div>
+            <div id="file-list" class="file-list"></div>
+        </div>
+        <div class="editor-pane">
+            <div id="editor"></div>
+            <div id="status-bar" class="status-bar">Initializing...</div>
+            <div class="controls">
+                <div id="console-header" class="console-header">
+                    <span>Console Output</span>
+                    <span id="console-toggle-icon">▼</span>
+                </div>
+                <pre id="console" class="collapsed">Engine will be ready shortly...</pre>
+            </div>
+        </div>
+        <div class="pdf-pane">
+            <div id="pdfbox"></div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span>Compiling...</span>
+    </div>
+
+    <div id="toast-notification" class="toast-notification"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+// --- MODULE: UI Management ---
+const UI = {
+    editor: ace.edit("editor"),
+    compileBtn: document.getElementById("compile-btn"),
+    consoleOutput: document.getElementById("console"),
+    pdfbox: document.getElementById("pdfbox"),
+    fileLoaderInput: document.getElementById('file-loader-input'),
+    mainFileSelector: document.getElementById('main-file-selector'),
+    loadingOverlay: document.getElementById('loading-overlay'),
+    consoleHeader: document.getElementById("console-header"),
+    consoleToggleIcon: document.getElementById("console-toggle-icon"),
+    clearCacheBtn: document.getElementById('clear-cache-btn'),
+    sidebar: document.getElementById('sidebar'),
+    toggleSidebarBtn: document.getElementById('toggle-sidebar-btn'),
+    fileListContainer: document.getElementById('file-list'),
+    addFileBtn: document.getElementById('add-file-btn'),
+    statusBar: document.getElementById('status-bar'),
+    toast: document.getElementById('toast-notification'),
+    toastTimeout: null,
+
+    setup() {
+        this.editor.setTheme("ace/theme/monokai");
+        this.editor.session.setMode("ace/mode/latex");
+        this.editor.session.setUseWrapMode(true);
+        this.editor.setFontSize(16);
+        this.editor.resize(true);
+    },
+    showToast(message, duration = 3000) {
+        if (this.toastTimeout) clearTimeout(this.toastTimeout);
+        this.toast.textContent = message;
+        this.toast.classList.add('show');
+        this.toastTimeout = setTimeout(() => {
+            this.toast.classList.remove('show');
+        }, duration);
+    },
+    toggleConsole(forceOpen = false) {
+        if (forceOpen) {
+            this.consoleOutput.classList.remove('collapsed');
+        } else {
+            this.consoleOutput.classList.toggle('collapsed');
+        }
+        this.consoleToggleIcon.textContent = this.consoleOutput.classList.contains('collapsed') ? '▼' : '▲';
+    },
+    updateStatusBar(text, isSaved = true) {
+        this.statusBar.textContent = text + (isSaved ? "" : " (unsaved)");
+        this.statusBar.style.color = isSaved ? "" : "orange";
+    }
+};
+
+// --- MODULE: Database (IndexedDB) ---
+// --- MODULE: Database (IndexedDB) ---
+const DB = {
+    DB_NAME: 'UltimateLatexIDE_DB',
+    STORE_NAME: 'FilesStore',
+    db: null,
+
+    async open() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, 1);
+            request.onerror = e => reject(`DB Error: ${e.target.error}`);
+            request.onsuccess = e => { this.db = e.target.result; resolve(); };
+            request.onupgradeneeded = e => {
+                if (!e.target.result.objectStoreNames.contains(this.STORE_NAME)) {
+                    e.target.result.createObjectStore(this.STORE_NAME, { keyPath: 'name' });
+                }
+            };
+        });
+    },
+
+    // SỬA LỖI: Tất cả các hàm bên dưới đều phải bắt đầu một transaction
+    async saveFile(name, data) {
+        const transaction = this.db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        store.put({ name, data });
+        return transaction.done; // Trả về promise của transaction
+    },
+
+    async getFile(name) {
+        const transaction = this.db.transaction(this.STORE_NAME, 'readonly');
+        const store = transaction.objectStore(this.STORE_NAME);
+        const request = await store.get(name);
+        return request ? request.data : null;
+    },
+
+    async getAllFiles() {
+        // ĐÂY LÀ HÀM BỊ LỖI, ĐÃ ĐƯỢC SỬA LẠI
+        const transaction = this.db.transaction(this.STORE_NAME, 'readonly');
+        const store = transaction.objectStore(this.STORE_NAME);
+        return await store.getAll(); // Gọi getAll() trên store, không phải trên db
+    },
+
+    async deleteFile(name) {
+        const transaction = this.db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        store.delete(name);
+        return transaction.done;
+    },
+
+    async clearAll() {
+        const transaction = this.db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        store.clear();
+        return transaction.done;
+    }
+};
+// --- MODULE: Application Core ---
+const App = {
+    engine: new PdfTeXEngine(),
+    activeFile: 'main.tex',
+    isEngineReady: false,
+    autoSaveTimer: null,
+
+    TEXLIVE_BASE_URL: "https://texlive2.swiftlatex.com/pdftex/",
+    TEXLIVE_VERSION: '26',
+    GENERATED_FILE_PREFIX: 'ans',
+    
+    PREPACKAGED_FILES: {
+        'main.tex': `\\documentclass[12pt,a4paper]{article}\n\\usepackage[utf8]{vietnam}\n\\usepackage{myexamstyle}\n\n% Open files to write answers\n\\newwrite\\ansI\n\\immediate\\openout\\ansI=ans-phanI.tex\n\n\\newwrite\\ansII\n\\immediate\\openout\\ansII=ans-phanII.tex\n\n\\begin{document}\n\\title{Đề Thi Thử}\n\\maketitle\n\n\\input{de01.tex}\n\n\\% Close answer files\n\\immediate\\closeout\\ansI\n\\immediate\\closeout\\ansII\n\n\\end{document}`,
+        'de01.tex': `\\section*{Phần I: Trắc nghiệm}\nCâu 1: $1+1=?$\n\\dapan{A. 2}\n\\nopphandapan{\\ansI}{Câu 1: A}\n\n\\section*{Phần II: Tự luận}\nCâu 2: Giải phương trình $x=1$.\n\\dapan{Nghiệm là $x=1$}\n\\nopphandapan{\\ansII}{Câu 2 có nghiệm x=1.}`,
+        'myexamstyle.sty': `\\NeedsTeXFormat{LaTeX2e}\n\\ProvidesPackage{myexamstyle}\n\\newcommand{\\dapan}[1]{\\par\\textbf{Đáp án: } #1}\n\\newcommand{\\nopphandapan}[2]{\\immediate\\write#1{#2}}`,
+    },
+
+    async init() {
+        try {
+            UI.setup();
+            this.addEventListeners();
+
+            await DB.open();
+            await this.preloadFiles();
+            
+            await this.engine.loadEngine();
+            this.isEngineReady = true;
+            await this.loadCacheIntoEngine();
+            
+            await this.refreshFileExplorer();
+            
+            UI.compileBtn.textContent = "Compile";
+            UI.compileBtn.disabled = false;
+            UI.showToast("IDE is ready!");
+        } catch (err) {
+            console.error("Initialization Failed:", err);
+            UI.consoleOutput.textContent = `FATAL ERROR: ${err.message}`;
+        }
+    },
+
+    addEventListeners() {
+        UI.compileBtn.addEventListener('click', () => this.compile());
+        UI.toggleSidebarBtn.addEventListener('click', () => UI.sidebar.classList.toggle('collapsed'));
+        UI.consoleHeader.addEventListener('click', () => UI.toggleConsole());
+        UI.mainFileSelector.addEventListener('change', e => this.setActiveFile(e.target.value));
+        UI.fileLoaderInput.addEventListener('change', e => this.handleFileLoad(e));
+        UI.addFileBtn.addEventListener('click', () => this.addNewFile());
+        UI.clearCacheBtn.addEventListener('click', () => this.clearAllFiles());
+        UI.editor.on('input', () => {
+            UI.updateStatusBar(`Editing: ${this.activeFile}`, false);
+            if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+            this.autoSaveTimer = setTimeout(() => this.saveActiveFile(), 1500);
+        });
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); this.saveActiveFile(); }
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); this.compile(); }
+            if (e.ctrlKey && e.key === 'b') { e.preventDefault(); UI.sidebar.classList.toggle('collapsed'); }
+        });
+    },
+
+    async preloadFiles() {
+        const allFiles = await DB.getAllFiles();
+        if (allFiles.length > 0) return; // Don't preload if DB has content
+        
+        for (const name in this.PREPACKAGED_FILES) {
+            const data = new TextEncoder().encode(this.PREPACKAGED_FILES[name]);
+            await DB.saveFile(name, data);
+        }
+    },
+
+    async loadCacheIntoEngine() {
+        const files = await DB.getAllFiles();
+        if (files.length > 0) {
+            files.forEach(f => this.engine.writeMemFSFile(f.name, f.data));
+        }
+    },
+
+    async refreshFileExplorer() {
+        UI.fileListContainer.innerHTML = '';
+        const files = (await DB.getAllFiles()).sort((a,b) => a.name.localeCompare(b.name));
+
+        if (files.length === 0) {
+            this.activeFile = null;
+            UI.editor.setValue("% No files. Create a new file to start.", -1);
+            UI.updateStatusBar("No files");
+            return;
+        }
+
+        files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `<span class="file-item-name">${file.name}</span>
+                              <button class="delete-file-btn" title="Delete ${file.name}">
+                                 <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>
+                              </button>`;
+            
+            if (file.name === this.activeFile) item.classList.add('active');
+            
+            item.querySelector('.file-item-name').addEventListener('click', () => this.setActiveFile(file.name));
+            item.querySelector('.delete-file-btn').addEventListener('click', () => this.deleteFile(file.name));
+
+            UI.fileListContainer.appendChild(item);
+        });
+        
+        // Ensure activeFile is valid
+        if (!files.some(f => f.name === this.activeFile)) {
+            this.activeFile = files[0].name;
+        }
+        await this.setActiveFile(this.activeFile, true); // Load content for the first time
+        this.updateMainFileSelector(files.map(f => f.name));
+    },
+
+    updateMainFileSelector(fileNames) {
+        UI.mainFileSelector.innerHTML = '';
+        fileNames.filter(name => name.endsWith('.tex')).forEach(name => {
+            const option = document.createElement('option');
+            option.value = option.textContent = name;
+            UI.mainFileSelector.appendChild(option);
+        });
+        UI.mainFileSelector.value = this.activeFile.endsWith('.tex') ? this.activeFile : fileNames.find(n => n.endsWith('.tex')) || '';
+    },
+
+    async setActiveFile(fileName, forceReload = false) {
+        if (!forceReload && fileName === this.activeFile) return;
+        
+        await this.saveActiveFile(); // Save the previous file before switching
+        this.activeFile = fileName;
+
+        const content = await DB.getFile(fileName);
+        if (content !== null) {
+            UI.editor.setValue(new TextDecoder().decode(content), -1);
+            UI.editor.session.getUndoManager().reset();
+            UI.editor.focus();
+        }
+        
+        document.querySelectorAll('.file-item.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.file-item').forEach(el => {
+            if (el.querySelector('.file-item-name').textContent === fileName) {
+                el.classList.add('active');
+            }
+        });
+        UI.mainFileSelector.value = fileName;
+        UI.updateStatusBar(`Editing: ${fileName}`);
+    },
+
+    async saveActiveFile() {
+        if (!this.activeFile) return;
+        const content = UI.editor.getValue();
+        await DB.saveFile(this.activeFile, new TextEncoder().encode(content));
+        UI.updateStatusBar(`Editing: ${this.activeFile}`, true);
+        UI.showToast(`${this.activeFile} saved.`, 1500);
+    },
+
+    async compile() {
+        if (!this.isEngineReady) { UI.showToast("Engine not ready!"); return; }
+        
+        await this.saveActiveFile();
+        await this.loadCacheIntoEngine(); // Ensure engine has the latest files
+
+        UI.loadingOverlay.style.display = 'flex';
+        UI.compileBtn.disabled = true;
+
+        try {
+            const mainFile = UI.mainFileSelector.value;
+            if (!mainFile) throw new Error("No main .tex file selected for compilation.");
+            
+            this.engine.setEngineMainFile(mainFile);
+            const result = await this.engine.compileLaTeX();
+            UI.consoleOutput.textContent = result.log || "No log output.";
+
+            if (result.status === 0) {
+                const pdfBlob = new Blob([result.pdf], { type: 'application/pdf' });
+                UI.pdfbox.innerHTML = `<embed src="${URL.createObjectURL(pdfBlob)}" width="100%" height="100%" type="application/pdf">`;
+                UI.showToast("Compilation successful!", 2000);
+                await this.retrieveGeneratedFiles();
+            } else {
+                UI.pdfbox.innerHTML = `<div style="padding: 20px; color: var(--danger-color);">Compilation failed.</div>`;
+                UI.toggleConsole(true);
+            }
+        } catch (err) {
+            console.error("Compilation Error:", err);
+            UI.consoleOutput.textContent += `\n\n[FATAL ERROR] ${err.message}`;
+            UI.toggleConsole(true);
+        } finally {
+            UI.loadingOverlay.style.display = 'none';
+            UI.compileBtn.disabled = false;
+        }
+    },
+    
+    async retrieveGeneratedFiles() {
+        if (typeof this.engine.listMemFSFile !== 'function') return;
+
+        const allEngineFiles = this.engine.listMemFSFile();
+        const newFiles = [];
+        
+        for (const fileName of allEngineFiles) {
+            // Check if it's a generated answer file and not already in DB
+            if (fileName.startsWith(this.GENERATED_FILE_PREFIX) && !(await DB.getFile(fileName))) {
+                const fileData = this.engine.readMemFSFile(fileName);
+                if (fileData) {
+                    await DB.saveFile(fileName, fileData);
+                    newFiles.push(fileName);
+                }
+            }
+        }
+
+        if (newFiles.length > 0) {
+            UI.showToast(`Generated ${newFiles.length} new file(s): ${newFiles.join(', ')}`);
+            await this.refreshFileExplorer();
+        }
+    },
+    
+    async addNewFile() {
+        const fileName = prompt("Enter new file name (e.g., chapter2.tex):");
+        if (!fileName || !fileName.trim()) return;
+        
+        if (await DB.getFile(fileName)) {
+            alert("File with this name already exists.");
+            return;
+        }
+
+        await DB.saveFile(fileName, new Uint8Array());
+        await this.refreshFileExplorer();
+        await this.setActiveFile(fileName);
+    },
+
+    async deleteFile(fileName) {
+        if (!confirm(`Are you sure you want to delete ${fileName}? This cannot be undone.`)) return;
+
+        await DB.deleteFile(fileName);
+        if (this.activeFile === fileName) {
+            this.activeFile = null; // Let refreshFileExplorer pick a new active file
+        }
+        await this.refreshFileExplorer();
+        UI.showToast(`${fileName} deleted.`);
+    },
+
+    async clearAllFiles() {
+        if (!confirm("Are you sure you want to delete ALL files and start over?")) return;
+        await DB.clearAll();
+        this.activeFile = 'main.tex';
+        await this.init(); // Re-initialize to load prepackaged files
+    },
+
+    async handleFileLoad(event) {
+        const files = event.target.files;
+        for (const file of files) {
+            const data = new Uint8Array(await file.arrayBuffer());
+            await DB.saveFile(file.name, data);
+        }
+        await this.refreshFileExplorer();
+        UI.showToast(`${files.length} file(s) loaded.`);
+        event.target.value = '';
+    }
+};
+
+// --- START THE APP ---
+App.init();
+
+</script>
+</body>
+</html>
