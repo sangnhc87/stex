@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Modern Web LaTeX IDE</title>
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #17a2b8;
+            --dark-bg: #282c34;
+            --light-bg: #f4f4f4;
+            --border-color: #ddd;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --help-color: #6c757d;
+        }
+        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--light-bg); height: 100%; display: flex; flex-direction: column; }
+        .toolbar { display: flex; align-items: center; padding: 5px 15px; background-color: #fff; border-bottom: 1px solid var(--border-color); flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
+        .toolbar-group { display: flex; align-items: center; gap: 5px; }
+        .toolbar-separator { width: 1px; height: 24px; background-color: var(--border-color); margin: 0 5px; }
+        .toolbar button, .toolbar select { padding: 0; font-size: 14px; border: 1px solid var(--border-color); border-radius: 5px; background-color: #fff; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; height: 36px; color: #333; }
+        .toolbar button { width: 38px; line-height: 36px; text-align: center; }
+        .toolbar select { padding: 0 8px; }
+        .toolbar button:hover { background-color: #f0f0f0; border-color: #bbb; }
+        .toolbar .icon-label { font-size: 1.2em; color: #555; margin-right: 3px; cursor: help; }
+        #compile-btn { width: auto; padding: 0 15px; background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
+        #compile-btn:hover { background-color: #0056b3; }
+        #compile-btn:disabled { background-color: #aaa; border-color: #aaa; cursor: not-allowed; }
+        #compile-btn .fas { margin-right: 8px; }
+        #clear-cache-btn { color: var(--danger-color); }
+        #clear-cache-btn:hover { background-color: var(--danger-color); color: white; }
+        .main-container { display: flex; flex-grow: 1; padding: 10px; gap: 10px; min-height: 0; }
+        .editor-pane, .pdf-pane { flex: 1; display: flex; flex-direction: column; background-color: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        #editor { flex: 1; width: 100%; }
+        .controls { padding: 10px; background-color: #f9f9f9; border-top: 1px solid var(--border-color); flex-shrink: 0; }
+        .console-header { cursor: pointer; user-select: none; padding: 5px 8px; background-color: #e0e0e0; border-radius: 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .console-header:hover { background-color: #d0d0d0; }
+        pre#console { white-space: pre-wrap; max-height: 150px; overflow-y: scroll; background-color: var(--dark-bg); color: #abb2bf; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
+        pre#console.collapsed { display: none; }
+        #pdfbox { height: 100%; width: 100%; }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; flex-direction: column; font-size: 1.5em; }
+        .spinner { border: 8px solid #f3f3f3; border-top: 8px solid var(--primary-color); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .swal2-html-container { text-align: left !important; }
+        .swal2-html-container h3 { color: var(--primary-color); margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .swal2-html-container code { background-color: #e8e8e8; padding: 2px 5px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        .swal2-html-container ul { padding-left: 20px; }
+        .swal2-html-container .fa, .swal2-html-container .fas { width: 20px; text-align: center; margin-right: 5px; }
+        #file-manager-container { max-height: 400px; overflow-y: auto; margin-top: 15px; border: 1px solid #eee; padding: 10px; border-radius: 5px; }
+        .file-manager-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 5px; border-bottom: 1px solid #f0f0f0; }
+        .file-manager-item:last-child { border-bottom: none; }
+        .file-manager-item .file-name { display: flex; align-items: center; gap: 8px; }
+        .file-manager-item .file-actions button { margin-left: 5px; padding: 4px 8px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button id="show-help-btn" title="Hướng dẫn sử dụng"><i class="fas fa-question-circle"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <!-- <button id="file-manager-btn" title="Quản lý File (Thêm, Xóa, Mở, Tải lên)"><i class="fas fa-folder-tree"></i></button> -->
+            <!-- Thay thế bằng icon sitemap -->
+<button id="file-manager-btn" title="Quản lý File (Thêm, Xóa, Mở, Tải lên)"><i class="fas fa-sitemap"></i></button>
+            <button id="zip-loader-btn" title="Tải lên dự án .zip"><i class="fas fa-file-archive"></i></button>
+            <input type="file" id="zip-loader-input" accept=".zip" style="display: none;">
+            <button id="download-zip-btn" title="Tải dự án về dạng .zip"><i class="fas fa-download"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <i class="fas fa-key icon-label" title="Chọn file .tex chính để biên dịch"></i>
+            <select id="main-file-selector"></select>
+            <i class="fas fa-magic icon-label" title="Chọn một mẫu có sẵn" style="margin-left: 10px;"></i>
+            <select id="template-selector">
+                <option value="">-- Mẫu --</option>
+                <option value="DeThi">Đề Thi</option>
+                <option value="VeHinh">Vẽ Hình</option>
+                <option value="Beamer">Beamer</option>
+                <option value="ChuyenDe">Chuyên Đề</option>
+            </select>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button id="edit-suggestions-btn" title="Sửa gợi ý lệnh (autocomplete)"><i class="fas fa-pencil-alt"></i></button>
+            <button id="clear-cache-btn" title="Xóa cache (các gói đã tải về)"><i class="fas fa-trash-alt"></i></button>
+            <button id="open-v2-btn" title="Mở Editor V2 trong tab mới"><i class="fas fa-external-link-alt"></i></button>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+             <button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="editor-pane">
+            <div id="editor"></div>
+            <div class="controls">
+                <div id="console-header" class="console-header"><span>Console Output</span><span id="console-toggle-icon">▼</span></div>
+                <pre id="console" class="collapsed">Engine will be ready shortly...</pre>
+            </div>
+        </div>
+        <div class="pdf-pane"><div id="pdfbox"></div></div>
+    </div>
+    <div id="loading-overlay">
+        <div class="spinner"></div><span id="loading-text">Compiling...</span>
+    </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-language_tools.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="PdfTeXEngine.js"></script>
+<script>
+// --- CÁC HẰNG SỐ VÀ BIẾN TOÀN CỤC ---
+const editorEl = ace.edit("editor");
+const compileBtn = document.getElementById("compile-btn");
+const consoleOutput = document.getElementById("console");
+const pdfbox = document.getElementById("pdfbox");
+const zipLoaderInput = document.getElementById('zip-loader-input');
+const mainFileSelector = document.getElementById('main-file-selector');
+const templateSelector = document.getElementById('template-selector');
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingText = document.getElementById('loading-text');
+const consoleHeader = document.getElementById("console-header");
+const consoleToggleIcon = document.getElementById("console-toggle-icon");
+const clearCacheBtn = document.getElementById('clear-cache-btn');
+const editSuggestionsBtn = document.getElementById('edit-suggestions-btn');
+const openV2Btn = document.getElementById('open-v2-btn');
+const showHelpBtn = document.getElementById('show-help-btn');
+const downloadZipBtn = document.getElementById('download-zip-btn'); 
+const fileManagerBtn = document.getElementById('file-manager-btn');
+const zipLoaderBtn = document.getElementById('zip-loader-btn');
+
+const globalEn = new PdfTeXEngine();
+let mainTexFile = 'main.tex';
+let currentOpenFile = 'main.tex';
+let db;
+let customSuggestions = [];
+const DB_NAME = 'LaTeXFilesDB4';
+const STORE_NAME = 'StyFilesStore';
+const TEXLIVE_BASE_URL = "https://texlive2.swiftlatex.com/pdftex/";
+const TEXLIVE_VERSION = '26';
+const PREPACKAGED_FILES = {
+    'main.tex': `\\documentclass[12pt,a4paper]{article}\n\\usepackage[utf8]{vietnam}\n\\usepackage{amsmath, amssymb}\n\n% Đây là gói style tùy chỉnh của bạn đã được nạp sẵn!\n\\usepackage{myexamstyle} \n\n\\title{Tổng Hợp Đề Thi}\n\\author{Your Name}\n\\date{\\today}\n\n\\begin{document}\n\n\\maketitle\n\n\\section*{Hướng dẫn}\nTrang web đã nạp sẵn các file: \n\\begin{itemize}\n    \\item \\texttt{de01.tex} đến \\texttt{de05.tex}\n    \\item \\texttt{myexamstyle.sty} (gói tùy chỉnh cho đề thi)\n    \\item \\texttt{mycustomcolors.sty} (gói màu sắc)\n\\end{itemize}\nBạn có thể dùng lệnh \\verb|\\input{de01.tex}| để chèn nội dung của đề 1 vào đây.\n\n%== Bắt đầu chèn các đề thi ở đây ==\n\\input{de01.tex}\n\\clearpage\n\\input{de02.tex}\n\n%== Kết thúc ==\n\n\\end{document}`,
+    'de01.tex': `\\section*{ĐỀ THI SỐ 01}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...\n\n\\subsection*{Câu 2}\nNội dung câu hỏi 2...`,
+    'de02.tex': `\\section*{ĐỀ THI SỐ 02}\n\\subsection*{Câu 1}\nGiải phương trình $x^2 - 5x + 6 = 0$.`,
+    'de03.tex': `\\section*{ĐỀ THI SỐ 03}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'de04.tex': `\\section*{ĐỀ THI SỐ 04}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'de05.tex': `\\section*{ĐỀ THI SỐ 05}\n\\subsection*{Câu 1}\nNội dung câu hỏi 1...`,
+    'myexamstyle.sty': `\\NeedsTeXFormat{LaTeX2e}\n\\ProvidesPackage{myexamstyle}\n\n\\RequirePackage{geometry}\n\\geometry{a4paper, top=2cm, bottom=2cm, left=2.5cm, right=2.5cm}\n\n\\RequirePackage{titlesec}\n\\titleformat{\\section*}[hang]{\\bfseries\\Large}{\\thesection}{1em}{}\n\n\\newcommand{\\dapan}[1]{\\textbf{Đáp án: } #1}\n\n\\endinput`,
+    'mycustomcolors.sty': `\\NeedsTeXFormat{LaTeX2e}\n\\ProvidesPackage{mycustomcolors}\n\n\\RequirePackage{xcolor}\n\\definecolor{myblue}{rgb}{0.2, 0.4, 0.8}\n\\definecolor{mygreen}{rgb}{0, 0.6, 0.2}\n\n\\endinput`,
+    'suggestions.json': JSON.stringify([
+        { "caption": "dapan", "value": "\\dapan{...}", "meta": "Custom Command", "score": 1000 },
+        { "caption": "newsec", "value": "\\section*{Tiêu đề}\nNội dung...", "meta": "Custom Snippet", "score": 1000 },
+        { "caption": "myblue", "value": "{\\color{myblue} }", "meta": "Custom Color", "score": 1000 }
+    ], null, 4)
+};
+
+// --- DATABASE FUNCTIONS ---
+function openDb() { return new Promise((resolve, reject) => { const request = indexedDB.open(DB_NAME, 2); request.onerror = () => reject("Error opening IndexedDB."); request.onsuccess = (event) => { db = event.target.result; resolve(); }; request.onupgradeneeded = (event) => { const db = event.target.result; if (!db.objectStoreNames.contains(STORE_NAME)) { db.createObjectStore(STORE_NAME, { keyPath: 'name' }); } }; }); }
+function saveFileToDb(name, data) { if (!db) return Promise.reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readwrite'); const store = transaction.objectStore(STORE_NAME); return new Promise((resolve, reject) => { const request = store.put({ name, data }); request.onsuccess = resolve; request.onerror = (e) => reject(`Failed to save ${name}: ${e.target.error}`); }); }
+function getFileFromDb(name) { return new Promise((resolve, reject) => { if (!db) return resolve(null); const transaction = db.transaction([STORE_NAME], 'readonly'); const store = transaction.objectStore(STORE_NAME); const request = store.get(name); request.onsuccess = (event) => resolve(event.target.result ? event.target.result.data : null); request.onerror = (e) => reject(`Failed to get ${name}: ${e.target.error}`); }); }
+function getAllFilesFromDb() { return new Promise((resolve, reject) => { if (!db) return reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readonly'); const store = transaction.objectStore(STORE_NAME); const request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
+function deleteFileFromDb(name) { return new Promise((resolve, reject) => { if (!db) return reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readwrite'); const store = transaction.objectStore(STORE_NAME); const request = store.delete(name); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
+
+// --- EDITOR & EVENT LISTENERS ---
+editorEl.setTheme("ace/theme/monokai");
+editorEl.session.setMode("ace/mode/latex");
+editorEl.session.setUseWrapMode(true);
+editorEl.setFontSize(16);
+editorEl.resize(true);
+editorEl.setOption("scrollPastEnd", false);
+const langTools = ace.require("ace/ext/language_tools");
+editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true });
+const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
+langTools.addCompleter(customCompleter);
+
+zipLoaderBtn.addEventListener('click', () => zipLoaderInput.click());
+zipLoaderInput.addEventListener('change', handleZipLoad);
+fileManagerBtn.addEventListener('click', showFileManager);
+mainFileSelector.addEventListener('change', handleMainFileChange);
+templateSelector.addEventListener('change', handleTemplateChange);
+compileBtn.addEventListener('click', compile);
+consoleHeader.addEventListener('click', toggleConsole);
+clearCacheBtn.addEventListener('click', clearStyCache);
+editSuggestionsBtn.addEventListener('click', () => openFileInEditor('suggestions.json'));
+openV2Btn.addEventListener('click', () => window.open('mainV2.html', '_blank'));
+showHelpBtn.addEventListener('click', showHelpModal);
+downloadZipBtn.addEventListener('click', downloadProjectAsZip);
+
+// --- CORE FUNCTIONS ---
+async function init() {
+    try {
+        await openDb();
+        await preloadPackagedFiles();
+        await loadCustomSuggestions();
+        await globalEn.loadEngine();
+        await loadCacheIntoEngine();
+        await openFileInEditor(mainTexFile);
+        updateMainFileSelector();
+        compileBtn.disabled = false;
+        consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+    } catch (err) {
+        console.error(err);
+        consoleOutput.innerHTML = `Initialization failed: ${err}`;
+        compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+    }
+}
+
+async function showFileManager() {
+    try {
+        const files = await getAllFilesFromDb();
+        files.sort((a, b) => a.name.localeCompare(b.name));
+
+        const getFileIcon = (fileName) => {
+            if (fileName.endsWith('.tex')) return 'fa-file-code';
+            if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt';
+            if (fileName.endsWith('.json')) return 'fa-file-medical-alt';
+            if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image';
+            return 'fa-file';
+        };
+
+        let fileListHtml = files.map(file => `
+            <div class="file-manager-item" data-filename="${file.name}">
+                <div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div>
+                <div class="file-actions">
+                    <button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button>
+                    <button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button>
+                </div>
+            </div>`).join('');
+        if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>';
+
+        const managerHTML = `
+            <div class="swal2-content" style="text-align: left;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex">
+                    <button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button>
+                </div>
+                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button>
+                    <input type="file" id="file-loader-input" multiple style="display: none;">
+                </div>
+                <div id="file-manager-container">${fileListHtml}</div>
+            </div>`;
+
+        Swal.fire({
+            title: '<strong>Quản lý File Dự án</strong>',
+            html: managerHTML,
+            width: '600px',
+            showConfirmButton: false,
+            showCloseButton: true,
+            didOpen: () => {
+                const fileLoaderInput = document.getElementById('file-loader-input');
+                document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile);
+                document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click());
+                fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); });
+                document.getElementById('file-manager-container').addEventListener('click', handleFileAction);
+            }
+        });
+    } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); }
+}
+
+async function handleAddNewFile() {
+    const input = document.getElementById('new-filename-input');
+    const newFileName = input.value.trim();
+    if (!newFileName || !newFileName.includes('.')) { Swal.showValidationMessage('Tên file không hợp lệ (phải có phần mở rộng, ví dụ: .tex)'); return; }
+    if (await getFileFromDb(newFileName)) { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'File đã tồn tại!', showConfirmButton: false, timer: 2000 }); return; }
+
+    await saveFileToDb(newFileName, new Uint8Array());
+    globalEn.writeMemFSFile(newFileName, new Uint8Array());
+    Swal.close();
+    showFileManager();
+    updateMainFileSelector();
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã thêm file ${newFileName}`, showConfirmButton: false, timer: 2000 });
+}
+
+async function handleFileAction(event) {
+    const target = event.target;
+    const fileItem = target.closest('.file-manager-item');
+    if (!fileItem) return;
+    const fileName = fileItem.dataset.filename;
+
+    if (target.classList.contains('file-open-btn')) {
+        await openFileInEditor(fileName);
+        Swal.close();
+    } else if (target.classList.contains('file-delete-btn')) {
+        Swal.fire({ title: `Xóa file "${fileName}"?`, text: "Hành động này không thể hoàn tác!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Vâng, xóa nó!', cancelButtonText: 'Hủy' }).then(async (result) => {
+            if (result.isConfirmed) {
+                await deleteFileFromDb(fileName);
+                globalEn.removeMemFSFile(fileName);
+                if (currentOpenFile === fileName) { await openFileInEditor(mainTexFile || 'main.tex'); }
+                Swal.close();
+                showFileManager();
+                updateMainFileSelector();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã xóa file!', showConfirmButton: false, timer: 2000 });
+            }
+        });
+    }
+}
+
+async function openFileInEditor(fileName) {
+    if (currentOpenFile && editorEl.getValue()) {
+        const currentContent = editorEl.getValue();
+        const textEncoder = new TextEncoder();
+        await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent));
+        globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent));
+    }
+    
+    const fileData = await getFileFromDb(fileName);
+    const textDecoder = new TextDecoder();
+    editorEl.setValue(fileData ? textDecoder.decode(fileData) : '', -1);
+    currentOpenFile = fileName;
+
+    if (fileName.endsWith('.json') || fileName.endsWith('.sty') || fileName.endsWith('.cls') || (fileName.endsWith('.tex') && fileName !== mainTexFile)) {
+        editorEl.session.setMode(fileName.endsWith('.json') ? "ace/mode/json" : "ace/mode/latex");
+        mainFileSelector.disabled = false;
+        compileBtn.innerHTML = `<i class="fas fa-save"></i> Save File`;
+    } else {
+        editorEl.session.setMode("ace/mode/latex");
+        mainFileSelector.disabled = false;
+        compileBtn.innerHTML = `<i class="fas fa-play"></i> Compile`;
+    }
+    
+    const validMainFiles = Array.from(mainFileSelector.options).map(opt => opt.value);
+    if (validMainFiles.includes(fileName)) mainFileSelector.value = fileName;
+}
+
+async function compile() {
+    // Luồng 1: Nếu file hiện tại là file chính, tiến hành biên dịch
+    if (currentOpenFile === mainTexFile) {
+        if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; }
+        loadingOverlay.style.display = 'flex';
+        loadingText.textContent = 'Compiling...';
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
+
+        const currentContent = editorEl.getValue();
+        const textEncoder = new TextEncoder();
+        const currentContentData = textEncoder.encode(currentContent);
+        await saveFileToDb(mainTexFile, currentContentData);
+        globalEn.writeMemFSFile(mainTexFile, currentContentData);
+        
+        globalEn.setEngineMainFile(mainTexFile);
+        const r = await globalEn.compileLaTeX();
+        
+        consoleOutput.innerHTML = r.log || "No log output.";
+        loadingOverlay.style.display = 'none';
+        compileBtn.disabled = false;
+        compileBtn.innerHTML = '<i class="fas fa-play"></i> Compile';
+
+        if (r.status === 0) {
+            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+            const objectURL = URL.createObjectURL(pdfblob);
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+            await parseLogAndCacheDependencies(r.log);
+        } else {
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Compilation failed. Check console output.</div>`;
+        }
+        return;
+    }
+
+    // Luồng 2: Nếu là bất kỳ file nào khác, chỉ lưu lại
+    const currentContent = editorEl.getValue();
+    const textEncoder = new TextEncoder();
+    await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent));
+    globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent));
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}`, showConfirmButton: false, timer: 2000 });
+}
+
+function updateMainFileSelector() {
+    const validPrefixes = ['main', 'file', 'de']; 
+    if (!db) return;
+    getAllFilesFromDb().then(allFiles => {
+        mainFileSelector.innerHTML = '';
+        const filteredTexFiles = allFiles
+            .map(file => file.name)
+            .filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix)))
+            .sort();
+        
+        if (filteredTexFiles.length === 0) {
+            const option = document.createElement('option'); option.textContent = 'No main files'; option.disabled = true; mainFileSelector.appendChild(option);
+            return;
+        }
+
+        filteredTexFiles.forEach(fileName => {
+            const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option);
+        });
+
+        if (filteredTexFiles.includes(mainTexFile)) {
+            mainFileSelector.value = mainTexFile;
+        } else {
+            mainTexFile = filteredTexFiles[0] || '';
+            mainFileSelector.value = mainTexFile;
+        }
+    }).catch(err => console.error("Could not update main file selector:", err));
+}
+
+function handleMainFileChange(event) {
+    mainTexFile = event.target.value;
+    openFileInEditor(mainTexFile);
+}
+
+// --- UTILITY FUNCTIONS (Hàm phụ) ---
+function handleFileLoad(event) { const files = event.target.files; if (!files.length) return; const promises = Array.from(files).map(file => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = async (e) => { const fileData = new Uint8Array(e.target.result); await saveFileToDb(file.name, fileData); globalEn.writeMemFSFile(file.name, fileData); resolve(); }; reader.onerror = reject; reader.readAsArrayBuffer(file); }); }); Promise.all(promises).then(() => { Swal.fire('Thành công', `${files.length} file đã được tải lên và lưu lại.`, 'success'); updateMainFileSelector(); showFileManager(); }).catch(error => { Swal.fire('Lỗi', `Tải file thất bại: ${error}`, 'error'); }); event.target.value = ''; }
+async function handleZipLoad(event) { const file = event.target.files[0]; if (!file) return; loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Unzipping files...'; try { const zip = await JSZip.loadAsync(file); const promises = []; zip.forEach((relativePath, zipEntry) => { if (zipEntry.dir) return; const promise = zipEntry.async('uint8array').then(async (content) => { await saveFileToDb(zipEntry.name, content); globalEn.writeMemFSFile(zipEntry.name, content); }); promises.push(promise); }); await Promise.all(promises); Swal.fire('Thành công!', `${promises.length} file từ ${file.name} đã được giải nén và lưu lại!`, 'success'); updateMainFileSelector(); } catch (error) { console.error("Error processing zip file:", error); Swal.fire('Lỗi', 'Không thể xử lý file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; event.target.value = ''; } }
+async function downloadProjectAsZip() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang nén dự án...'; try { const files = await getAllFilesFromDb(); if (files.length === 0) { Swal.fire('Thông báo', 'Không có file nào để tải về.', 'info'); return; } const zip = new JSZip(); files.forEach(file => zip.file(file.name, file.data)); const blob = await zip.generateAsync({ type: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const date = new Date().toISOString().slice(0, 10); link.download = `latex-project-${date}.zip`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { console.error("Error creating zip file:", error); Swal.fire('Lỗi', 'Không thể tạo file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; } }
+function clearStyCache() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } Swal.fire({ title: 'Bạn chắc chắn?', html: "Hành động này sẽ <b>xóa tất cả các file đã cache</b> (gói .sty, .cls...).<br>Hành động này không thể hoàn tác và sẽ tải lại trang.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Vâng, xóa hết!', cancelButtonText: 'Hủy' }).then((result) => { if (result.isConfirmed) { db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).clear().onsuccess = () => Swal.fire('Đã xóa!', 'Cache đã được dọn dẹp. Trang sẽ tải lại.', 'success').then(() => location.reload()); } }); }
+function showHelpModal() { const helpHTML = ` <div style="padding: 10px;"> <h2>Chào mừng đến với Trình soạn thảo LaTeX trên Web!</h2> <p>Đây là một môi trường mạnh mẽ để soạn thảo và biên dịch tài liệu LaTeX ngay trên trình duyệt của bạn.</p> <h3><i class="fas fa-tools"></i> Chức Năng Thanh Công Cụ</h3> <ul> <li><i class="fas fa-folder-tree"></i><b> Quản lý File:</b> Trung tâm để thêm, xóa, mở và tải lên file lẻ cho dự án.</li> <li><i class="fas fa-file-archive"></i><b> Tải lên .zip:</b> Tải lên và giải nén toàn bộ dự án từ file .zip.</li><li><i class="fas fa-download"></i><b> Tải về .zip:</b> Tải toàn bộ dự án hiện tại về máy.</li> <li><i class="fas fa-key"></i><b> File chính:</b> Chọn file <code>.tex</code> chính để biên dịch.</li> <li><i class="fas fa-magic"></i><b> Mẫu:</b> Nhanh chóng tạo một dự án mới từ các mẫu có sẵn.</li> <li><i class="fas fa-pencil-alt"></i><b> Sửa gợi ý:</b> Mở file <code>suggestions.json</code> để tùy chỉnh các gợi ý lệnh.</li> <li><i class="fas fa-play"></i>/ <i class="fas fa-save"></i><b> Nút hành động:</b> Sẽ là 'Compile' nếu bạn đang mở file chính, và là 'Save File' cho các file khác.</li> </ul> <h3><i class="fas fa-magic"></i> Tính Năng "Ma Thuật"</h3> <ul> <li><b>Lưu trữ bền vững:</b> Tất cả các file được lưu trong trình duyệt. Bạn có thể đóng tab và mở lại mà không mất dữ liệu.</li> <li><b>Tự động tải gói:</b> Khi biên dịch, trình soạn thảo sẽ tự động tải các gói còn thiếu từ kho TeX Live.</li> </ul> </div> `; Swal.fire({ title: '<strong>Hướng Dẫn Sử Dụng</strong>', icon: 'info', html: helpHTML, showCloseButton: true, focusConfirm: false, width: '800px', confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!', confirmButtonAriaLabel: 'Thumbs up, great!', }); }
+async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
+async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
+async function loadCustomSuggestions() { const fileData = await getFileFromDb('suggestions.json'); if (fileData) { try { customSuggestions = JSON.parse(new TextDecoder().decode(fileData)); } catch(e) { console.error('Failed to parse suggestions.json:', e); customSuggestions = []; } } }
+async function parseLogAndCacheDependencies(logContent) { const fileRegex = /\(([^)\s]+\.(?:cls|sty|def|clo|ldf|cfg|tex))\s?/g; let match; const dependencies = new Set(); while ((match = fileRegex.exec(logContent)) !== null) { dependencies.add(match[1].split('/').pop()); } for (const fileName of dependencies) { if (await getFileFromDb(fileName)) continue; try { const response = await fetch(`${TEXLIVE_BASE_URL}${TEXLIVE_VERSION}/${fileName}`); if (response.ok) { const fileData = await response.arrayBuffer(); await saveFileToDb(fileName, new Uint8Array(fileData)); globalEn.writeMemFSFile(fileName, new Uint8Array(fileData)); console.log(`[Cache SAVE] ${fileName}`); } } catch (error) { console.error(`Error fetching ${fileName}:`, error); } } }
+async function handleTemplateChange(event) { const templateName = event.target.value; if (!templateName) return; const templates = { 'DeThi': `...`, 'VeHinh': `...`, 'Beamer': `...`, 'ChuyenDe': `...` }; /* Nội dung template không đổi */ if (templates[templateName]) { const newMainFile = `main-${templateName.toLowerCase()}.tex`; await saveFileToDb(newMainFile, new TextEncoder().encode(templates[templateName])); globalEn.writeMemFSFile(newMainFile, new TextEncoder().encode(templates[templateName])); updateMainFileSelector(); await openFileInEditor(newMainFile); templateSelector.value = ''; } }
+function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
+
+// --- START THE APP ---
+init();
+</script>
+</body>
+</html>

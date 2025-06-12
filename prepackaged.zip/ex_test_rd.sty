@@ -1,0 +1,3411 @@
+\ProvidesPackage{ex_test_rd}[2018/06/30 for Ex_test version 2.4.3, Tran Anh Tuan]
+\RequirePackage{ifthen}
+\RequirePackage{fancyhdr}
+\RequirePackage{multicol}
+\RequirePackage{answers}
+\RequirePackage{array}
+\RequirePackage{multirow}
+\RequirePackage{longtable}
+\RequirePackage[utf8]{vietnam}
+\RequirePackage{tikz}
+\RequirePackage{ntheorem}
+\RequirePackage{calc}
+\RequirePackage{picinpar}
+\RequirePackage{catchfile}
+\RequirePackage{amsmath}
+\RequirePackage{etoolbox}
+\RequirePackage{filecontents}
+\RequirePackage {expl3,xparse,epic,cntformats,xtemplate,environ}
+%Lệnh tagEX gán nhãn công thức thủ công
+\newcommand{\tagEX}[1]{%
+	\hfill{\rm (#1)}%
+	\par
+	\@ifnextchar\begin%
+	{\vspace{-\baselineskip}}
+	{}
+}
+%Hủy lệnh \dapan
+\newcommand{\dapan}{Lệnh này giờ vô dụng}
+\newcommand{\TrueEX}{Lệnh này giờ vô dụng với gói trộn đề}
+%Cấu trúc lệnh ghi các phương án
+\newcounter{dapan}
+\newcommand{\FalseEX}{\stepcounter{dapan}{\textbf{\Alph{dapan}.}}}
+%\newcommand{\FalseEX}{\stepcounter{dapan}{\circled{\Alph{dapan}}}}%Đáp án khoanh tròn
+% \newcommand{\FalseEX}{\stepcounter{dapan}{\textbf{\color{blue}\Alph{dapan}.}}} %Tô màu đáp án
+\newlength\widthalpha
+\settowidth\widthalpha{\FalseEX}
+\newcommand{\begindapan}{%
+		\begin{minipage}[t]{\widthalpha}
+			\FalseEX
+		\end{minipage}
+		\begin{minipage}[t]{\dorong}
+}
+%Hiện Chọn đáp án trong lời giải chi tiết
+\def\selectA{\par\noindent Chọn đáp án \circEX{A}}
+\def\selectB{\par\noindent Chọn đáp án \circEX{B}}
+\def\selectC{\par\noindent Chọn đáp án \circEX{C}}
+\def\selectD{\par\noindent Chọn đáp án \circEX{D}}
+\def\selectE{\par\noindent Chọn đáp án \circEX{E}}
+\newcommand{\hidetextchoice}{
+\def\selectA{}
+\def\selectB{}
+\def\selectC{}
+\def\selectD{}
+\def\selectE{}
+}
+%Lệnh đáp số vắn tắt
+\newcommand{\shortsol}[1]{}
+%Định nghĩa số cột in đáp án
+\def\numcol{10}
+%Liệt kê danh sách đáp án
+\newcommand{\rowans}
+{
+	\renewenvironment{Solution}[1]
+	{\begin{minipage}{\linewidth/\numcol-1.2\fboxsep}
+			\parbox[b]{0.45\linewidth}{
+				\raggedleft\color{blue}##1.
+			}
+			\color{violet}
+		}
+		{\end{minipage}}
+}
+%Dấu chấm, phảy sau mỗi phương án
+\def\dotEX{.}
+%Tương thích gói picinpar
+\def\picinpar{\setlength{\linewidth}{\linewidth}}
+\AtBeginEnvironment{window}{\def\picinpar{\setlength{\linewidth}{\linewidth-\picwd-\lwindowsep-2\fboxsep}}}
+%Môi trường file
+\newenvironment{fileEX}{\filecontents}{\endfilecontents}
+\newcommand{\choicew}[1]{\setlength{\widthch}{#1}}
+%Ghi đáp án vào file excel
+\newwrite\tempfile
+%Tùy chọn bảng đáp án khoanh tròn
+\newif\ifcircledEX
+\let\circledEX\circledEXtrue
+\DeclareOption{circle}{
+\renewcommand{\rowans}
+{
+	\renewenvironment{Solution}[1]
+	{\begin{minipage}{0.5\linewidth-1.2\fboxsep}
+			\parbox[b]{0.4\linewidth}{
+			\raggedleft\color{blue}##1.
+			}
+			\color{violet}
+		}
+		{\end{minipage}}
+}
+\circledEXtrue
+\AtEndEnvironment{exrd}{
+\ifnum\the\value{numTrue}=1
+\scantokens{\begin{EXsol}
+\circled{\color{blue}A}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}
+\end{EXsol}}
+\immediate\write\tempfile{A}
+\fi
+\ifnum\the\value{numTrue}=2
+\scantokens{\begin{EXsol}
+\circled{\phantom{A}}\ \circled{\color{blue}B}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}
+\end{EXsol}}
+\immediate\write\tempfile{B}
+\fi
+\ifnum\the\value{numTrue}=3
+\scantokens{\begin{EXsol}
+\circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\color{blue}C}\ \circled{\phantom{A}}\ \circled{\phantom{A}}
+\end{EXsol}}
+\immediate\write\tempfile{C}
+\fi
+\ifnum\the\value{numTrue}=4
+\scantokens{\begin{EXsol}
+\circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\color{blue}D}\ \circled{\phantom{A}}
+\end{EXsol}}
+\immediate\write\tempfile{D}
+\fi
+\ifnum\the\value{numTrue}=5
+\scantokens{\begin{EXsol}
+			\circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\phantom{A}}\ \circled{\color{blue}E}
+\end{EXsol}}
+\immediate\write\tempfile{D}
+\fi
+\setcounter{numTrue}{0}
+}
+}
+\newcommand{\twocolEX}[1]{#1}
+\DeclareOption{twocol}{
+\renewcommand{\immini}[3][0]{
+#2
+\begin{center}
+#3
+\end{center}
+}
+\renewcommand{\impicinpar}[2]{
+#1
+\begin{center}
+#2
+\end{center}
+}
+\renewcommand{\twocolEX}[1]{
+\begin{multicols}{2}
+\setlength{\linewidth}{\columnwidth}
+#1
+\end{multicols}
+}
+}
+\ProcessOptions
+%Tùy chọn lời giải
+\newcommand{\loigiai}[1]{
+\renewcommand{\IMleftright}[3]{
+	\par\noindent
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep-##1\linewidth}
+		##2
+	\end{minipage}
+	\hspace{#1\linewidth}\hspace{2\fboxsep}
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		##3
+	\end{minipage}
+	\par\nointerlineskip
+}
+\ifnum\the\value{numTrueSol}=1
+\scantokens{
+\begin{onlysolution}
+\par\noindent
+#1
+\selectA
+\end{onlysolution}}
+\fi
+\ifnum\the\value{numTrueSol}=2
+\scantokens{
+\begin{onlysolution}
+\par\noindent
+#1
+\selectB
+\end{onlysolution}}
+\fi
+\ifnum\the\value{numTrueSol}=3
+\scantokens{
+\begin{onlysolution}
+\par\noindent
+#1
+\selectC
+\end{onlysolution}}
+\fi
+\ifnum\the\value{numTrueSol}=4
+\scantokens{
+\begin{onlysolution}
+\par\noindent
+#1
+\selectD
+\end{onlysolution}}
+\fi
+\ifnum\the\value{numTrueSol}=5
+\scantokens{
+\begin{onlysolution}
+\par\noindent
+#1
+\selectE
+\end{onlysolution}}
+\fi
+\ifnum\the\value{numTrueSol}=0
+\scantokens{
+\begin{onlysolution}
+#1
+\end{onlysolution}}
+\fi
+\setcounter{numTrueSol}{0}
+}
+\def\colorEX{}
+\newcounter{numTrue}
+\newcounter{numTrueSol}
+\def\True{\colorEX\setcounter{numTrue}{\thedapan}\setcounter{numTrueSol}{\thedapan}}
+\def\loigiaiEX{\color{blue} Lời giải.}
+%Nội dung gói ex_test
+\theorempreskipamount0.1\baselineskip
+\theorempostskipamount0.2\baselineskip
+\newlength\dorongfix
+\dorongfix=\linewidth
+\newlength\dorong
+\dorong=\linewidth
+\theoremseparator{.}
+\theorembodyfont{\rm}
+\Newassociation{EXsol}{Solution}{ans}
+\Newassociation{sol}{Solution}{ans_old}
+\Newassociation{onlysolution}{SolutionRD}{ans_rd}
+\renewcommand{\SolutionRDlabel}[1]{\textbf{Câu #1.}} 
+\AtBeginEnvironment{SolutionRD}{
+\renewcommand{\IMleftright}[3]{
+	\par\noindent
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep-#1\linewidth}
+		#2
+	\end{minipage}
+	\hspace{#1\linewidth}\hspace{2\fboxsep}
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		#3
+	\end{minipage}
+	\par\nointerlineskip
+}
+}
+\makeatletter
+\newtheoremstyle{immini}%
+{\item[\hskip\labelsep \theorem@headerfont ##1\ ##2\theorem@separator]
+	\def\thindent{%
+		\setbox0\hbox{\theorem@headerfont ##1\ ##2\theorem@separator}%
+		\hspace*{\wd0}%
+	}%
+	\def\labelthm{##1}%
+}%
+{\item[\hskip\labelsep \theorem@headerfont ##1\ ##2\ (##3)\theorem@separator]
+	\def\thindent{%
+		\setbox0\hbox{\theorem@headerfont ##1\ ##2\ (##3)\theorem@separator}%
+		\hspace*{\wd0}%
+	}%
+	\def\labelthm{##1}%
+}
+\newtheoremstyle{exbreak}%
+{\item[\hskip\labelsep \theorem@headerfont ##1\ ##2\theorem@separator]}%
+{\item\hbox to \linewidth{\theorem@headerfont ##1\ ##2\
+		(##3)\theorem@separator\hfill}}
+\newtheoremstyle{explain}%
+{\item[\hskip\labelsep \theorem@headerfont ##1\ ##2\theorem@separator]}%
+{\item[\hskip\labelsep \theorem@headerfont ##1\ ##2\theorem@separator]\def\labelex{
+		\begin{flushright}
+			\vspace*{-5pt}
+			\textit{\textbf{(##3)}}
+			\vspace*{-5pt}
+\end{flushright}}}
+%Danh sách môi trường trích dẫn nguồn câu hỏi
+\newcommand{\listtheorem}[1]{
+	\foreach \x in {#1} {%môi trường
+		\AtEndEnvironment{\x}{%
+			\labelex
+	}}%
+}
+\makeatother
+\newtheorem{ex}{Câu}
+\AtBeginEnvironment{ex}{\setcounter{numTrueSol}{0}\def\dotEX{.}}
+\AtEndEnvironment{ex}{
+\ifnum\the\value{numTrue}=1
+\scantokens{\begin{EXsol}A\end{EXsol}}
+\fi
+\ifnum\the\value{numTrue}=2
+\scantokens{\begin{EXsol}B\end{EXsol}}
+\fi
+\ifnum\the\value{numTrue}=3
+\scantokens{\begin{EXsol}C\end{EXsol}}
+\fi
+\ifnum\the\value{numTrue}=4
+\scantokens{\begin{EXsol}D\end{EXsol}}
+\fi
+\ifnum\the\value{numTrue}=5
+\scantokens{\begin{EXsol}E\end{EXsol}}
+\fi
+\setcounter{numTrue}{0}
+}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+\newcommand*\circEX[1]{\tikz[baseline=(char.base)]{\node[shape=circle,draw=blue,inner sep=1pt,fill=yellow!50] (char) {\color{red} #1};}}
+\newcommand{\boncot}[4]{
+	\picinpar
+	\setlength{\dorong}{0.25\linewidth-0.02\dorongfix-\widthalpha-\fboxsep}
+	\par\setcounter{dapan}{0}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#1\dotEX
+\end{minipage}
+\noindent\begindapan
+#2\dotEX
+\end{minipage}
+\noindent\begindapan
+#3\dotEX
+\end{minipage}
+\noindent\begindapan
+#4\dotEX
+\end{minipage}
+
+}
+\newcommand{\haicot}[4]{
+\picinpar
+\setlength{\dorong}{0.5\linewidth-0.02\dorongfix-\widthalpha-2\fboxsep}
+\par\setcounter{dapan}{0}
+\noindent\hspace{0.02\dorongfix}\begindapan
+#1\dotEX
+\end{minipage}
+\noindent\begindapan
+#2\dotEX
+\end{minipage}
+\par\noindent\hspace{0.02\dorongfix}\begindapan
+#3\dotEX
+\end{minipage}
+\noindent\begindapan
+#4\dotEX
+\end{minipage}
+
+}
+\newcommand{\motcot}[4]{
+\picinpar
+\setlength{\dorong}{\linewidth-0.02\dorongfix-\widthalpha-2\fboxsep}
+\par\setcounter{dapan}{0}
+\noindent\hspace{0.02\dorongfix}\begindapan
+#1\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begindapan
+#2\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begindapan
+#3\dotEX\strut
+\end{minipage}
+
+\noindent\hspace{0.02\dorongfix}\begindapan
+#4\dotEX\strut
+\end{minipage}
+
+}
+
+%%%%%%%Tự động chọn \motcot, \haicot, \boncot
+\newlength\widthcha
+\newlength\widthchb
+\newlength\widthchc
+\newlength\widthchd
+\newlength\widthche
+\newlength\widthch
+\newlength\tabmaxwidth
+\newlength\fourthtabwidth
+\newlength\halftabwidth
+\newlength\fifthtabwidth
+\newlength\thirdtabwidth
+\newcommand{\choice}[4]{%
+	\setlength\tabmaxwidth{\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\fourthtabwidth{0.25\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\halftabwidth{0.5\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\settowidth\widthcha{#1}
+	\ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+	\settowidth\widthchb{#2}%
+	\ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+	\settowidth\widthchc{#3}%
+	\ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+	\settowidth\widthchd{#4}%
+	\ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+	\ifdim\widthch<\fourthtabwidth
+	\boncot{#1}{#2}{#3}{#4}
+	\else\ifdim\widthch<\halftabwidth
+	\haicot{#1}{#2}{#3}{#4}
+	\else
+	\motcot{#1}{#2}{#3}{#4}
+	\fi\fi
+}
+\newcommand{\choicefix}[4]{%
+	\setlength\tabmaxwidth{\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\fourthtabwidth{0.25\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\halftabwidth{0.5\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\settowidth\widthcha{#1}
+	\ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+	\settowidth\widthchb{#2}%
+	\ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+	\settowidth\widthchc{#3}%
+	\ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+	\settowidth\widthchd{#4}%
+	\ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+	\ifdim\widthch<\fourthtabwidth
+	\boncot{#1}{#2}{#3}{#4}
+	\else\ifdim\widthch<\halftabwidth
+	\haicot{#1}{#2}{#3}{#4}
+	\else
+	\motcot{#1}{#2}{#3}{#4}
+	\fi\fi
+}
+%Trắc nghiệm 5 lựa chọn
+\newcommand{\nammot}[5]{
+	\picinpar
+	\setlength{\dorong}{0.2\linewidth-0.01\dorongfix-\fboxsep}
+	\par\setcounter{dapan}{0}
+	\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+		\FalseEX\ #1\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #2\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #3\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #4\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #5\dotEX
+	\end{minipage}
+}
+\newcommand{\bahai}[5]{
+	\picinpar
+	\setlength{\dorong}{0.5\linewidth-0.02\dorongfix-\fboxsep}
+	\setcounter{dapan}{0}
+	\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #1\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #2\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #3\dotEX
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+		\FalseEX\ #4\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #5\dotEX
+	\end{minipage}
+}
+
+\newcommand{\haiba}[5]{
+	\picinpar
+	\setlength{\dorong}{0.5\linewidth-0.02\dorongfix-\fboxsep}
+	\setcounter{dapan}{0}
+	\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{\dorong}
+		\FalseEX\ #1\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{\dorong}
+		\FalseEX\ #2\dotEX
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #3\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #4\dotEX
+	\end{minipage}
+	\noindent\begin{minipage}[t]{0.67\dorong}
+		\FalseEX\ #5\dotEX
+	\end{minipage}
+}
+\newcommand{\motnam}[5]{
+	\picinpar
+	\setlength{\dorong}{\linewidth-0.02\dorongfix-\fboxsep}
+	\par\setcounter{dapan}{0}
+	\noindent\hspace{0.02\dorongfix}\FalseEX\ \begin{minipage}[t]{\dorong}
+		#1\dotEX\strut
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\FalseEX\ \begin{minipage}[t]{\dorong}
+		#2\dotEX\strut
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\FalseEX\ \begin{minipage}[t]{\dorong}
+		#3\dotEX\strut
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\FalseEX\ \begin{minipage}[t]{\dorong}
+		#4\dotEX\strut
+	\end{minipage}
+	\par\noindent\hspace{0.02\dorongfix}\FalseEX\ \begin{minipage}[t]{\dorong}
+		#5\dotEX\strut
+	\end{minipage}
+}
+
+\newlength\wmothai
+\newlength\wmothaiba
+\newlength\wmothaibabon
+\newlength\wbonnam
+\newlength\wbabonnam
+\newlength\whaibabonnam
+\newcounter{numChoice}
+\newcommand{\choicefive}[5]{%
+	\setlength\tabmaxwidth{\linewidth-\picwd-\lwindowsep}
+	\setlength\fourthtabwidth{0.25\linewidth-0.25\picwd-0.25\lwindowsep}
+	\setlength\halftabwidth{0.5\linewidth-0.5\picwd-0.5\lwindowsep}
+	\setlength\fifthtabwidth{0.2\linewidth-0.2\picwd-0.2\lwindowsep}
+	\setlength\thirdtabwidth{0.33\linewidth-0.33\picwd-0.33\lwindowsep}
+	\settowidth\widthcha{AM.#1}
+	\ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+	\ifdim\wmothai<\widthcha\relax\setlength{\wmothai}{\widthcha}\fi%
+	\ifdim\wmothaiba<\widthcha\relax\setlength{\wmothaiba}{\widthcha}\fi%
+	\ifdim\wmothaibabon<\widthcha\relax\setlength{\wmothaibabon}{\widthcha}\fi%
+	\settowidth\widthchb{BM.#2}%
+	\ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+	\ifdim\wmothai<\widthchb\relax\setlength{\wmothai}{\widthchb}\fi%
+	\ifdim\wmothaiba<\widthchb\relax\setlength{\wmothaiba}{\widthchb}\fi%
+	\ifdim\wmothaibabon<\widthchb\relax\setlength{\wmothaibabon}{\widthchb}
+	\fi%
+	\ifdim\whaibabonnam<\widthchb\relax\setlength{\whaibabonnam}{\widthchb}
+	\fi%
+	\settowidth\widthchc{CM.#3}%
+	\ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+	\ifdim\wmothaiba<\widthchc\relax\setlength{\wmothaiba}{\widthchc}\fi%
+	\ifdim\wmothaibabon<\widthchc\relax\setlength{\wmothaibabon}{\widthchc}\fi%
+	\ifdim\wbabonnam<\widthchc\relax\setlength{\wbabonnam}{\widthchc}\fi%
+	\ifdim\whaibabonnam<\widthchc\relax\setlength{\whaibabonnam}{\widthchc}
+	\fi%
+	\settowidth\widthchd{DM.#4}%
+	\ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+	\ifdim\wmothaibabon<\widthchd\relax\setlength{\wmothaibabon}{\widthchd}\fi%
+	\ifdim\wbabonnam<\widthchd\relax\setlength{\wbabonnam}{\widthchd}\fi%
+	\ifdim\wbonnam<\widthchd\relax\setlength{\wbonnam}{\widthchd}\fi%
+	\ifdim\whaibabonnam<\widthchd\relax\setlength{\whaibabonnam}{\widthchd}
+	\fi%
+	\settowidth\widthche{EM.#5}%
+	\ifdim\widthch<\widthche\relax\setlength{\widthch}{\widthche}\fi%
+	\ifdim\wbabonnam<\widthche\relax\setlength{\wbabonnam}{\widthche}\fi%
+	\ifdim\wbonnam<\widthche\relax\setlength{\wbonnam}{\widthche}\fi%
+	\ifdim\whaibabonnam<\widthchd\relax\setlength{\whaibabonnam}{\widthchd}
+	\fi%
+	%Khởi tạo điều kiện 
+	\setcounter{numChoice}{0}
+	\ifdim\wmothai<\halftabwidth
+	\ifdim\wbabonnam<\thirdtabwidth	
+	\setcounter{numChoice}{1}
+	\fi\fi
+	\ifdim\wmothaiba<\thirdtabwidth	
+	\ifdim\wbonnam<\halftabwidth
+	\setcounter{numChoice}{2}
+	\fi\fi
+	\ifdim\widthch<\fifthtabwidth
+	\setcounter{numChoice}{3}
+	\fi
+	%Lựa chọn cách sắp xếp
+	\ifnum\the\value{numChoice}=3
+	\nammot{#1}{#2}{#3}{#4}{#5}
+	\else
+	\ifnum\the\value{numChoice}=2
+	\bahai{#1}{#2}{#3}{#4}{#5}
+	\else
+	\ifnum\the\value{numChoice}=1
+	\haiba{#1}{#2}{#3}{#4}{#5}
+	\else
+	\motnam{#1}{#2}{#3}{#4}{#5}
+	\fi\fi\fi
+}
+%HẾT trắc nghiệm 5 lựa chọn
+
+\newtheorem{exrd}{Câu}
+\AtBeginEnvironment{exrd}{\setcounter{numTrueSol}{0}\def\dotEX{.}}
+\AtEndEnvironment{exrd}{
+\ifnum\the\value{numTrue}=1
+\scantokens{\begin{EXsol}A\end{EXsol}}
+\immediate\write\tempfile{A}
+\fi
+\ifnum\the\value{numTrue}=2
+\scantokens{\begin{EXsol}B\end{EXsol}}
+\immediate\write\tempfile{B}
+\fi
+\ifnum\the\value{numTrue}=3
+\scantokens{\begin{EXsol}C\end{EXsol}}
+\immediate\write\tempfile{C}
+\fi
+\ifnum\the\value{numTrue}=4
+\scantokens{\begin{EXsol}D\end{EXsol}}
+\immediate\write\tempfile{D}
+\fi
+\ifnum\the\value{numTrue}=5
+\scantokens{\begin{EXsol}E\end{EXsol}}
+\immediate\write\tempfile{E}
+\fi
+\setcounter{numTrue}{0}
+}
+\makeatletter
+\def\declarenumlist#1#2#3{%
+  \expandafter\edef\csname pgfmath@randomlist@#1\endcsname{#3}%
+  \count@\@ne
+  \loop
+    \expandafter\edef
+    \csname pgfmath@randomlist@#1@\the\count@\endcsname
+      {\the\count@}
+    \ifnum\count@<#3\relax
+    \advance\count@\@ne
+  \repeat}
+\def\prunelist#1{%
+  \expandafter\xdef\csname pgfmath@randomlist@#1\endcsname
+          {\the\numexpr\csname pgfmath@randomlist@#1\endcsname-1\relax}
+  \count@\pgfmath@randomtemp 
+  \loop
+    \expandafter\global\expandafter\let
+    \csname pgfmath@randomlist@#1@\the\count@\expandafter\endcsname
+    \csname pgfmath@randomlist@#1@\the\numexpr\count@+1\relax\endcsname
+    \ifnum\count@<\csname pgfmath@randomlist@#1\endcsname\relax
+      \advance\count@\@ne
+  \repeat}
+\makeatother
+
+\newcounter{totalquestions}
+\RenewEnviron{ex}{}
+
+\newcommand{\bankEX}[2]{%
+  \CatchFileDef{\bank}{#1}{}% 
+  \setcounter{totalquestions}{0}% 
+  \RenewEnviron{ex}{\stepcounter{totalquestions}}%
+  \bank%
+  \declarenumlist{uniquequestionlist}{1}{\thetotalquestions}%
+  \setcounter{totalquestions}{#2}%
+  \RenewEnviron{ex}{%
+    \stepcounter{ex}%
+    \ifnum\value{ex}=\randomquestion 
+      \par%
+\begin{exrd}
+\def\thindent{%
+		\setbox0\hbox{Câu \theexrd\,\, }%
+		\hspace*{\wd0}%
+}%
+      \BODY% 
+\end{exrd}
+    \fi
+  }%
+  \foreach \uNiQueQ in {1,...,#2} {
+    \setcounter{ex}{0}
+    \pgfmathrandomitem\randomquestion{uniquequestionlist}
+    \xdef\randomquestion{\randomquestion}
+    \prunelist{uniquequestionlist}
+    \bank
+  }}
+\pgfmathsetseed{\number\pdfrandomseed}
+%%%%%%%Tự động chọn \motcot, \haicot, \boncot
+      \renewcommand{\choice}[4]{%
+       \setlength\tabmaxwidth{\linewidth-\picwd-\lwindowsep}
+        \setlength\fourthtabwidth{0.25\linewidth-0.25\picwd-0.25\lwindowsep}
+        \setlength\halftabwidth{0.5\linewidth-0.5\picwd-0.5\lwindowsep}
+      \settowidth\widthcha{AM.#1}
+      \ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+      \settowidth\widthchb{BM.#2}%
+      \ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+      \settowidth\widthchc{CM.#3}%
+      \ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+      \settowidth\widthchd{DM.#4}%
+      \ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+\newcommand{\InitVariables}
+{\pgfmathsetmacro{\randomEX}{int(random(1,24))}}
+\InitVariables
+      \ifdim\widthch<\fourthtabwidth
+			\ifnum \randomEX=1
+        	\boncot{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEX=2
+        	\boncot{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEX=3
+        	\boncot{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEX=4
+        	\boncot{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEX=5
+        	\boncot{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEX=6
+        	\boncot{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEX=7
+        	\boncot{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEX=8
+        	\boncot{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEX=9
+        	\boncot{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEX=10
+        	\boncot{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEX=11
+        	\boncot{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEX=12
+        	\boncot{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEX=13
+        	\boncot{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEX=14
+        	\boncot{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEX=15
+        	\boncot{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEX=16
+        	\boncot{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEX=17
+        	\boncot{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEX=18
+        	\boncot{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEX=19
+        	\boncot{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEX=20
+        	\boncot{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEX=21
+        	\boncot{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEX=22
+        	\boncot{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEX=23
+        	\boncot{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEX=24
+        	\boncot{#2}{#4}{#3}{#1}
+			\fi
+      \else\ifdim\widthch<\halftabwidth
+			\ifnum \randomEX=1
+        	\haicot{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEX=2
+        	\haicot{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEX=3
+        	\haicot{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEX=4
+        	\haicot{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEX=5
+        	\haicot{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEX=6
+        	\haicot{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEX=7
+        	\haicot{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEX=8
+        	\haicot{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEX=9
+        	\haicot{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEX=10
+        	\haicot{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEX=11
+        	\haicot{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEX=12
+        	\haicot{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEX=13
+        	\haicot{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEX=14
+        	\haicot{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEX=15
+        	\haicot{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEX=16
+        	\haicot{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEX=17
+        	\haicot{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEX=18
+        	\haicot{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEX=19
+        	\haicot{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEX=20
+        	\haicot{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEX=21
+        	\haicot{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEX=22
+        	\haicot{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEX=23
+        	\haicot{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEX=24
+        	\haicot{#2}{#4}{#3}{#1}
+			\fi
+        \else
+			\ifnum \randomEX=1
+        	\motcot{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEX=2
+        	\motcot{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEX=3
+        	\motcot{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEX=4
+        	\motcot{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEX=5
+        	\motcot{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEX=6
+        	\motcot{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEX=7
+        	\motcot{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEX=8
+        	\motcot{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEX=9
+        	\motcot{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEX=10
+        	\motcot{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEX=11
+        	\motcot{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEX=12
+        	\motcot{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEX=13
+        	\motcot{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEX=14
+        	\motcot{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEX=15
+        	\motcot{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEX=16
+        	\motcot{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEX=17
+        	\motcot{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEX=18
+        	\motcot{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEX=19
+        	\motcot{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEX=20
+        	\motcot{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEX=21
+        	\motcot{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEX=22
+        	\motcot{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEX=23
+        	\motcot{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEX=24
+        	\motcot{#2}{#4}{#3}{#1}
+			\fi
+      \fi\fi
+    }
+%
+%Tạo ngẫu nhiên 5 phương án
+\renewcommand{\choicefive}[5]{%
+	\setlength\tabmaxwidth{\linewidth-\picwd-\lwindowsep}
+	\setlength\fourthtabwidth{0.25\linewidth-0.25\picwd-0.25\lwindowsep}
+	\setlength\halftabwidth{0.5\linewidth-0.5\picwd-0.5\lwindowsep}
+	\setlength\fifthtabwidth{0.2\linewidth-0.2\picwd-0.2\lwindowsep}
+	\setlength\thirdtabwidth{0.33\linewidth-0.33\picwd-0.33\lwindowsep}
+	\settowidth\widthcha{AM.#1}
+	\ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+	\ifdim\wmothai<\widthcha\relax\setlength{\wmothai}{\widthcha}\fi%
+	\ifdim\wmothaiba<\widthcha\relax\setlength{\wmothaiba}{\widthcha}\fi%
+	\ifdim\wmothaibabon<\widthcha\relax\setlength{\wmothaibabon}{\widthcha}\fi%
+	\settowidth\widthchb{BM.#2}%
+	\ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+	\ifdim\wmothai<\widthchb\relax\setlength{\wmothai}{\widthchb}\fi%
+	\ifdim\wmothaiba<\widthchb\relax\setlength{\wmothaiba}{\widthchb}\fi%
+	\ifdim\wmothaibabon<\widthchb\relax\setlength{\wmothaibabon}{\widthchb}
+	\fi%
+	\ifdim\whaibabonnam<\widthchb\relax\setlength{\whaibabonnam}{\widthchb}
+	\fi%
+	\settowidth\widthchc{CM.#3}%
+	\ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+	\ifdim\wmothaiba<\widthchc\relax\setlength{\wmothaiba}{\widthchc}\fi%
+	\ifdim\wmothaibabon<\widthchc\relax\setlength{\wmothaibabon}{\widthchc}\fi%
+	\ifdim\wbabonnam<\widthchc\relax\setlength{\wbabonnam}{\widthchc}\fi%
+	\ifdim\whaibabonnam<\widthchc\relax\setlength{\whaibabonnam}{\widthchc}
+	\fi%
+	\settowidth\widthchd{DM.#4}%
+	\ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+	\ifdim\wmothaibabon<\widthchd\relax\setlength{\wmothaibabon}{\widthchd}\fi%
+	\ifdim\wbabonnam<\widthchd\relax\setlength{\wbabonnam}{\widthchd}\fi%
+	\ifdim\wbonnam<\widthchd\relax\setlength{\wbonnam}{\widthchd}\fi%
+	\ifdim\whaibabonnam<\widthchd\relax\setlength{\whaibabonnam}{\widthchd}
+	\fi%
+	\settowidth\widthche{EM.#5}%
+	\ifdim\widthch<\widthche\relax\setlength{\widthch}{\widthche}\fi%
+	\ifdim\wbabonnam<\widthche\relax\setlength{\wbabonnam}{\widthche}\fi%
+	\ifdim\wbonnam<\widthche\relax\setlength{\wbonnam}{\widthche}\fi%
+	\ifdim\whaibabonnam<\widthchd\relax\setlength{\whaibabonnam}{\widthchd}
+	\fi%
+	%Khởi tạo điều kiện 
+	\setcounter{numChoice}{0}
+	\ifdim\wmothai<\halftabwidth
+	\ifdim\wbabonnam<\thirdtabwidth	
+	\setcounter{numChoice}{1}
+	\fi\fi
+	\ifdim\wmothaiba<\thirdtabwidth	
+	\ifdim\wbonnam<\halftabwidth
+	\setcounter{numChoice}{2}
+	\fi\fi
+	\ifdim\widthch<\fifthtabwidth
+	\setcounter{numChoice}{3}
+	\fi
+	%Lựa chọn cách sắp xếp
+\newcommand{\InitVariablesfive}
+{\pgfmathsetmacro{\randomEXfive}{int(random(1,120))}}
+\InitVariablesfive
+	\ifnum\the\value{numChoice}=3
+		\ifnum \randomEXfive=1
+		\nammot{#5}{#2}{#3}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=2
+		\nammot{#2}{#3}{#4}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=3
+		\nammot{#3}{#4}{#5}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=4
+		\nammot{#4}{#5}{#2}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=5
+		\nammot{#5}{#3}{#2}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=6
+		\nammot{#4}{#5}{#3}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=7
+		\nammot{#2}{#4}{#5}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=8
+		\nammot{#3}{#2}{#4}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=9
+		\nammot{#5}{#3}{#4}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=10
+		\nammot{#2}{#5}{#3}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=11
+		\nammot{#4}{#2}{#5}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=12
+		\nammot{#3}{#4}{#2}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=13
+		\nammot{#5}{#4}{#2}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=14
+		\nammot{#3}{#5}{#4}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=15
+		\nammot{#2}{#3}{#5}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=16
+		\nammot{#4}{#2}{#3}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=17
+		\nammot{#5}{#4}{#3}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=18
+		\nammot{#2}{#5}{#4}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=19
+		\nammot{#3}{#2}{#5}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=20
+		\nammot{#4}{#3}{#2}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=21
+		\nammot{#5}{#2}{#4}{#3}{#1}
+		\fi
+		\ifnum \randomEXfive=22
+		\nammot{#3}{#5}{#2}{#4}{#1}
+		\fi
+		\ifnum \randomEXfive=23
+		\nammot{#4}{#3}{#5}{#2}{#1}
+		\fi
+		\ifnum \randomEXfive=24
+		\nammot{#2}{#4}{#3}{#5}{#1}
+		\fi
+		\ifnum \randomEXfive=25
+		\nammot{#1}{#5}{#3}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=26
+		\nammot{#5}{#3}{#4}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=27
+		\nammot{#3}{#4}{#1}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=28
+		\nammot{#4}{#1}{#5}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=29
+		\nammot{#1}{#3}{#5}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=30
+		\nammot{#4}{#1}{#3}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=31
+		\nammot{#5}{#4}{#1}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=32
+		\nammot{#3}{#5}{#4}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=33
+		\nammot{#1}{#3}{#4}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=34
+		\nammot{#5}{#1}{#3}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=35
+		\nammot{#4}{#5}{#1}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=36
+		\nammot{#3}{#4}{#5}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=37
+		\nammot{#1}{#4}{#5}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=38
+		\nammot{#3}{#1}{#4}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=39
+		\nammot{#5}{#3}{#1}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=40
+		\nammot{#4}{#5}{#3}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=41
+		\nammot{#1}{#4}{#3}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=42
+		\nammot{#5}{#1}{#4}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=43
+		\nammot{#3}{#5}{#1}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=44
+		\nammot{#4}{#3}{#5}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=45
+		\nammot{#1}{#5}{#4}{#3}{#2}
+		\fi
+		\ifnum \randomEXfive=46
+		\nammot{#3}{#1}{#5}{#4}{#2}
+		\fi
+		\ifnum \randomEXfive=47
+		\nammot{#4}{#3}{#1}{#5}{#2}
+		\fi
+		\ifnum \randomEXfive=48
+		\nammot{#5}{#4}{#3}{#1}{#2}
+		\fi
+		\ifnum \randomEXfive=49
+		\nammot{#1}{#2}{#5}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=50
+		\nammot{#2}{#5}{#4}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=51
+		\nammot{#5}{#4}{#1}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=52
+		\nammot{#4}{#1}{#2}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=53
+		\nammot{#1}{#5}{#2}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=54
+		\nammot{#4}{#1}{#5}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=55
+		\nammot{#2}{#4}{#1}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=56
+		\nammot{#5}{#2}{#4}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=57
+		\nammot{#1}{#5}{#4}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=58
+		\nammot{#2}{#1}{#5}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=59
+		\nammot{#4}{#2}{#1}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=60
+		\nammot{#5}{#4}{#2}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=61
+		\nammot{#1}{#4}{#2}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=62
+		\nammot{#5}{#1}{#4}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=63
+		\nammot{#2}{#5}{#1}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=64
+		\nammot{#4}{#2}{#5}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=65
+		\nammot{#1}{#4}{#5}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=66
+		\nammot{#2}{#1}{#4}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=67
+		\nammot{#5}{#2}{#1}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=68
+		\nammot{#4}{#5}{#2}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=69
+		\nammot{#1}{#2}{#4}{#5}{#3}
+		\fi
+		\ifnum \randomEXfive=70
+		\nammot{#5}{#1}{#2}{#4}{#3}
+		\fi
+		\ifnum \randomEXfive=71
+		\nammot{#4}{#5}{#1}{#2}{#3}
+		\fi
+		\ifnum \randomEXfive=72
+		\nammot{#2}{#4}{#5}{#1}{#3}
+		\fi
+		\ifnum \randomEXfive=74
+		\nammot{#1}{#2}{#3}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=75
+		\nammot{#2}{#3}{#5}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=76
+		\nammot{#3}{#5}{#1}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=77
+		\nammot{#5}{#1}{#2}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=78
+		\nammot{#1}{#3}{#2}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=79
+		\nammot{#5}{#1}{#3}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=80
+		\nammot{#2}{#5}{#1}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=81
+		\nammot{#3}{#2}{#5}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=82
+		\nammot{#1}{#3}{#5}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=83
+		\nammot{#2}{#1}{#3}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=84
+		\nammot{#5}{#2}{#1}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=85
+		\nammot{#3}{#5}{#2}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=86
+		\nammot{#1}{#5}{#2}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=87
+		\nammot{#3}{#1}{#5}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=88
+		\nammot{#2}{#3}{#1}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=89
+		\nammot{#5}{#2}{#3}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=90
+		\nammot{#1}{#5}{#3}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=91
+		\nammot{#2}{#1}{#5}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=92
+		\nammot{#3}{#2}{#1}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=93
+		\nammot{#5}{#3}{#2}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=94
+		\nammot{#1}{#2}{#5}{#3}{#4}
+		\fi
+		\ifnum \randomEXfive=95
+		\nammot{#3}{#1}{#2}{#5}{#4}
+		\fi
+		\ifnum \randomEXfive=96
+		\nammot{#5}{#3}{#1}{#2}{#4}
+		\fi
+		\ifnum \randomEXfive=73
+		\nammot{#2}{#5}{#3}{#1}{#4}
+		\fi
+		\ifnum \randomEXfive=97
+		\nammot{#1}{#2}{#3}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=98
+		\nammot{#2}{#3}{#4}{#1}{#5}
+		\fi
+		\ifnum \randomEXfive=99
+		\nammot{#3}{#4}{#1}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=100
+		\nammot{#4}{#1}{#2}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=101
+		\nammot{#1}{#3}{#2}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=102
+		\nammot{#4}{#1}{#3}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=103
+		\nammot{#2}{#4}{#1}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=104
+		\nammot{#3}{#2}{#4}{#1}{#5}
+		\fi
+		\ifnum \randomEXfive=105
+		\nammot{#1}{#3}{#4}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=106
+		\nammot{#2}{#1}{#3}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=107
+		\nammot{#4}{#2}{#1}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=108
+		\nammot{#3}{#4}{#2}{#1}{#5}
+		\fi
+		\ifnum \randomEXfive=109
+		\nammot{#1}{#4}{#2}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=110
+		\nammot{#3}{#1}{#4}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=111
+		\nammot{#2}{#3}{#1}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=112
+		\nammot{#4}{#2}{#3}{#1}{#5}
+		\fi
+		\ifnum \randomEXfive=113
+		\nammot{#1}{#4}{#3}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=114
+		\nammot{#2}{#1}{#4}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=115
+		\nammot{#3}{#2}{#1}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=116
+		\nammot{#4}{#3}{#2}{#1}{#5}
+		\fi
+		\ifnum \randomEXfive=117
+		\nammot{#1}{#2}{#4}{#3}{#5}
+		\fi
+		\ifnum \randomEXfive=118
+		\nammot{#3}{#1}{#2}{#4}{#5}
+		\fi
+		\ifnum \randomEXfive=119
+		\nammot{#4}{#3}{#1}{#2}{#5}
+		\fi
+		\ifnum \randomEXfive=120
+		\nammot{#2}{#4}{#3}{#1}{#5}
+		\fi
+	
+	\else
+	\ifnum\the\value{numChoice}=2
+			\ifnum \randomEXfive=1
+        	\haiba{#5}{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=2
+        	\haiba{#2}{#3}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=3
+        	\haiba{#3}{#4}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=4
+        	\haiba{#4}{#5}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=5
+        	\haiba{#5}{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=6
+        	\haiba{#4}{#5}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=7
+        	\haiba{#2}{#4}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=8
+        	\haiba{#3}{#2}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=9
+        	\haiba{#5}{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=10
+        	\haiba{#2}{#5}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=11
+        	\haiba{#4}{#2}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=12
+        	\haiba{#3}{#4}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=13
+        	\haiba{#5}{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=14
+        	\haiba{#3}{#5}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=15
+        	\haiba{#2}{#3}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=16
+        	\haiba{#4}{#2}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=17
+        	\haiba{#5}{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=18
+        	\haiba{#2}{#5}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=19
+        	\haiba{#3}{#2}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=20
+        	\haiba{#4}{#3}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=21
+        	\haiba{#5}{#2}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=22
+        	\haiba{#3}{#5}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=23
+        	\haiba{#4}{#3}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=24
+        	\haiba{#2}{#4}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=25
+        	\haiba{#1}{#5}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=26
+        	\haiba{#5}{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=27
+        	\haiba{#3}{#4}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=28
+        	\haiba{#4}{#1}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=29
+        	\haiba{#1}{#3}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=30
+        	\haiba{#4}{#1}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=31
+        	\haiba{#5}{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=32
+        	\haiba{#3}{#5}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=33
+        	\haiba{#1}{#3}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=34
+        	\haiba{#5}{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=35
+        	\haiba{#4}{#5}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=36
+        	\haiba{#3}{#4}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=37
+        	\haiba{#1}{#4}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=38
+        	\haiba{#3}{#1}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=39
+        	\haiba{#5}{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=40
+        	\haiba{#4}{#5}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=41
+        	\haiba{#1}{#4}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=42
+        	\haiba{#5}{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=43
+        	\haiba{#3}{#5}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=44
+        	\haiba{#4}{#3}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=45
+        	\haiba{#1}{#5}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=46
+        	\haiba{#3}{#1}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=47
+        	\haiba{#4}{#3}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=48
+        	\haiba{#5}{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=49
+        	\haiba{#1}{#2}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=50
+        	\haiba{#2}{#5}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=51
+        	\haiba{#5}{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=52
+        	\haiba{#4}{#1}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=53
+        	\haiba{#1}{#5}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=54
+        	\haiba{#4}{#1}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=55
+        	\haiba{#2}{#4}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=56
+        	\haiba{#5}{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=57
+        	\haiba{#1}{#5}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=58
+        	\haiba{#2}{#1}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=59
+        	\haiba{#4}{#2}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=60
+        	\haiba{#5}{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=61
+        	\haiba{#1}{#4}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=62
+        	\haiba{#5}{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=63
+        	\haiba{#2}{#5}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=64
+        	\haiba{#4}{#2}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=65
+        	\haiba{#1}{#4}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=66
+        	\haiba{#2}{#1}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=67
+        	\haiba{#5}{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=68
+        	\haiba{#4}{#5}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=69
+        	\haiba{#1}{#2}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=70
+        	\haiba{#5}{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=71
+        	\haiba{#4}{#5}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=72
+        	\haiba{#2}{#4}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=74
+        	\haiba{#1}{#2}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=75
+        	\haiba{#2}{#3}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=76
+        	\haiba{#3}{#5}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=77
+        	\haiba{#5}{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=78
+        	\haiba{#1}{#3}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=79
+        	\haiba{#5}{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=80
+        	\haiba{#2}{#5}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=81
+        	\haiba{#3}{#2}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=82
+        	\haiba{#1}{#3}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=83
+        	\haiba{#2}{#1}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=84
+        	\haiba{#5}{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=85
+        	\haiba{#3}{#5}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=86
+        	\haiba{#1}{#5}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=87
+        	\haiba{#3}{#1}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=88
+        	\haiba{#2}{#3}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=89
+        	\haiba{#5}{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=90
+        	\haiba{#1}{#5}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=91
+        	\haiba{#2}{#1}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=92
+        	\haiba{#3}{#2}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=93
+        	\haiba{#5}{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=94
+        	\haiba{#1}{#2}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=95
+        	\haiba{#3}{#1}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=96
+        	\haiba{#5}{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=73
+        	\haiba{#2}{#5}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=97
+        	\haiba{#1}{#2}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=98
+        	\haiba{#2}{#3}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=99
+        	\haiba{#3}{#4}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=100
+        	\haiba{#4}{#1}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=101
+        	\haiba{#1}{#3}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=102
+        	\haiba{#4}{#1}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=103
+        	\haiba{#2}{#4}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=104
+        	\haiba{#3}{#2}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=105
+        	\haiba{#1}{#3}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=106
+        	\haiba{#2}{#1}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=107
+        	\haiba{#4}{#2}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=108
+        	\haiba{#3}{#4}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=109
+        	\haiba{#1}{#4}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=110
+        	\haiba{#3}{#1}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=111
+        	\haiba{#2}{#3}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=112
+        	\haiba{#4}{#2}{#3}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=113
+        	\haiba{#1}{#4}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=114
+        	\haiba{#2}{#1}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=115
+        	\haiba{#3}{#2}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=116
+        	\haiba{#4}{#3}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=117
+        	\haiba{#1}{#2}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=118
+        	\haiba{#3}{#1}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=119
+        	\haiba{#4}{#3}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=120
+        	\haiba{#2}{#4}{#3}{#1}{#5}
+			\fi
+	\else
+	\ifnum\the\value{numChoice}=1
+			\ifnum \randomEXfive=1
+        	\haiba{#5}{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=2
+        	\haiba{#2}{#3}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=3
+        	\haiba{#3}{#4}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=4
+        	\haiba{#4}{#5}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=5
+        	\haiba{#5}{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=6
+        	\haiba{#4}{#5}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=7
+        	\haiba{#2}{#4}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=8
+        	\haiba{#3}{#2}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=9
+        	\haiba{#5}{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=10
+        	\haiba{#2}{#5}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=11
+        	\haiba{#4}{#2}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=12
+        	\haiba{#3}{#4}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=13
+        	\haiba{#5}{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=14
+        	\haiba{#3}{#5}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=15
+        	\haiba{#2}{#3}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=16
+        	\haiba{#4}{#2}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=17
+        	\haiba{#5}{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=18
+        	\haiba{#2}{#5}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=19
+        	\haiba{#3}{#2}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=20
+        	\haiba{#4}{#3}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=21
+        	\haiba{#5}{#2}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=22
+        	\haiba{#3}{#5}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=23
+        	\haiba{#4}{#3}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=24
+        	\haiba{#2}{#4}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=25
+        	\haiba{#1}{#5}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=26
+        	\haiba{#5}{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=27
+        	\haiba{#3}{#4}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=28
+        	\haiba{#4}{#1}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=29
+        	\haiba{#1}{#3}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=30
+        	\haiba{#4}{#1}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=31
+        	\haiba{#5}{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=32
+        	\haiba{#3}{#5}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=33
+        	\haiba{#1}{#3}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=34
+        	\haiba{#5}{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=35
+        	\haiba{#4}{#5}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=36
+        	\haiba{#3}{#4}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=37
+        	\haiba{#1}{#4}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=38
+        	\haiba{#3}{#1}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=39
+        	\haiba{#5}{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=40
+        	\haiba{#4}{#5}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=41
+        	\haiba{#1}{#4}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=42
+        	\haiba{#5}{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=43
+        	\haiba{#3}{#5}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=44
+        	\haiba{#4}{#3}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=45
+        	\haiba{#1}{#5}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=46
+        	\haiba{#3}{#1}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=47
+        	\haiba{#4}{#3}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=48
+        	\haiba{#5}{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=49
+        	\haiba{#1}{#2}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=50
+        	\haiba{#2}{#5}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=51
+        	\haiba{#5}{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=52
+        	\haiba{#4}{#1}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=53
+        	\haiba{#1}{#5}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=54
+        	\haiba{#4}{#1}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=55
+        	\haiba{#2}{#4}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=56
+        	\haiba{#5}{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=57
+        	\haiba{#1}{#5}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=58
+        	\haiba{#2}{#1}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=59
+        	\haiba{#4}{#2}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=60
+        	\haiba{#5}{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=61
+        	\haiba{#1}{#4}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=62
+        	\haiba{#5}{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=63
+        	\haiba{#2}{#5}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=64
+        	\haiba{#4}{#2}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=65
+        	\haiba{#1}{#4}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=66
+        	\haiba{#2}{#1}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=67
+        	\haiba{#5}{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=68
+        	\haiba{#4}{#5}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=69
+        	\haiba{#1}{#2}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=70
+        	\haiba{#5}{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=71
+        	\haiba{#4}{#5}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=72
+        	\haiba{#2}{#4}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=74
+        	\haiba{#1}{#2}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=75
+        	\haiba{#2}{#3}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=76
+        	\haiba{#3}{#5}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=77
+        	\haiba{#5}{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=78
+        	\haiba{#1}{#3}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=79
+        	\haiba{#5}{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=80
+        	\haiba{#2}{#5}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=81
+        	\haiba{#3}{#2}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=82
+        	\haiba{#1}{#3}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=83
+        	\haiba{#2}{#1}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=84
+        	\haiba{#5}{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=85
+        	\haiba{#3}{#5}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=86
+        	\haiba{#1}{#5}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=87
+        	\haiba{#3}{#1}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=88
+        	\haiba{#2}{#3}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=89
+        	\haiba{#5}{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=90
+        	\haiba{#1}{#5}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=91
+        	\haiba{#2}{#1}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=92
+        	\haiba{#3}{#2}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=93
+        	\haiba{#5}{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=94
+        	\haiba{#1}{#2}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=95
+        	\haiba{#3}{#1}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=96
+        	\haiba{#5}{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=73
+        	\haiba{#2}{#5}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=97
+        	\haiba{#1}{#2}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=98
+        	\haiba{#2}{#3}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=99
+        	\haiba{#3}{#4}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=100
+        	\haiba{#4}{#1}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=101
+        	\haiba{#1}{#3}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=102
+        	\haiba{#4}{#1}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=103
+        	\haiba{#2}{#4}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=104
+        	\haiba{#3}{#2}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=105
+        	\haiba{#1}{#3}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=106
+        	\haiba{#2}{#1}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=107
+        	\haiba{#4}{#2}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=108
+        	\haiba{#3}{#4}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=109
+        	\haiba{#1}{#4}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=110
+        	\haiba{#3}{#1}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=111
+        	\haiba{#2}{#3}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=112
+        	\haiba{#4}{#2}{#3}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=113
+        	\haiba{#1}{#4}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=114
+        	\haiba{#2}{#1}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=115
+        	\haiba{#3}{#2}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=116
+        	\haiba{#4}{#3}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=117
+        	\haiba{#1}{#2}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=118
+        	\haiba{#3}{#1}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=119
+        	\haiba{#4}{#3}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=120
+        	\haiba{#2}{#4}{#3}{#1}{#5}
+			\fi
+	\else
+			\ifnum \randomEXfive=1
+        	\motnam{#5}{#2}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=2
+        	\motnam{#2}{#3}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=3
+        	\motnam{#3}{#4}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=4
+        	\motnam{#4}{#5}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=5
+        	\motnam{#5}{#3}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=6
+        	\motnam{#4}{#5}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=7
+        	\motnam{#2}{#4}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=8
+        	\motnam{#3}{#2}{#4}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=9
+        	\motnam{#5}{#3}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=10
+        	\motnam{#2}{#5}{#3}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=11
+        	\motnam{#4}{#2}{#5}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=12
+        	\motnam{#3}{#4}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=13
+        	\motnam{#5}{#4}{#2}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=14
+        	\motnam{#3}{#5}{#4}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=15
+        	\motnam{#2}{#3}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=16
+        	\motnam{#4}{#2}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=17
+        	\motnam{#5}{#4}{#3}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=18
+        	\motnam{#2}{#5}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=19
+        	\motnam{#3}{#2}{#5}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=20
+        	\motnam{#4}{#3}{#2}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=21
+        	\motnam{#5}{#2}{#4}{#3}{#1}
+			\fi
+			\ifnum \randomEXfive=22
+        	\motnam{#3}{#5}{#2}{#4}{#1}
+			\fi
+			\ifnum \randomEXfive=23
+        	\motnam{#4}{#3}{#5}{#2}{#1}
+			\fi
+			\ifnum \randomEXfive=24
+        	\motnam{#2}{#4}{#3}{#5}{#1}
+			\fi
+			\ifnum \randomEXfive=25
+        	\motnam{#1}{#5}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=26
+        	\motnam{#5}{#3}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=27
+        	\motnam{#3}{#4}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=28
+        	\motnam{#4}{#1}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=29
+        	\motnam{#1}{#3}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=30
+        	\motnam{#4}{#1}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=31
+        	\motnam{#5}{#4}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=32
+        	\motnam{#3}{#5}{#4}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=33
+        	\motnam{#1}{#3}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=34
+        	\motnam{#5}{#1}{#3}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=35
+        	\motnam{#4}{#5}{#1}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=36
+        	\motnam{#3}{#4}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=37
+        	\motnam{#1}{#4}{#5}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=38
+        	\motnam{#3}{#1}{#4}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=39
+        	\motnam{#5}{#3}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=40
+        	\motnam{#4}{#5}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=41
+        	\motnam{#1}{#4}{#3}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=42
+        	\motnam{#5}{#1}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=43
+        	\motnam{#3}{#5}{#1}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=44
+        	\motnam{#4}{#3}{#5}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=45
+        	\motnam{#1}{#5}{#4}{#3}{#2}
+			\fi
+			\ifnum \randomEXfive=46
+        	\motnam{#3}{#1}{#5}{#4}{#2}
+			\fi
+			\ifnum \randomEXfive=47
+        	\motnam{#4}{#3}{#1}{#5}{#2}
+			\fi
+			\ifnum \randomEXfive=48
+        	\motnam{#5}{#4}{#3}{#1}{#2}
+			\fi
+			\ifnum \randomEXfive=49
+        	\motnam{#1}{#2}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=50
+        	\motnam{#2}{#5}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=51
+        	\motnam{#5}{#4}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=52
+        	\motnam{#4}{#1}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=53
+        	\motnam{#1}{#5}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=54
+        	\motnam{#4}{#1}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=55
+        	\motnam{#2}{#4}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=56
+        	\motnam{#5}{#2}{#4}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=57
+        	\motnam{#1}{#5}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=58
+        	\motnam{#2}{#1}{#5}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=59
+        	\motnam{#4}{#2}{#1}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=60
+        	\motnam{#5}{#4}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=61
+        	\motnam{#1}{#4}{#2}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=62
+        	\motnam{#5}{#1}{#4}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=63
+        	\motnam{#2}{#5}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=64
+        	\motnam{#4}{#2}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=65
+        	\motnam{#1}{#4}{#5}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=66
+        	\motnam{#2}{#1}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=67
+        	\motnam{#5}{#2}{#1}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=68
+        	\motnam{#4}{#5}{#2}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=69
+        	\motnam{#1}{#2}{#4}{#5}{#3}
+			\fi
+			\ifnum \randomEXfive=70
+        	\motnam{#5}{#1}{#2}{#4}{#3}
+			\fi
+			\ifnum \randomEXfive=71
+        	\motnam{#4}{#5}{#1}{#2}{#3}
+			\fi
+			\ifnum \randomEXfive=72
+        	\motnam{#2}{#4}{#5}{#1}{#3}
+			\fi
+			\ifnum \randomEXfive=74
+        	\motnam{#1}{#2}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=75
+        	\motnam{#2}{#3}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=76
+        	\motnam{#3}{#5}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=77
+        	\motnam{#5}{#1}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=78
+        	\motnam{#1}{#3}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=79
+        	\motnam{#5}{#1}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=80
+        	\motnam{#2}{#5}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=81
+        	\motnam{#3}{#2}{#5}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=82
+        	\motnam{#1}{#3}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=83
+        	\motnam{#2}{#1}{#3}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=84
+        	\motnam{#5}{#2}{#1}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=85
+        	\motnam{#3}{#5}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=86
+        	\motnam{#1}{#5}{#2}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=87
+        	\motnam{#3}{#1}{#5}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=88
+        	\motnam{#2}{#3}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=89
+        	\motnam{#5}{#2}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=90
+        	\motnam{#1}{#5}{#3}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=91
+        	\motnam{#2}{#1}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=92
+        	\motnam{#3}{#2}{#1}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=93
+        	\motnam{#5}{#3}{#2}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=94
+        	\motnam{#1}{#2}{#5}{#3}{#4}
+			\fi
+			\ifnum \randomEXfive=95
+        	\motnam{#3}{#1}{#2}{#5}{#4}
+			\fi
+			\ifnum \randomEXfive=96
+        	\motnam{#5}{#3}{#1}{#2}{#4}
+			\fi
+			\ifnum \randomEXfive=73
+        	\motnam{#2}{#5}{#3}{#1}{#4}
+			\fi
+			\ifnum \randomEXfive=97
+        	\motnam{#1}{#2}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=98
+        	\motnam{#2}{#3}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=99
+        	\motnam{#3}{#4}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=100
+        	\motnam{#4}{#1}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=101
+        	\motnam{#1}{#3}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=102
+        	\motnam{#4}{#1}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=103
+        	\motnam{#2}{#4}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=104
+        	\motnam{#3}{#2}{#4}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=105
+        	\motnam{#1}{#3}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=106
+        	\motnam{#2}{#1}{#3}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=107
+        	\motnam{#4}{#2}{#1}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=108
+        	\motnam{#3}{#4}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=109
+        	\motnam{#1}{#4}{#2}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=110
+        	\motnam{#3}{#1}{#4}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=111
+        	\motnam{#2}{#3}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=112
+        	\motnam{#4}{#2}{#3}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=113
+        	\motnam{#1}{#4}{#3}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=114
+        	\motnam{#2}{#1}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=115
+        	\motnam{#3}{#2}{#1}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=116
+        	\motnam{#4}{#3}{#2}{#1}{#5}
+			\fi
+			\ifnum \randomEXfive=117
+        	\motnam{#1}{#2}{#4}{#3}{#5}
+			\fi
+			\ifnum \randomEXfive=118
+        	\motnam{#3}{#1}{#2}{#4}{#5}
+			\fi
+			\ifnum \randomEXfive=119
+        	\motnam{#4}{#3}{#1}{#2}{#5}
+			\fi
+			\ifnum \randomEXfive=120
+        	\motnam{#2}{#4}{#3}{#1}{#5}
+			\fi
+	\fi\fi\fi
+}
+%Tiêu đề ex_test_rd
+\def\testname{
+\begin{center}
+\textbf{ĐỀ THI MẪU}
+\end{center}
+\rightline{
+\setlength\fboxrule{2pt} 
+\setlength\fboxsep{5pt} 
+\fbox{\textbf{Mã đề thi\ \x}}
+}
+}
+%Hết testname
+%Tiêu đề đáp án
+\def\testsol{
+\begin{center}
+\LARGE \textbf{ĐÁP ÁN}
+\end{center}
+}
+%Hết tiêu đề đáp án
+%Tiêu đề đáp án chi tiết
+\def\testsolfull{
+\begin{center}
+\textbf{ĐÁP CHI TIẾT MÃ ĐỀ \x}
+\end{center}
+}
+%Kết thúc đề thi
+\def\theendEX{
+\centerline{-\ -\ -\ -\ -\ -\ -\ -\ -\ -\ HẾT-\ -\ -\ -\ -\ -\ -\ -\ -\ -}
+}
+%List file
+\def\listfile{
+\bankEX{onefile.tex}{50}
+}
+%randombank
+\newcommand{\randombank}[1]{
+\foreach \x in {#1} {%Danh sách mã đề
+\newpage
+\pagestyle{fancy}
+\fancyhead[L]{\empty}
+\fancyhead[R]{\empty}
+\fancyhead[C]{\empty}
+\fancyfoot[C]{\empty}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyfoot[R]{Trang \thepage/\pageref{\x} Mã đề\ \x}
+\setcounter{page}{1}
+\setcounter{exrd}{0}
+\testname
+\immediate\openout\tempfile=ans/dapan\x.xls
+\Opensolutionfile{ans_rd}[ans/ansrd\x]
+\Opensolutionfile{ans}[ans/ans\x]
+\twocolEX{
+\listfile
+}
+\Closesolutionfile{ans}
+\Closesolutionfile{ans_rd}
+\immediate\closeout\tempfile
+\theendEX
+\label{\x}
+\newpage
+}
+}
+\newcommand{\showansfull}[1]
+{
+\newpage
+\foreach \x in {#1} {
+\testsolfull
+\input{ans/ansrd\x}
+}
+}
+\newcommand{\showans}[1]
+{
+\newpage
+\pagestyle{fancy}
+\fancyhead[L]{\empty}
+\fancyhead[R]{\empty}
+\fancyhead[C]{\empty}
+\fancyfoot[R]{\empty}
+\fancyfoot[L]{\empty}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+\setcounter{page}{1}
+\testsol
+\begin{center}
+\textbf{BẢNG ĐÁP ÁN CÁC MÃ ĐỀ}
+\end{center}
+\foreach \x in {#1} {
+\rightline{
+\setlength\fboxrule{2pt} 
+\setlength\fboxsep{5pt} 
+\fbox{\textbf{Mã đề thi\ \x}}
+}
+\begin{flushleft}
+\input{ans/ans\x}
+\end{flushleft}
+}
+}
+%Các phương pháp đưa hình vào văn bản
+\def\vspaceIM{\vspace{-13pt}}
+\def\breakIM{}
+\def\numpicinpar{0}
+\newdimen\widthimmini
+\newdimen\heightimmini
+\newdimen\spaceleft
+\newbox\imbox
+\newcommand{\hspaceIM}[1]{
+	\def\hspaceIMEX{\hspace{#1\linewidth}}
+	\def\hspaceEXIM{#1\linewidth}
+}
+\newcommand{\IMleftright}[3]{
+	\hfill\par\noindent
+	\begin{minipage}[t][][t]{\linewidth-\widthimmini-4\fboxsep-#1\linewidth}
+		#2
+	\end{minipage}
+	\hspace{#1\linewidth}\hspace{2\fboxsep}
+	\begin{minipage}[t][][b]{\widthimmini}\vspaceIM
+		#3
+	\end{minipage}
+	\par\nointerlineskip
+}
+\newcommand{\immini}[3][0]{%
+	\setbox\imbox=\vbox{\hbox{#3}}%
+	\widthimmini=\wd\imbox%
+	\heightimmini=\ht\imbox%
+	\ifthenelse{\equal{#1}{thm}}%
+	{%
+	\par\leavevmode\vspace{-\baselineskip}\vspace{-\parskip}\IMleftright{0}{\thindent#2}{#3}
+	}
+	{%
+	\IMleftright{#1}{#2}{#3}
+	}%
+}
+\newcommand{\imminiL}[3][0]{
+	\setbox\imbox=\vbox{\hbox{#3}}
+	\widthimmini=\wd\imbox
+	\heightimmini=\ht\imbox
+	\spaceleft=\dimexpr\textheight-\pagetotal-2\baselineskip\relax
+	\ifdim\heightimmini>\spaceleft
+	\breakIM
+	\fi
+	\IMrightleft{#1}{#2}{#3}
+}
+\newcommand{\impicinpar}[2]{
+	\begin{window}[\numpicinpar,r,{
+			#2
+		}, {}]
+		\begin{flushleft}
+			#1
+		\end{flushleft}
+	\end{window}
+}
+%Hết cách đưa hình vào văn bản
+% Biểu diễn khoảng, đoạn trên trục số
+\usetikzlibrary{decorations.pathreplacing,decorations.markings,patterns}
+\def\colorInterval{black}
+\def\skipInterval{0.4cm}
+\newcommand{\Interval}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw[color=\colorInterval] decorate[decoration={ticks,amplitude=3pt,segment length=1mm}] {(a)--(b)};
+}
+\newcommand{\IntervalR}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,-3pt) -- (3pt,3pt);
+      }}] {(a)--(b)};
+}
+\newcommand{\IntervalL}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+        \draw decorate[decoration={
+		markings,
+		mark=between positions 0 and 1 step 1mm
+      	with
+      	{
+		\draw[color=\colorInterval] (-3pt,3pt) -- (3pt,-3pt);
+      	}
+		}
+		] {(a)--(b)};
+}
+\newcommand{\IntervalLF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+   		\fill[pattern=north west lines,pattern color=\colorInterval](#2,-3pt)rectangle(#4,3pt);
+}
+\newcommand{\IntervalRF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (#2,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (#4,0); 
+   		\fill[pattern=north east lines,pattern color=\colorInterval](#2,-3pt)rectangle(#4,3pt);
+}
+\def\pre{0}
+\def\next{2}
+\newcommand{\IntervalLR}[2]{
+\def\pre{#1}
+\def\next{#2}
+}
+\newcommand{\IntervalG}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+       \draw[color=\colorInterval] decorate[decoration={ticks,amplitude=3pt,segment length=1mm}] {(a)--(b)};
+}
+\newcommand{\IntervalGL}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,3pt) -- (3pt,-3pt);
+      }}] {(a)--(b)};
+}
+\newcommand{\IntervalGR}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \draw decorate[decoration={markings,mark=% actually add a mark
+      between positions 0 and 1 step 1mm
+      with
+      {
+\draw[color=\colorInterval] (-3pt,-3pt) -- (3pt,3pt);
+      }}] {(a)--(b)};
+}
+
+\newcommand{\IntervalGLF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \fill[pattern=north west lines,pattern color=\colorInterval](\pre,-3pt)rectangle(\next,3pt);
+}
+\newcommand{\IntervalGRF}[4]{%
+        \coordinate [label={center:$#1$},label=below:$\rule{0pt}{\skipInterval}#2$] (a) at (\pre,0); 
+        \coordinate [label={center:$#3$},label=below:$\rule{0pt}{\skipInterval}#4$] (b) at (\next,0); 
+        \fill[pattern=north east lines,pattern color=\colorInterval](\pre,-3pt)rectangle(\next,3pt);
+}
+%Định nghĩa fill dots
+\newcommand{\dotlineEX}[1]{
+	\def\numlinedot{#1}
+	\par
+	\foreach \dotline in{1,...,\numlinedot}
+	{
+		\noindent\dotfill
+		\par
+	}
+}
+%Đường tròn LG
+\usetikzlibrary{plotmarks}
+\newcommand{\trucLG}{
+\draw[->] (0,-1.3) -- (0,1.3) node[left] {$\sin$};
+\draw[->] (-1.3,0) -- (1.3,0) node[below] {$\cos$};
+\draw (0,0) circle (1cm);
+}
+\newcommand{\pointLG}[4]
+{
+\foreach \i in {0,...,#2}
+{
+ \draw[color=#4]
+      plot[mark=#3] coordinates {({#1+\i*360/#2}:1)};
+}
+}
+\rowans
+% Môi trường liệt kê dàn theo nhiều dòng khác nhau
+\ExplSyntaxOn
+% variants of kernel functions:
+\cs_generate_variant:Nn \tl_if_eq:nnTF { V }
+\cs_generate_variant:Nn \tl_if_eq:nnT  { V }
+
+% --------------------------------------------------------------------------
+% variables:
+\seq_new:N    \l__listsEX_seq
+
+\int_new:N    \l__listsEX_depth_int
+\int_new:N    \g__listsEX_int
+\int_new:N    \g__listsEX_total_items_int
+\int_new:N    \l__listsEX_columns_int
+\int_new:N    \l__listsEX_rows_int
+\int_new:N    \g__listsEX_current_col_num_int
+\int_new:N    \g__listsEX_current_row_num_int
+\int_new:N    \l__listsEX_item_columns_int
+
+\bool_new:N   \l__listsEX_enumerate_bool
+\bool_new:N   \l__listsEX_resume_bool
+\bool_new:N   \l__listsEX_load_listsEX_bool
+\bool_new:N   \l__listsEX_label_width_bool
+\bool_new:N   \l__listsEX_item_indent_bool
+\bool_new:N   \l__listsEX_label_offset_bool
+\bool_new:N   \l__listsEX_custom_label_bool
+\bool_new:N   \l__listsEX_custom_after_item_skip_bool
+\bool_new:N   \l__listsEX_debug_bool
+\bool_new:N   \l__listsEX_item_full_line_bool
+\bool_new:N   \l__listsEX_item_rest_of_line_bool
+
+\tl_new:N     \l__listsEX_instance_tl
+\tl_new:N     \l__listsEX_label_tl
+\tl_new:N     \l__listsEX_custom_label_tl
+\tl_new:N     \l__listsEX_label_pattern_tl
+\tl_new:N     \l__listsEX_custom_label_pattern_tl
+\tl_new:N     \l__listsEX_label_format_tl
+\tl_new:N     \l__listsEX_custom_label_format_tl
+\tl_new:N     \l__listsEX_item_format_tl
+\tl_new:N     \l__listsEX_custom_item_format_tl
+\tl_new:N     \l__listsEX_item_fill_left_tl
+\tl_new:N     \l__listsEX_item_fill_right_tl
+\tl_new:N     \l__listsEX_label_align_tl
+% \tl_new:N     \listEX
+\tl_new:N     \l__listsEX_item_tl
+\tl_new:N     \l__listsEX_tmp_label_tl
+
+\dim_new:N    \l__listsEX_item_indent_dim
+\dim_new:N    \l__listsEX_item_default_indent_dim
+\dim_new:N    \l__listsEX_item_width_dim
+\dim_new:N    \l__listsEX_label_width_dim
+\dim_new:N    \l__listsEX_label_default_width_dim
+\dim_new:N    \l__listsEX_label_offset_dim
+\dim_new:N    \l__listsEX_label_default_offset_dim
+\dim_new:N    \l__listsEX_column_sep_dim
+
+\skip_new:N   \l__listsEX_after_item_skip
+\skip_new:N   \l__listsEX_custom_after_item_skip
+\skip_new:N   \l__listsEX_before_list_skip
+\skip_new:N   \l__listsEX_after_list_skip
+
+\coffin_new:N \l__listsEX_item_coffin
+\coffin_new:N \l__listsEX_label_coffin
+
+\NewCounterPattern* [ listsEX ] { listEX } { tsk }
+\ReadCounterFrom [ listsEX ] { listEX } \g__listsEX_int
+
+% temporary variables:
+\int_new:N    \l__listsEX_tmpa_int
+\int_new:N    \l__listsEX_tmpb_int
+\tl_new:N     \l__listsEX_tmpa_tl
+\coffin_new:N \l__listsEX_tmpa_coffin
+
+\cs_new:Npn \__listsEX_debug:n #1
+  {
+    \bool_if:NTF \l__listsEX_debug_bool
+      { \fbox {#1} }
+      { \use:n {#1} }
+  }
+
+% --------------------------------------------------------------------------
+% collect the listsEX:
+\cs_new_protected:Npn \__listsEX_collect_listsEX:nww #1#2 \end #3
+  {
+    \tl_put_right:Nn \l__listsEX_body_tl {#1}
+    \end {#3}
+    \tl_if_eq:nnF {#1} {#3}
+      { \__listsEX_collect_listsEX:nww {#1} }
+  }
+
+%  #1: instance
+%  #2: number of columns
+%  #3: item separator
+%  #4: environment body
+\cs_new_protected:Npn \__listsEX:nnnn #1#2#3#4
+  {
+    \bool_if:NT \l__listsEX_debug_bool { \dim_set:Nn \fboxsep {0pt} }
+    \seq_set_split:Nnn \l__listsEX_seq {#3} {#4}
+    % remove the first (empty) item:
+    \seq_pop_left:NN \l__listsEX_seq \l__listsEX_tmpa_tl
+    \tl_if_blank:VF \l__listsEX_tmpa_tl { \@noitemerr }
+    \int_gset:Nn \g__listsEX_total_items_int
+      { \seq_count:N \l__listsEX_seq }
+    \UseInstance {listsEX} {#1}
+      { \g__listsEX_total_items_int }
+      {#2}
+      { \l__listsEX_custom_label_pattern_tl }
+    % just to be sure:
+    \seq_clear:N \l__listsEX_seq
+  }
+\cs_generate_variant:Nn \__listsEX:nnnn { VnnV }
+
+% #1: label
+% #2: item format
+% #3: item
+\cs_new_protected:Npn \__listsEX_listEX:nnn #1#2#3
+  {
+    % start a new item line if \l__listsEX_item_full_line_bool
+    \bool_if:NT \l__listsEX_item_full_line_bool
+      {
+        % add skip if we were in the middle of a line, i.e., in horizontal
+        % mode:
+        \mode_if_horizontal:T
+          { \skip_vertical:N \l__listsEX_after_item_skip }
+        \listsEX_new_row:
+      }
+    % step column position:
+    \int_gincr:N \g__listsEX_current_col_num_int
+    \dim_set:Nn \l__listsEX_item_width_dim
+      {
+        \bool_if:NTF \l__listsEX_item_full_line_bool
+          { \linewidth }
+          {
+            (
+              \linewidth
+              - \l__listsEX_columns_int \l__listsEX_column_sep_dim
+              + \l__listsEX_column_sep_dim
+            ) / \l__listsEX_columns_int
+          }
+        - \l__listsEX_depth_int \l__listsEX_item_indent_dim
+        \bool_if:NT \l__listsEX_debug_bool { -2\fboxrule }
+      }
+    \__listsEX_gset_rows_num:NN
+      \g__listsEX_total_items_int
+      \l__listsEX_columns_int
+    % set \g__listsEX_current_col_num_int to 1 if at the start of a row,
+    % then also step \g__listsEX_current_row_num_int :
+    \int_compare:nNnT
+      { \g__listsEX_current_col_num_int } > { \l__listsEX_columns_int }
+      {
+        \int_gset:Nn \g__listsEX_current_col_num_int { 1 }
+        \int_incr:N \g__listsEX_current_row_num_int
+      }
+    \bool_if:NT \l__listsEX_item_rest_of_line_bool
+      {
+        \int_set:Nn \l__listsEX_tmpa_int
+          { \l__listsEX_columns_int - \g__listsEX_current_col_num_int + 1 }
+        \int_compare:nNnTF { \l__listsEX_item_columns_int } = { 0 }
+          {
+            \int_set:Nn \l__listsEX_tmpb_int { \l__listsEX_tmpa_int - 1 } % 8
+          }
+          {
+            \int_compare:nNnTF
+              { \l__listsEX_tmpa_int } > { \l__listsEX_item_columns_int }
+              { \int_set_eq:NN \l__listsEX_tmpa_int \l__listsEX_item_columns_int }
+              { \int_zero:N \l__listsEX_item_columns_int }
+            \bool_if:nT
+              {
+                \l__listsEX_item_rest_of_line_bool &&
+                !\int_compare_p:nNn { \l__listsEX_item_columns_int} = { 0 }
+              }
+              {
+                \int_gadd:Nn \g__listsEX_current_col_num_int
+                  { \l__listsEX_item_columns_int -1 }
+                \int_gadd:Nn \g__listsEX_total_items_int
+                  { \l__listsEX_item_columns_int -1 }
+              }
+            \int_set:Nn \l__listsEX_tmpb_int { \l__listsEX_tmpa_int -1 }
+          }
+        \dim_set:Nn \l__listsEX_item_width_dim
+          {
+            \l__listsEX_tmpa_int \l__listsEX_item_width_dim
+            + \l__listsEX_tmpb_int \l__listsEX_column_sep_dim
+            + \l__listsEX_tmpb_int \l__listsEX_item_indent_dim
+            \bool_if:NT \l__listsEX_debug_bool
+              { + \int_eval:n { \l__listsEX_tmpb_int * 2 } \fboxrule }
+          }
+      }
+    % set the item box:
+    \hcoffin_set:Nn \l__listsEX_item_coffin
+      {
+        \vcoffin_set:Nnn \l__listsEX_tmpa_coffin
+          { \l__listsEX_item_width_dim }
+          { \__listsEX_setup: #2 {#3} \strut }
+        \__listsEX_debug:n
+          {
+            \coffin_typeset:Nnnnn \l__listsEX_tmpa_coffin
+              {l} {T} {0pt} {0pt}
+          }
+      }
+    % set the label box:
+    \hcoffin_set:Nn \l__listsEX_label_coffin
+      {
+        \vcoffin_set:Nnn \l__listsEX_tmpa_coffin
+          {
+            \l__listsEX_label_width_dim
+            \bool_if:NT \l__listsEX_debug_bool {-2\fboxrule }
+          }
+          {
+            \noindent
+            \tl_use:N \l__listsEX_item_fill_left_tl
+            \strut #1
+            \tl_use:N \l__listsEX_item_fill_right_tl
+          }
+        \__listsEX_debug:n
+          {
+            \coffin_typeset:Nnnnn \l__listsEX_tmpa_coffin
+              {l} {T} {0pt} {0pt}
+          }
+      }
+    % attach the label box at the left of the item box, shifted by
+    % \l__listsEX_label_offset_dim :
+    \coffin_attach:NnnNnnnn
+      \l__listsEX_item_coffin  {l} {T}
+      \l__listsEX_label_coffin {l} {T}
+      {
+        \dim_compare:nNnTF
+          { \l__listsEX_item_indent_dim }
+          <
+          { \l__listsEX_label_offset_dim + \l__listsEX_label_width_dim }
+          {0pt}
+          { - \l__listsEX_label_width_dim - \l__listsEX_label_offset_dim }
+      } { 0pt }
+    % when a new row starts enter vertical mode:
+    \int_compare:nNnT { \g__listsEX_current_col_num_int } = { 1 }
+      { \skip_vertical:N \c_zero_skip }
+    % skip horizontally by \l__listsEX_item_indent_dim
+    \noindent
+    \skip_horizontal:N \l__listsEX_item_indent_dim
+    % typeset the item (with the attached label protruding to the left):
+    \coffin_typeset:Nnnnn \l__listsEX_item_coffin
+      {l}
+      {T}
+      {0pt}
+      {0pt}
+    \bool_if:nT
+      {
+        \l__listsEX_item_full_line_bool ||
+        (
+          \l__listsEX_item_rest_of_line_bool &&
+          \int_compare_p:nNn { \l__listsEX_item_columns_int } = { 0 }
+        )
+      }
+      { \listsEX_new_row: }
+    % are we between items in a row? The skip by \l__listsEX_column_sep_dim :
+    \int_compare:nNnT
+      { \g__listsEX_current_col_num_int } < { \l__listsEX_columns_int }
+      { \skip_horizontal:N \l__listsEX_column_sep_dim }
+    % if we ended a row and a new row is still to come skip vertically by
+    % \l__listsEX_after_item_skip :
+    \bool_if:nT
+      {
+        ( \int_compare_p:nNn { \g__listsEX_current_col_num_int } = { \l__listsEX_columns_int } )
+        &&
+        ( \int_compare_p:n { \g__listsEX_current_row_num_int != \l__listsEX_rows_int } )
+      }
+      { \skip_vertical:N \l__listsEX_after_item_skip }
+    % clean up:
+    \coffin_clear:N \l__listsEX_item_coffin
+    \coffin_clear:N \l__listsEX_label_coffin
+    \coffin_clear:N \l__listsEX_tmpa_coffin
+    \bool_set_false:N \l__listsEX_item_full_line_bool
+    \bool_set_false:N \l__listsEX_item_rest_of_line_bool
+  }
+\cs_generate_variant:Nn \__listsEX_listEX:nnn { VVV }
+
+\cs_new_protected:Npn \__listsEX_setup:
+  {
+    \dim_set:Nn \parskip { 0pt }
+    \skip_set:Nn \parfillskip { 0pt plus 1fil }
+    \dim_set_eq:NN \parskip \parsep
+    \dim_set_eq:NN \parindent \listparindent
+    \noindent
+    \dim_compare:nNnT
+      { \l__listsEX_item_indent_dim }
+       <
+      { \l__listsEX_label_offset_dim + \l__listsEX_label_width_dim }
+      {
+        \skip_horizontal:n
+          {
+            \l__listsEX_label_offset_dim
+            + \l__listsEX_label_width_dim
+            - \l__listsEX_item_indent_dim
+          }
+      }
+    \strut
+  }
+
+\cs_new_protected:Npn \__listsEX_gset_rows_num:NN #1#2
+  {
+    \int_gset:Nn \l__listsEX_rows_int { \int_div_truncate:nn {#1} {#2} }
+    \int_compare:nNnT { \int_mod:nn {#1} {#2} } > { 0 }
+      { \int_gincr:N \l__listsEX_rows_int }
+  }
+
+\cs_new_protected:Npn \__listsEX_label_align:n #1
+  {
+    \str_case:nnF {#1}
+      {
+        {left}
+          {
+            \tl_clear:N   \l__listsEX_item_fill_left_tl
+            \tl_set_eq:NN \l__listsEX_item_fill_right_tl \hfill
+          }
+        {right}
+          {
+            \tl_set_eq:NN \l__listsEX_item_fill_left_tl \hfill
+            \tl_clear:N   \l__listsEX_item_fill_right_tl
+          }
+        {center}
+          {
+            \tl_set_eq:NN \l__listsEX_item_fill_left_tl  \hfill
+            \tl_set_eq:NN \l__listsEX_item_fill_right_tl \hfill
+          }
+      }
+      {
+        \tl_clear:N   \l__listsEX_item_fill_left_tl
+        \tl_set_eq:NN \l__listsEX_item_fill_right_tl \hfill
+      }
+  }
+\cs_generate_variant:Nn \__listsEX_label_align:n { V }
+\__listsEX_label_align:n {left}
+
+% --------------------------------------------------------------------------
+% the `listsEX' object:
+%   #1: number of items
+%   #2: number of columns
+%   #3: label-format
+\DeclareObjectType {listsEX} {3}
+% the `default' template interface:
+\DeclareTemplateInterface {listsEX} {default} {3}
+  {
+    enumerate       : boolean   = true    ,
+    label           : tokenlist           ,
+    indent          : length    = 2.5em   ,
+    counter-format  : tokenlist = tsk[a]) ,
+    label-format    : tokenlist ,
+    label-width     : length    = 1em     ,
+    label-offset    : length    = .3333em ,
+    item-format     : tokenlist ,
+    after-item-skip : skip      = 1ex plus 1ex minus 1ex
+  }
+
+% in the next three commands we want a really unlikely to occur marker; for
+% this we use $ with unusual catcode in ``$listsEX$default$label$'':
+\cs_set:Nx \__listsEX_restore_dollar:
+  { \char_set_catcode:nn {36} { \char_value_catcode:n {36} } }
+\char_set_catcode_alignment:N \$
+
+% the `default' template code:
+\DeclareTemplateCode {listsEX} {default} {3}
+  {
+    enumerate       = \l__listsEX_enumerate_bool           ,
+    label           = \l__listsEX_label_tl                 ,
+    indent          = \l__listsEX_item_default_indent_dim  ,
+    counter-format  = \l__listsEX_label_pattern_tl         ,
+    label-format    = \l__listsEX_label_format_tl          ,
+    label-width     = \l__listsEX_label_default_width_dim  ,
+    label-offset    = \l__listsEX_label_default_offset_dim ,
+    item-format     = \l__listsEX_item_format_tl           ,
+    after-item-skip = \l__listsEX_after_item_skip
+  }
+  {
+    \AssignTemplateKeys
+    \bool_if:NF \l__listsEX_label_width_bool
+      {
+        \dim_set_eq:NN
+          \l__listsEX_label_width_dim
+          \l__listsEX_label_default_width_dim
+      }
+    \bool_if:NF \l__listsEX_item_indent_bool
+      {
+        \dim_set_eq:NN
+          \l__listsEX_item_indent_dim
+          \l__listsEX_item_default_indent_dim
+      }
+    \bool_if:NF \l__listsEX_label_offset_bool
+      {
+        \dim_set_eq:NN
+          \l__listsEX_label_offset_dim
+          \l__listsEX_label_default_offset_dim
+      }
+    % \dim_compare:nNnT
+    %   { \l__listsEX_item_indent_dim }
+    %    <
+    %   { \l__listsEX_label_offset_dim + \l__listsEX_label_width_dim }
+    %   {
+    %     \dim_set:Nn \l__listsEX_item_indent_dim
+    %       { \l__listsEX_label_offset_dim + \l__listsEX_label_width_dim }
+    %   }
+    \bool_if:NT \l__listsEX_custom_after_item_skip_bool
+      {
+        \skip_set_eq:NN
+          \l__listsEX_after_item_skip
+          \l__listsEX_custom_after_item_skip
+      }
+    \bool_if:NT \l__listsEX_custom_label_bool
+      {
+        \tl_set_eq:NN
+          \l__listsEX_label_tl
+          \l__listsEX_custom_label_tl
+        \bool_set_false:N \l__listsEX_enumerate_bool
+      }
+    \__listsEX_label_align:V \l__listsEX_label_align_tl
+    % need this for enumerate list:
+    \bool_if:nT { !\l__listsEX_resume_bool && \l__listsEX_enumerate_bool }
+      { \int_gzero:N \g__listsEX_int }
+    \int_set:Nn \l__listsEX_columns_int {#2}
+    % set all the items in their own coffins and join with the ground:
+    \int_gzero:N \g__listsEX_current_col_num_int
+    \int_set:Nn \g__listsEX_current_row_num_int {1}
+    \tl_if_blank:VF \l__listsEX_custom_label_pattern_tl
+      {
+        \tl_set_eq:NN
+          \l__listsEX_label_pattern_tl
+          \l__listsEX_custom_label_pattern_tl
+      }
+    \tl_if_blank:VF \l__listsEX_custom_label_format_tl
+      {
+        \tl_set_eq:NN
+          \l__listsEX_label_format_tl
+          \l__listsEX_custom_label_format_tl
+      }
+    \tl_if_blank:VF \l__listsEX_custom_item_format_tl
+      {
+        \tl_set_eq:NN
+          \l__listsEX_item_format_tl
+          \l__listsEX_custom_item_format_tl
+      }
+    \seq_map_inline:Nn \l__listsEX_seq
+      {
+        \__listsEX_read_item:www ##1 \q_stop
+        \bool_if:NTF \l__listsEX_enumerate_bool
+          {
+            \tl_if_eq:VnT \l__listsEX_tmp_label_tl { $listsEX$default$label$ }
+              {
+                \int_gincr:N \g__listsEX_int
+                \SaveCounterPatternFrom [listsEX]
+                  \l__listsEX_tmpa_tl
+                  \l__listsEX_label_tl
+                  \l__listsEX_label_pattern_tl
+              }
+          }
+          {
+            \tl_if_blank:VT \l__listsEX_label_tl
+              { \tl_set_eq:NN \l__listsEX_label_tl \labelitemi }
+          }
+        \tl_put_left:NV \l__listsEX_label_tl \l__listsEX_label_format_tl
+        % \tl_put_left:NV \l__listsEX_item_tl \l__listsEX_item_format_tl
+        \tl_if_eq:VnTF \l__listsEX_tmp_label_tl { $listsEX$default$label$ }
+          {
+            \__listsEX_listEX:VVV
+              \l__listsEX_label_tl
+              \l__listsEX_item_format_tl
+              \l__listsEX_item_tl
+          }
+          {
+            \__listsEX_listEX:VVV
+              \l__listsEX_tmp_label_tl
+              \l__listsEX_item_format_tl
+              \l__listsEX_item_tl
+            \tl_clear:N \l__listsEX_tmp_label_tl
+          }
+      }
+  }
+
+\cs_new_protected:Npn \__listsEX_read_item:www
+  {
+    \peek_meaning_remove:NTF !
+      {
+        \bool_set_true:N \l__listsEX_item_full_line_bool
+        \__listsEX_read_item_aux:ww
+      }
+      {
+        \peek_meaning_remove:NTF *
+          {
+            \bool_set_true:N \l__listsEX_item_rest_of_line_bool
+            \__listsEX_read_item_rest_of_line:ww
+          }
+          { \__listsEX_read_item_aux:ww }
+      }
+  }
+
+\cs_new_protected:Npn \__listsEX_read_item_rest_of_line:ww
+  {
+    \peek_meaning:NTF ( % )
+      { \__listsEX_read_item_rest_of_line_aux:ww }
+      { \__listsEX_read_item_rest_of_line_aux:ww (0) }
+  }
+
+\cs_new_protected:Npn \__listsEX_read_item_rest_of_line_aux:ww (#1)
+  {
+    \int_set:Nn \l__listsEX_item_columns_int {#1}
+    \__listsEX_read_item_aux:ww
+  }
+
+\cs_new_protected:Npn \__listsEX_read_item_aux:ww
+  {
+    \peek_meaning:NTF [ % ]
+      { \__listsEX_read_item_aux_ii:ww }
+      { \__listsEX_read_item_aux_ii:ww [$listsEX$default$label$] }
+  }
+  
+\cs_new_protected:Npn \__listsEX_read_item_aux_ii:ww [#1]#2 \q_stop
+  {
+    \tl_set:Nn \l__listsEX_tmp_label_tl {#1}
+    \tl_if_eq:nnF { #1 } { $listsEX$default$label$ }
+      { \tl_put_left:NV \l__listsEX_tmp_label_tl \l__listsEX_label_format_tl }
+    \tl_set:Nx \l__listsEX_item_tl { \tl_trim_spaces:n {#2} }
+  }
+
+\__listsEX_restore_dollar:
+
+% --------------------------------------------------------------------------
+% choice box:
+\bool_new:N \l__listsEX_choice_checked_bool
+\dim_new:N  \l__listsEX_choice_width_dim
+\dim_set:Nn \l__listsEX_choice_width_dim { 1.25ex }
+\dim_new:N  \l__listsEX_choice_linewidth_dim
+\dim_set:Nn \l__listsEX_choice_linewidth_dim { .3pt }
+\dim_new:N  \l__listsEX_choice_checkwidth_dim
+\dim_set:Nn \l__listsEX_choice_checkwidth_dim { .5pt }
+\dim_new:N  \l__listsEX_choice_raise_dim
+\dim_set:Nn \l__listsEX_choice_raise_dim { .1ex }
+
+\cs_new_protected:Npn \listsEX_choice:
+  {
+    \leavevmode
+    \group_begin:
+      \bool_set_false:N \l__listsEX_choice_checked_bool
+      \box_move_up:nn
+        { \l__listsEX_choice_raise_dim }
+        { \hbox:n { \__listsEX_choice: } }
+    \group_end:
+  }
+
+\cs_new_protected:Npn \listsEX_choice_checked:
+  {
+    \leavevmode
+    \group_begin:
+      \bool_set_true:N \l__listsEX_choice_checked_bool
+      \box_move_up:nn
+        { \l__listsEX_choice_raise_dim }
+        { \hbox:n { \__listsEX_choice: } }
+    \group_end:
+  }
+
+\cs_new_protected:Npn \__listsEX_choice:
+  {%
+    \dim_set:Nn \unitlength { .1\l__listsEX_choice_width_dim }
+    \begin{picture}(10,0)
+      \linethickness \l__listsEX_choice_linewidth_dim
+      \drawline(0,0)(0,10)(10,10)(10,0)(0,0)
+      \linethickness \l__listsEX_choice_checkwidth_dim
+      \bool_if:NT \l__listsEX_choice_checked_bool
+        {
+          \drawline(2,2)(8,8)
+          \drawline(2,8)(8,2)
+        }
+    \end{picture}%
+  }
+
+\providecommand* \choicebox { \listsEX_choice: }
+\providecommand* \checkedchoicebox { \listsEX_choice_checked: }
+
+% --------------------------------------------------------------------------
+% base instance:
+% ALPHABETIZE: a) b) c)
+\DeclareInstance {listsEX} {alphabetize} {default} { }
+
+\keys_define:nn {listsEX/list}
+  {
+    debug           .bool_set:N = \l__listsEX_debug_bool ,
+    style           .tl_set:N   = \l__listsEX_instance_tl ,
+    style           .initial:n  = alphabetize ,
+    counter-format  .tl_set:N   = \l__listsEX_custom_label_pattern_tl ,
+    label           .code:n     =
+      \bool_set_true:N \l__listsEX_custom_label_bool
+      \tl_set:Nn \l__listsEX_custom_label_tl {#1} ,
+    label-format    .tl_set:N   = \l__listsEX_custom_label_format_tl ,
+    label-width     .code:n     =
+      \dim_set:Nn \l__listsEX_label_width_dim {#1}
+      \bool_set_true:N \l__listsEX_label_width_bool ,
+    label-offset    .code:n     =
+      \dim_set:Nn \l__listsEX_label_offset_dim {#1}
+      \bool_set_true:N \l__listsEX_label_offset_bool ,
+    label-align     .tl_set:N   = \l__listsEX_label_align_tl ,
+    item-format     .tl_set:N   = \l__listsEX_custom_item_format_tl ,
+    item-indent     .code:n     =
+      \dim_set:Nn \l__listsEX_item_indent_dim {#1}
+      \bool_set_true:N \l__listsEX_item_indent_bool ,
+    column-sep      .dim_set:N  = \l__listsEX_column_sep_dim ,
+    before-skip     .skip_set:N = \l__listsEX_before_list_skip ,
+    after-skip      .skip_set:N = \l__listsEX_after_list_skip ,
+    after-item-skip .code:n     =
+      \bool_set_true:N \l__listsEX_custom_after_item_skip_bool
+      \skip_set:Nn \l__listsEX_custom_after_item_skip {#1} ,
+    resume          .bool_set:N = \l__listsEX_resume_bool
+  }
+
+% --------------------------------------------------------------------------
+% the generic environment:
+\NewEnviron {__listsEX_env:} [3]
+  {
+    \if@inlabel
+      \noindent\par\nobreak\vskip-\parskip\vskip-\baselineskip\hrule\@height\z@
+    \fi
+    \dim_compare:nNnF { \l__listsEX_before_list_skip } = { 0pt }
+      { \vspace {\l__listsEX_before_list_skip} }
+    \list {}
+      {
+        \keys_set:nn {listsEX/list} {#2}
+        \dim_set:Nn \leftmargin  {0pt}
+        \dim_set:Nn \rightmargin {0pt}
+      }
+    \item \scan_stop:
+    \int_incr:N \l__listsEX_depth_int
+    \__listsEX:VnnV \l__listsEX_instance_tl {#3} {#1} \BODY
+    \endlist
+    \dim_compare:nNnF { \l__listsEX_after_list_skip } = { 0pt }
+      { \vspace {\l__listsEX_after_list_skip} }
+  }
+
+% --------------------------------------------------------------------------
+% command to start a new row:
+\cs_new_protected:Npn \listsEX_new_row:
+  {
+    \int_gset:Nn \g__listsEX_total_items_int
+      {
+        \g__listsEX_total_items_int +
+        \l__listsEX_columns_int -
+        \g__listsEX_current_col_num_int
+      }
+    \__listsEX_gset_rows_num:NN
+      \g__listsEX_total_items_int
+      \l__listsEX_columns_int
+    \int_gset_eq:NN \g__listsEX_current_col_num_int \l__listsEX_columns_int
+  }
+
+\NewDocumentCommand \startnewitemlineEX {}
+  { \listsEX_new_row: }
+
+% --------------------------------------------------------------------------
+% the user environment:
+\NewDocumentCommand \NewListsEX { O{}mO{\listEX}D(){1} }
+  {
+    \NewDocumentEnvironment {#2} { O{}D(){#4} }
+      { \__listsEX_env: {#3} { #1,##1 } {##2} }
+      { \end__listsEX_env: }
+  }
+
+\NewDocumentCommand \RenewListsEX { O{}mO{\listEX}D(){1} }
+  {
+    \RenewDocumentEnvironment {#2} { O{}D(){#4} }
+      { \__listsEX_env: {#3} { #1,##1 } {##2} }
+      { \end__listsEX_env: }
+  }
+
+% --------------------------------------------------------------------------
+% default list:
+\NewListsEX {listsEX}
+
+\file_if_exist:nT {listsEX.cfg} { \file_input:n {listsEX.cfg} }
+
+% --------------------------------------------------------------------------
+% setup:
+\cs_new_protected:Npn \listsEX_setup:n #1
+  { \keys_set:nn {listsEX/list} {#1} }
+
+\NewDocumentCommand \setlistsEX { m }
+  { \listsEX_setup:n {#1} }
+\newcommand{\StartNumber}[1]{
+  \int_gset:Nn \g__listsEX_int {#1}
+}
+%tasks
+\NewListsEX{taskEX}[\item]
+\NewEnviron{listEX}[1][]{%
+\hfill
+\ifstrempty{#1}{%
+\def\tempbegin{\begin{taskEX}(1)}%
+}{%
+\def\tempbegin{\begin{taskEX}(#1)}%
+}
+\expandafter\tempbegin\BODY
+\end{taskEX}
+}
+\NewEnviron{enumEX}[2][]{%
+\hfill
+\ifstrempty{#1}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[a])](#2)}%
+}{%
+\ifthenelse{\equal{#1}{a.}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[a].](#2)}%
+}{
+\ifthenelse{\equal{#1}{(a)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=(tsk[a]),label-width=1.3em](#2)}%
+}{
+\ifthenelse{\equal{#1}{a)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[a])](#2)}%
+}{
+\ifthenelse{\equal{#1}{A.}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[A].](#2)}%
+}{
+\ifthenelse{\equal{#1}{(A)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=(tsk[A]),label-width=1.3em](#2)}%
+}{
+\ifthenelse{\equal{#1}{A)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[A])](#2)}%
+}{
+\ifthenelse{\equal{#1}{1.}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[1].](#2)}%
+}{
+\ifthenelse{\equal{#1}{(1)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=(tsk[1]),label-width=1.3em](#2)}%
+}{
+\ifthenelse{\equal{#1}{1)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[1])](#2)}%
+}{
+\ifthenelse{\equal{#1}{i.}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[r].](#2)}%
+}{
+\ifthenelse{\equal{#1}{(i)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=(tsk[r]),label-width=1.4em](#2)}%
+}{
+\ifthenelse{\equal{#1}{i)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[r])](#2)}%
+}{
+\ifthenelse{\equal{#1}{I.}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[R].,label-width=1.4em](#2)}%
+}{
+\ifthenelse{\equal{#1}{(I)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=(tsk[R]),label-width=1.6em](#2)}%
+}{
+\ifthenelse{\equal{#1}{I)}}{%
+\def\tempbegin{\begin{taskEX}[counter-format=tsk[R]),label-width=1.4em](#2)}%
+}{
+\def\tempbegin{\begin{taskEX}[label=#1](#2)}%
+}}}}}}}}}}}}}}}
+}
+\expandafter\tempbegin\BODY
+\end{taskEX}
+}
+%% End of file `ex_test_rd.sty'.

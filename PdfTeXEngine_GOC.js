@@ -66,7 +66,6 @@ var CompileResult = /** @class */ (function () {
         this.pdf = undefined;
         this.status = -254;
         this.log = 'No log';
-        this.synctex = undefined; // THÊM TRƯỜNG SYNCTEX
     }
     return CompileResult;
 }());
@@ -120,9 +119,7 @@ var PdfTeXEngine = /** @class */ (function () {
             throw Error('Engine is still spinning or not ready yet!');
         }
     };
-    // SỬA ĐỔI HÀM NÀY
-    PdfTeXEngine.prototype.compileLaTeX = function (withSyncTex) {
-        if (withSyncTex === void 0) { withSyncTex = false; }
+    PdfTeXEngine.prototype.compileLaTeX = function () {
         return __awaiter(this, void 0, void 0, function () {
             var start_compile_time, res;
             var _this = this;
@@ -141,7 +138,6 @@ var PdfTeXEngine = /** @class */ (function () {
                                     var result = data['result'];
                                     var log = data['log'];
                                     var status = data['status'];
-                                    var synctex = data['synctex']; // LẤY DỮ LIỆU SYNCTEX
                                     _this.latexWorkerStatus = EngineStatus.Ready;
                                     console.log('Engine compilation finish ' + (performance.now() - start_compile_time));
                                     var nice_report = new CompileResult();
@@ -150,15 +146,11 @@ var PdfTeXEngine = /** @class */ (function () {
                                     if (result === 'ok') {
                                         var pdf = new Uint8Array(data['pdf']);
                                         nice_report.pdf = pdf;
-                                        if (synctex) {
-                                            nice_report.synctex = new Uint8Array(synctex); // GÁN DỮ LIỆU SYNCTEX
-                                        }
                                     }
                                     resolve(nice_report);
                                 };
-                                // GỬI YÊU CẦU SYNCTEX TỚI WORKER
-                                _this.latexWorker.postMessage({ 'cmd': 'compilelatex', 'synctex': withSyncTex });
-                                console.log('Engine compilation start, withSyncTex:', withSyncTex);
+                                _this.latexWorker.postMessage({ 'cmd': 'compilelatex' });
+                                console.log('Engine compilation start');
                             })];
                     case 1:
                         res = _a.sent();
@@ -170,7 +162,47 @@ var PdfTeXEngine = /** @class */ (function () {
         });
     };
     /* Internal Use */
-    PdfTeXEngine.prototype.compileFormat = function () { /* giữ nguyên */ };
+    PdfTeXEngine.prototype.compileFormat = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        this.checkEngineStatus();
+                        this.latexWorkerStatus = EngineStatus.Busy;
+                        return [4 /*yield*/, new Promise(function (resolve, reject) {
+                                _this.latexWorker.onmessage = function (ev) {
+                                    var data = ev['data'];
+                                    var cmd = data['cmd'];
+                                    if (cmd !== "compile")
+                                        return;
+                                    var result = data['result'];
+                                    var log = data['log'];
+                                    // const status: number = data['status'] as number;
+                                    _this.latexWorkerStatus = EngineStatus.Ready;
+                                    if (result === 'ok') {
+                                        var formatArray = data['pdf']; /* PDF for result */
+                                        var formatBlob = new Blob([formatArray], { type: 'application/octet-stream' });
+                                        var formatURL_1 = URL.createObjectURL(formatBlob);
+                                        setTimeout(function () { URL.revokeObjectURL(formatURL_1); }, 30000);
+                                        console.log('Download format file via ' + formatURL_1);
+                                        resolve();
+                                    }
+                                    else {
+                                        reject(log);
+                                    }
+                                };
+                                _this.latexWorker.postMessage({ 'cmd': 'compileformat' });
+                            })];
+                    case 1:
+                        _a.sent();
+                        this.latexWorker.onmessage = function (_) {
+                        };
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     PdfTeXEngine.prototype.setEngineMainFile = function (filename) {
         this.checkEngineStatus();
         if (this.latexWorker !== undefined) {
@@ -181,13 +213,6 @@ var PdfTeXEngine = /** @class */ (function () {
         this.checkEngineStatus();
         if (this.latexWorker !== undefined) {
             this.latexWorker.postMessage({ 'cmd': 'writefile', 'url': filename, 'src': srccode });
-        }
-    };
-    // THÊM HÀM NÀY
-    PdfTeXEngine.prototype.removeMemFSFile = function (filename) {
-        this.checkEngineStatus();
-        if (this.latexWorker !== undefined) {
-            this.latexWorker.postMessage({ 'cmd': 'removefile', 'url': filename });
         }
     };
     PdfTeXEngine.prototype.makeMemFSFolder = function (folder) {
@@ -202,6 +227,7 @@ var PdfTeXEngine = /** @class */ (function () {
     PdfTeXEngine.prototype.flushCache = function () {
         this.checkEngineStatus();
         if (this.latexWorker !== undefined) {
+            // console.warn('Flushing');
             this.latexWorker.postMessage({ 'cmd': 'flushcache' });
         }
     };
