@@ -128,7 +128,46 @@ function main() {
     async function handleZipLoad(event) { const file = event.target.files[0]; if (!file) return; loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang giải nén và xử lý file...'; try { const zip = await JSZip.loadAsync(file); const fileEntries = Object.values(zip.files).filter(entry => !entry.dir && !entry.name.startsWith('__MACOSX/') && !entry.name.endsWith('/.DS_Store')); if (fileEntries.length === 0) { loadingOverlay.style.display = 'none'; Swal.fire('Tệp ZIP trống', 'Không tìm thấy tệp hợp lệ nào để import.', 'warning'); return; } let commonPath = ''; const firstPath = fileEntries[0].name; const firstSlashIndex = firstPath.indexOf('/'); if (firstSlashIndex > -1) { const potentialRoot = firstPath.substring(0, firstSlashIndex + 1); if (fileEntries.every(entry => entry.name.startsWith(potentialRoot))) { commonPath = potentialRoot; } } const promises = fileEntries.map(zipEntry => { return zipEntry.async('uint8array').then(async (content) => { const finalFileName = zipEntry.name.substring(commonPath.length); if (finalFileName) { await saveFileToDb(finalFileName, content); globalEn.writeMemFSFile(finalFileName, content); } }); }); await Promise.all(promises); Swal.fire('Thành công!', `${promises.length} file từ ${file.name} đã được giải nén và lưu lại!`, 'success'); updateMainFileSelector(); } catch (error) { console.error("Error processing zip file:", error); Swal.fire('Lỗi', 'Không thể xử lý file zip. Vui lòng kiểm tra file và thử lại.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; event.target.value = ''; } }
     async function downloadProjectAsZip() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang nén dự án...'; try { const files = await getAllFilesFromDb(); if (files.length === 0) { Swal.fire('Thông báo', 'Không có file nào để tải về.', 'info'); return; } const zip = new JSZip(); files.forEach(file => zip.file(file.name, file.data)); const blob = await zip.generateAsync({ type: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const date = new Date().toISOString().slice(0, 10); link.download = `latex-project-${date}.zip`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { console.error("Error creating zip file:", error); Swal.fire('Lỗi', 'Không thể tạo file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; } }
     function clearStyCache() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } Swal.fire({ title: 'Bạn chắc chắn?', html: "Hành động này sẽ <b>xóa tất cả các file đã cache</b> (gói .sty, .cls...).<br>Hành động này không thể hoàn tác và sẽ tải lại trang.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Vâng, xóa hết!', cancelButtonText: 'Hủy' }).then((result) => { if (result.isConfirmed) { db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).clear().onsuccess = () => Swal.fire('Đã xóa!', 'Cache đã được dọn dẹp. Trang sẽ tải lại.', 'success').then(() => location.reload()); } }); }
-    function showHelpModal() { const helpHTML = ` <div style="padding: 10px;"> <h2>Chào mừng đến với Trình soạn thảo LaTeX trên Web!</h2> <p>Đây là một môi trường mạnh mẽ để soạn thảo và biên dịch tài liệu LaTeX ngay trên trình duyệt của bạn.</p> <h3><i class="fas fa-tools"></i> Chức Năng Chính</h3> <ul> <li><i class="fas fa-sitemap"></i><b> Quản lý File:</b> Trung tâm để <b>thêm file mới</b>, xóa, mở và tải lên file lẻ cho dự án.</li> <li><i class="fas fa-file-archive"></i><b> Tải lên .zip:</b> Tải lên và giải nén toàn bộ dự án từ file .zip.</li><li><i class="fas fa-download"></i><b> Tải về .zip:</b> Tải toàn bộ dự án hiện tại về máy.</li> <li><i class="fas fa-key"></i><b> File chính:</b> Chọn file <code>.tex</code> chính để biên dịch. <br><small>Lưu ý: Chỉ các file có tên bắt đầu bằng <code>main...</code>, <code>de...</code>, hoặc <code>file...</code> mới xuất hiện ở đây.</small></li> <li><i class="fas fa-magic"></i><b> Mẫu:</b> Nhanh chóng tạo một file .tex mới từ các mẫu có sẵn.</li> </ul> <h3><i class="fas fa-magic"></i> Tính Năng "Ma Thuật"</h3> <ul> <li><b>Lưu trữ bền vững:</b> Tất cả các file được lưu trong trình duyệt. Bạn có thể đóng tab và mở lại mà không mất dữ liệu.</li> <li><b>Tự động tải gói:</b> Khi biên dịch, trình soạn thảo sẽ tự động tải các gói còn thiếu từ kho TeX Live.</li> <li><b>Code Folding:</b> Thu gọn các khối lệnh (ví dụ: <code>\\begin{...}</code>) bằng cách nhấn vào các mũi tên bên cạnh số dòng.</li> </ul> </div> `; Swal.fire({ title: '<strong>Hướng Dẫn Sử Dụng</strong>', icon: 'info', html: helpHTML, showCloseButton: true, focusConfirm: false, width: '800px', confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!', confirmButtonAriaLabel: 'Thumbs up, great!', }); }
+    // === HÀM HƯỚNG DẪN ĐƯỢC NÂNG CẤP ===
+    function showHelpModal() {
+        const helpHTML = `
+            <div style="padding: 10px;">
+                <h2>Chào mừng đến với Trình soạn thảo LaTeX trên Web!</h2>
+                <p>Đây là một môi trường mạnh mẽ để soạn thảo và biên dịch tài liệu LaTeX ngay trên trình duyệt của bạn.</p>
+                
+                <div style="border: 2px solid var(--primary-color); border-radius: 8px; padding: 15px; margin: 20px 0; background-color: #f8f9fa;">
+                    <h3 style="margin-top: 0; color: var(--primary-color);"><i class="fas fa-rocket"></i> Khởi tạo nhanh cho người dùng mới</h3>
+                    <p>Để có một môi trường làm việc đầy đủ với các gói lệnh và mẫu phổ biến, bạn hãy làm theo các bước sau:</p>
+                    <ol style="padding-left: 20px; font-size: 1.1em;">
+                        <li style="margin-bottom: 10px;">
+                            Tải về bộ khởi tạo tại đây: 
+                            <a href="https://drive.google.com/file/d/1ypQZClo_xQUH5eLOM8hTQdQ1xajpYPen/view?usp=sharing" target="_blank" style="font-weight: bold; text-decoration: none; color: #fff; background-color: var(--success-color); padding: 5px 10px; border-radius: 5px;">
+                               <i class="fas fa-cloud-download-alt"></i> Tải Kho Mẫu.zip
+                            </a>
+                        </li>
+                        <li style="margin-bottom: 10px;">
+                            Sau khi tải xong, nhấn vào nút <b>Tải lên .zip</b> <i class="fas fa-file-archive"></i> trên thanh công cụ.
+                        </li>
+                        <li>
+                            Chọn file <code>Kho Mẫu.zip</code> bạn vừa tải về để nạp toàn bộ dự án vào trình soạn thảo.
+                        </li>
+                    </ol>
+                </div>
+
+                <h3><i class="fas fa-tools"></i> Các Chức Năng Chính Khác</h3>
+                <ul>
+                    <li><i class="fas fa-sitemap"></i><b> Quản lý File:</b> Thêm, xóa, mở và tải lên các file lẻ.</li>
+                    <li><i class="fas fa-key"></i><b> File chính:</b> Chọn file <code>.tex</code> chính để biên dịch.</li>
+                    <li><i class="fas fa-magic"></i><b> Mẫu:</b> Nhanh chóng tạo một file .tex mới từ các mẫu có sẵn.</li>
+                </ul>
+            </div>
+        `;
+        Swal.fire({
+            title: '<strong>Hướng Dẫn Sử Dụng</strong>', icon: 'info', html: helpHTML,
+            showCloseButton: true, focusConfirm: false, width: '800px',
+            confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!',
+        });
+    }
     async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
     async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
     async function loadCustomSuggestions() { const fileData = await getFileFromDb('suggestions.json'); if (fileData) { try { customSuggestions = JSON.parse(new TextDecoder().decode(fileData)); } catch(e) { console.error('Failed to parse suggestions.json:', e); customSuggestions = []; } } }
