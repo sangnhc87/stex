@@ -1,0 +1,577 @@
+/* style.css */
+
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #17a2b8;
+    --dark-bg: #282c34;
+    --light-bg: #f4f4f4;
+    --border-color: #ddd;
+    --danger-color: #dc3545;
+    --success-color: #28a745;
+    --help-color: #6c757d;
+}
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--light-bg);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 5px 15px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border-color);
+    margin: 0 5px;
+}
+
+.toolbar button,
+.toolbar select {
+    padding: 0;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    height: 36px;
+    color: #333;
+}
+
+.toolbar button {
+    width: 38px;
+    line-height: 36px;
+    text-align: center;
+}
+
+.toolbar select {
+    padding: 0 8px;
+}
+
+.toolbar button:hover {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+.toolbar .icon-label {
+    font-size: 1.2em;
+    color: #555;
+    margin-right: 3px;
+    cursor: help;
+}
+
+#compile-btn {
+    width: auto;
+    padding: 0 15px;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    border-color: var(--primary-color);
+}
+
+#compile-btn:hover {
+    background-color: #0056b3;
+}
+
+#compile-btn:disabled {
+    background-color: #aaa;
+    border-color: #aaa;
+    cursor: not-allowed;
+}
+
+#compile-btn .fas {
+    margin-right: 8px;
+}
+
+#clear-cache-btn {
+    color: var(--danger-color);
+}
+
+#clear-cache-btn:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Đẩy nội dung chính lên để không bị che bởi footer */
+body {
+    padding-bottom: 40px;
+}
+
+.main-container {
+    display: flex;
+    flex-grow: 1;
+    padding: 10px;
+    gap: 10px;
+    min-height: 0;
+}
+
+.editor-pane,
+.pdf-pane {
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#editor {
+    flex: 1;
+    width: 100%;
+}
+
+.controls {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.console-header {
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.console-header:hover {
+    background-color: #d0d0d0;
+}
+
+pre#console {
+    white-space: pre-wrap;
+    max-height: 150px;
+    overflow-y: scroll;
+    background-color: var(--dark-bg);
+    color: #abb2bf;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+pre#console.collapsed {
+    display: none;
+}
+
+#pdfbox {
+    height: 100%;
+    width: 100%;
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    flex-direction: column;
+    font-size: 1.5em;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid var(--primary-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.swal2-html-container {
+    text-align: left !important;
+}
+
+.swal2-html-container h3 {
+    color: var(--primary-color);
+    margin-top: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.swal2-html-container code {
+    background-color: #e8e8e8;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.swal2-html-container ul {
+    padding-left: 20px;
+}
+
+.swal2-html-container .fa,
+.swal2-html-container .fas {
+    width: 20px;
+    text-align: center;
+    margin-right: 5px;
+}
+
+#file-manager-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.file-manager-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 5px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.file-manager-item:last-child {
+    border-bottom: none;
+}
+
+.file-manager-item .file-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.file-manager-item .file-actions button {
+    margin-left: 5px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.resizer {
+    flex: 0 0 10px;
+    cursor: col-resize;
+    background-color: #e0e0e0;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.resizer:hover {
+    background-color: var(--primary-color);
+    opacity: 0.5;
+}
+
+.resizer::after {
+    content: '⋮';
+    font-size: 1.2em;
+    color: #555;
+}
+
+body.is-resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+body.is-resizing .editor-pane,
+body.is-resizing .pdf-pane,
+body.is-resizing iframe {
+    pointer-events: none;
+}
+
+.footer-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border-top: 1px solid var(--border-color);
+    z-index: 1000;
+    transition: all 0.3s ease-in-out;
+}
+
+.footer-handle {
+    height: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    cursor: pointer;
+    background-color: #f7f7f7;
+}
+
+.footer-handle:hover {
+    background-color: #efefef;
+}
+
+.footer-handle span {
+    font-weight: bold;
+    color: #555;
+}
+
+.footer-handle button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.3s;
+}
+
+.footer-content {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 15px;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+    border-top: 1px solid transparent;
+}
+
+.footer-panel.is-open .footer-content {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 15px;
+    border-top-color: var(--border-color);
+}
+
+.footer-panel.is-open .footer-handle button i {
+    transform: rotate(180deg);
+}
+
+.helper-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.helper-group:last-child {
+    margin-bottom: 0;
+}
+
+.helper-group-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    min-width: 100px;
+}
+
+.helper-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.helper-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: #0056b3;
+}
+/* === CSS MỚI THÊM CHO CÁC NÚT NÂNG CẤP === */
+#author-info-btn { 
+    color: var(--secondary-color); /* Màu icon lúc bình thường */
+}
+
+#author-info-btn:hover { 
+    background-color: var(--secondary-color); /* Màu nền khi rê chuột vào */
+    color: white; /* Màu icon khi rê chuột vào */
+}
+
+/* Định dạng cho các icon trong popup thông tin */
+.swal2-html-container .fab { 
+    width: 20px; 
+    text-align: center; 
+    margin-right: 5px; 
+}
+
+/* ================================================= */
+/* ===  MÃ CSS THÊM VÀO ĐỂ TÔ MÀU CHO ICON TOOLBAR === */
+/* ================================================= */
+
+/* Hiệu ứng chuyển màu mượt mà khi hover */
+.toolbar i {
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* 1. Nút Hướng dẫn (Màu xanh dương) */
+#show-help-btn i.fa-question-circle {
+    color: #3498db;
+}
+
+/* 2. Nhóm quản lý file */
+#file-manager-btn i.fa-sitemap {
+    color: #5D6D7E; /* Màu xám đá */
+}
+#zip-loader-btn i.fa-file-archive {
+    color: #27AE60; /* Màu xanh lá cây */
+}
+#download-zip-btn i.fa-download {
+    color: #2ECC71; /* Màu xanh lá cây sáng hơn */
+}
+
+/* 3. Nhóm chọn file chính và mẫu */
+.toolbar i.fa-key {
+    color: #F1C40F; /* Màu vàng */
+}
+.toolbar i.fa-magic {
+    color: #9B59B6; /* Màu tím */
+}
+
+/* 4. Nhóm công cụ phụ */
+#edit-suggestions-btn i.fa-pencil-alt {
+    color: #E67E22; /* Màu cam */
+}
+#clear-cache-btn i.fa-trash-alt {
+    color: #E74C3C; /* Màu đỏ */
+}
+#open-v2-btn i.fa-external-link-alt {
+    color: #8E44AD; /* Màu tím đậm */
+}
+
+/* 5. Nhóm bên phải */
+.toolbar i.fa-palette {
+    color: #e83e8c; /* Màu hồng */
+}
+#author-info-btn i.fa-user-circle {
+    color: #007bff; /* Màu xanh dương chuẩn */
+}
+
+/* Nút biên dịch khi ở trạng thái sẵn sàng sẽ có màu xanh */
+#compile-btn:not(:disabled) i.fa-play {
+    color: #28a745; /* Màu xanh thành công */
+}
+
+/* Thêm hiệu ứng hover để tăng tương tác */
+.toolbar button:hover i {
+    filter: brightness(1.2); /* Làm icon sáng lên một chút khi hover */
+    transform: scale(1.1); /* Phóng to icon một chút */
+}
+
+/* Riêng nút xóa cache, khi hover sẽ đậm hơn để cảnh báo */
+#clear-cache-btn:hover i.fa-trash-alt {
+    color: #c0392b; /* Màu đỏ đậm */
+    filter: none; /* Bỏ filter brightness mặc định */
+}
+/* === CSS CHO KHO SNIPPET (NÂNG CẤP MỚI) === */
+#snippet-manager-btn {
+    color: #28a745; /* Màu xanh lá cây cho icon */
+}
+#snippet-manager-btn:hover {
+    background-color: #28a745;
+    color: white;
+}
+#edit-snippets-btn {
+    color: #fd7e14; /* Màu cam cho icon */
+}
+#edit-snippets-btn:hover {
+    background-color: #fd7e14;
+    color: white;
+}
+
+/* Định dạng cho popup chứa cây menu */
+#snippet-tree-container {
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-top: 15px;
+    /* TĂNG KÍCH THƯỚC: Chiều cao tối đa là 70% chiều cao màn hình */
+    max-height: 70vh; 
+    overflow-y: auto;
+    text-align: left;
+}
+
+/* Định dạng cơ bản cho cây menu */
+.snippet-tree, .snippet-tree ul {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 0;
+}
+.snippet-tree li {
+    padding: 5px 0;
+}
+
+/* Định dạng cho thư mục */
+.snippet-folder > .snippet-folder-header {
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.snippet-folder > .snippet-folder-header:hover {
+    color: var(--primary-color);
+}
+
+/* Định dạng cho mục snippet */
+.snippet-item {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px; /* Thêm padding cho dễ click */
+    border-radius: 4px;
+}
+.snippet-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Căn chỉnh icon */
+.snippet-tree .fas {
+    margin-right: 8px;
+    width: 15px;
+    text-align: center;
+}
+.folder-toggle {
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Logic thu/mở */
+.snippet-folder > ul {
+    display: none; /* Mặc định ẩn các menu con */
+}
+.snippet-folder.is-open > ul {
+    display: block; /* Hiện menu con khi thư mục có class is-open */
+}
+.snippet-folder.is-open > .snippet-folder-header .folder-toggle {
+    transform: rotate(90deg); /* Xoay icon mũi tên */
+}
