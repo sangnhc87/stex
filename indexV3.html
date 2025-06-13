@@ -84,7 +84,7 @@
         <div class="toolbar-separator"></div>
         <div class="toolbar-group"><button id="file-manager-btn" title="Quản lý File"><i class="fas fa-sitemap"></i></button><button id="zip-loader-btn" title="Tải lên dự án .zip"><i class="fas fa-file-archive"></i></button><input type="file" id="zip-loader-input" accept=".zip" style="display: none;"><button id="download-zip-btn" title="Tải dự án về dạng .zip"><i class="fas fa-download"></i></button></div>
         <div class="toolbar-separator"></div>
-        <div class="toolbar-group"><i class="fas fa-key icon-label" title="Chọn file chính để biên dịch"></i><select id="main-file-selector"></select><i class="fas fa-magic icon-label" title="Tạo file mới từ mẫu" style="margin-left: 10px;"></i><select id="template-selector"><option value="">-- Mẫu --</option><option value="DeThi">Đề Thi</option><option value="VeHinh">Vẽ Hình</option><option value="Beamer">Beamer</option><option value="book">Sách</option></select></div>
+        <div class="toolbar-group"><i  title="Chọn file chính để biên dịch"></i><select id="main-file-selector"></select><i title="Tạo file mới từ mẫu" style="margin-left: 10px;"></i><select id="template-selector"><option value="">-- Mẫu --</option><option value="DeThi">Đề Thi</option><option value="VeHinh">Vẽ Hình</option><option value="Beamer">Beamer</option><option value="book">Sách</option></select></div>
         <div class="toolbar-separator"></div>
         <div class="toolbar-group"><button id="edit-suggestions-btn" title="Sửa gợi ý lệnh"><i class="fas fa-pencil-alt"></i></button><button id="clear-cache-btn" title="Xóa cache"><i class="fas fa-trash-alt"></i></button><button id="open-v2-btn" title="Mở Editor V2"><i class="fas fa-external-link-alt"></i></button></div>
         <div class="toolbar-group" style="margin-left: auto;"><button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button></div>
@@ -223,7 +223,7 @@ function main() {
         consoleHeader.addEventListener('click', toggleConsole);
         clearCacheBtn.addEventListener('click', clearStyCache);
         editSuggestionsBtn.addEventListener('click', () => openFileInEditor('suggestions.json'));
-        openV2Btn.addEventListener('click', () => window.open('indexV3.html', '_blank'));
+        openV2Btn.addEventListener('click', () => window.open('index.html', '_blank'));
         showHelpBtn.addEventListener('click', showHelpModal);
         downloadZipBtn.addEventListener('click', downloadProjectAsZip);
 
@@ -426,7 +426,5 @@ if (document.readyState === 'loading') { document.addEventListener('DOMContentLo
         </div>
     </div>
 </div>
-
-
 </body>
 </html>
