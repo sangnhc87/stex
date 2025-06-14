@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Modern Web LaTeX IDE</title>
+    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
+    <meta name="author" content="Nguyễn Văn Sang">
+    <!-- THÊM DÒNG NÀY VÀO -->
+    <script src="https://accounts.google.com/gsi/client" async></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="styleV3.css">
+    
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group"><button id="show-help-btn" title="Hướng dẫn sử dụng"><i class="fas fa-question-circle"></i></button></div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group"><button id="file-manager-btn" title="Quản lý File"><i class="fas fa-sitemap"></i></button><button id="zip-loader-btn" title="Tải lên dự án .zip"><i class="fas fa-file-archive"></i></button><input type="file" id="zip-loader-input" accept=".zip" style="display: none;"><button id="download-zip-btn" title="Tải dự án về dạng .zip"><i class="fas fa-download"></i></button></div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group"><i title="Chọn file chính để biên dịch"></i><select id="main-file-selector"></select><i title="Tạo file mới từ mẫu" style="margin-left: 10px;"></i><select id="template-selector"><option value="">-- Mẫu --</option><option value="DeThi">Đề Thi</option><option value="VeHinh">Vẽ Hình</option><option value="Beamer">Beamer</option><option value="book">Sách</option></select></div>
+        <div class="toolbar-separator"></div>
+        
+        <!-- === KHU VỰC SỬA LỆNH VÀ SNIPPET (ĐÃ NÂNG CẤP) === -->
+        <div class="toolbar-group">
+            <button id="snippet-manager-btn" title="Kho Snippet"><i class="fas fa-book-open"></i></button>
+            <button id="edit-snippets-btn" title="Sửa file Snippet"><i class="fas fa-feather-alt"></i></button>
+            <button id="edit-suggestions-btn" title="Sửa gợi ý lệnh"><i class="fas fa-pencil-alt"></i></button>
+            <button id="clear-cache-btn" title="Xóa cache"><i class="fas fa-trash-alt"></i></button>
+            <!-- GIỮ LẠI NÚT MỞ V2 THEO YÊU CẦU -->
+            <button id="open-v2-btn" title="Mở Editor V2"><i class="fas fa-external-link-alt"></i></button>
+            
+            <!-- Trong toolbar -->
+<button id="open-gan-id-btn" title="Gán ID cho câu hỏi"><i class="fas fa-tags"></i></button>
+        </div>
+        
+        <div class="toolbar-group" style="margin-left: auto;">
+            <i class="fas fa-palette icon-label" title="Chọn giao diện Editor"></i>
+            <select id="theme-selector">
+                <option value="monokai">Mặc Định</option>
+                <option value="github">Light</option>
+                <option value="chrome">Chrome</option>
+                <option value="dracula">Dark</option>
+                <option value="twilight">Twilight</option>
+                <option value="xcode">Xcode</option>
+            </select>
+            <div class="toolbar-separator"></div>
+            <button id="author-info-btn" title="Thông tin tác giả"><i class="fas fa-user-circle"></i></button>
+            <button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="editor-pane">
+            <div id="editor"></div>
+            <div class="controls">
+                <div id="console-header" class="console-header"><span>Console Output</span><span id="console-toggle-icon">▼</span></div>
+                <pre id="console" class="collapsed">Engine will be ready shortly...</pre>
+            </div>
+        </div>
+        <div class="resizer" id="resizer"></div>
+        <div class="pdf-pane"><div id="pdfbox"></div></div>
+    </div>
+
+    <div id="loading-overlay"><div class="spinner"></div><span id="loading-text">Compiling...</span></div>
+
+    <!-- footer-panel.html -->
+
+<div class="footer-panel" id="footer-panel">
+    <div class="footer-handle" id="footer-handle">
+        <span><i class="fas fa-tools"></i></span>
+        <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i class="fas fa-file-download"></i></button>
+         <!-- === DÁN NÚT GOOGLE DRIVE VÀO ĐÂY === -->
+        <button id="save-to-drive-btn" title="Lưu file .tex lên Google Drive">
+            <i class="fab fa-google-drive"></i>
+        </button>
+        <!-- ===================================== -->
+        <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
+    </div>
+    <div class="footer-content" id="footer-content">
+        <!-- Môi trường -->
+        <div class="helper-group">
+            <span class="helper-group-title">Môi trường:</span>
+            <button class="helper-btn" data-insert="\begin{itemize}\n\t\item \n\end{itemize}">Itemize</button>
+            <button class="helper-btn" data-insert="\begin{enumerate}\n\t\item \n\end{enumerate}">Enumerate</button>
+            <button class="helper-btn" data-insert="\begin{figure}\n\t\centering\n\t\n\t\caption{}\n\t\label{fig:}\n\end{figure}">Figure</button>
+            <button class="helper-btn" data-insert="\begin{table}\n\t\centering\n\t\caption{}\n\t\label{tab:}\n\t\begin{tabular}{cc}\n\t\t\n\t\end{tabular}\n\end{table}">Table</button>
+            <button class="helper-btn" data-insert="\begin{minipage}{0.48\textwidth}\n\t\n\end{minipage}">Minipage</button>
+            <button class="helper-btn" data-insert="\begin{center}\n\t\n\end{center}">Center</button>
+            <button class="helper-btn" data-insert="\begin{tikzpicture}\n\t\n\end{tikzpicture}">TikZ</button>
+            <button class="helper-btn" data-insert="\begin{tabular}{|c|c|}\n\t\hline\n\t & \\\n\t\hline\n\t & \\\n\t\hline\n\end{tabular}">Tabular</button>
+            <button class="helper-btn" data-insert="\begin{longtable}{|c|c|}\n\t\hline\n\t\endfirsthead\n\t\hline\n\t\endhead\n\t\hline\n\t\endfoot\n\t\hline\n\t\endlastfoot\n\t & \\\n\t\hline\n\end{longtable}">Longtable</button>
+            <button class="helper-btn" data-insert="\begin{tikzpicture}[scale=1]\n\t\draw[help lines] (-2,-2) grid (2,2);\n\t\draw[->] (-2,0) -- (2,0) node[right] {$x$};\n\t\draw[->] (0,-2) -- (0,2) node[above] {$y$};\n\end{tikzpicture}">TikZ Grid</button>
+        </div>
+        <!-- Toán học -->
+        <div class="helper-group">
+            <span class="helper-group-title">Toán học:</span>
+            <button class="helper-btn" data-insert="\dfrac{}{}">\dfrac</button>
+            <button class="helper-btn" data-insert="\sqrt{}">\sqrt</button>
+            <button class="helper-btn" data-insert="\sqrt[n]{}">\sqrt[n]{}</button>
+            <button class="helper-btn" data-insert="\sum\limits_{}^{}">∑</button>
+            <button class="helper-btn" data-insert="\displaystyle\int\limits_{}^{}">∫</button>
+            <button class="helper-btn" data-insert="\lim\limits_{x\to\infty}">lim</button>
+            <button class="helper-btn" data-insert="\infty">∞</button>
+            <button class="helper-btn" data-insert="\pm">±</button>
+            <button class="helper-btn" data-insert="\mp">∓</button>
+            <button class="helper-btn" data-insert="\div">÷</button>
+            <button class="helper-btn" data-insert="\leq">≤</button>
+            <button class="helper-btn" data-insert="\geq">≥</button>
+            <button class="helper-btn" data-insert="\neq">≠</button>
+            <button class="helper-btn" data-insert="\approx">≈</button>
+            <button class="helper-btn" data-insert="\equiv">≡</button>
+            <button class="helper-btn" data-insert="\in">∈</button>
+            <button class="helper-btn" data-insert="\notin">∉</button>
+            <button class="helper-btn" data-insert="\subset">⊂</button>
+            <button class="helper-btn" data-insert="\supset">⊃</button>
+            <button class="helper-btn" data-insert="\cup">∪</button>
+            <button class="helper-btn" data-insert="\cap">∩</button>
+            <button class="helper-btn" data-insert="\forall">∀</button>
+            <button class="helper-btn" data-insert="\exists">∃</button>
+            <button class="helper-btn" data-insert="\nexists">∄</button>
+            <button class="helper-btn" data-insert="\Rightarrow">⇒</button>
+            <button class="helper-btn" data-insert="\Leftarrow">⇐</button>
+        </div>
+        <!-- Ký Hiệu -->
+        <div class="helper-group">
+            <span class="helper-group-title">Ký Hiệu:</span>
+            <button class="helper-btn" data-insert="\mathrm{C}_{n}^{k}">C(n,k)</button>
+            <button class="helper-btn" data-insert="\mathrm{A}_{n}^{k}">A(n,k)</button>
+            <button class="helper-btn" data-insert="\mathrm{P}(A)">P(A)</button>
+            <button class="helper-btn" data-insert="\overline{x}">x̄</button>
+            <button class="helper-btn" data-insert="\widehat{x}">x̂</button>
+            <button class="helper-btn" data-insert="\tilde{x}">x̃</button>
+            <button class="helper-btn" data-insert="\widetilde{x}">x̃</button>
+            <button class="helper-btn" data-insert="\overrightarrow{x}">x⃗</button>
+            <button class="helper-btn" data-insert="\dot{x}">ẋ</button>
+            <button class="helper-btn" data-insert="\ddot{x}">ẍ</button>
+            <button class="helper-btn" data-insert="\mathbb{R}">ℝ</button>
+            <button class="helper-btn" data-insert="\mathbb{N}">ℕ</button>
+            <button class="helper-btn" data-insert="\mathbb{Z}">ℤ</button>
+            <button class="helper-btn" data-insert="\mathbb{Q}">ℚ</button>
+            <button class="helper-btn" data-insert="\mathcal{D}">𝒟</button>
+            <button class="helper-btn" data-insert="\alpha">α</button>
+            <button class="helper-btn" data-insert="\beta">β</button>
+            <button class="helper-btn" data-insert="\gamma">γ</button>
+            <button class="helper-btn" data-insert="\Delta">Δ</button>
+            <button class="helper-btn" data-insert="\epsilon">ε</button>
+            <button class="helper-btn" data-insert="\pi">π</button>
+            <button class="helper-btn" data-insert="\Omega">Ω</button>
+            <button class="helper-btn" data-insert="\phi">φ</button>
+        </div>
+    </div>
+</div>
+<!-- === DÁN HTML CỦA DIALOG VÀO ĐÂY === -->
+<div class="assign-id-modal" id="assignIdModal">
+    <header>Gán ID cho câu hỏi</header>
+    <label for="classSelect">Lớp</label>
+    <select id="classSelect">
+        <option value="0">Lớp 10</option>
+        <option value="1">Lớp 11</option>
+        <option value="2">Lớp 12</option>
+    </select>
+    <label for="subjectSelect">Môn</label>
+    <select id="subjectSelect">
+        <option value="D">Đại Số - Giải Tích</option>
+        <option value="H">Hình Học</option>
+        <option value="X">Thống Kê - Xác Suất</option>
+    </select>
+    <label for="chapterSelect">Chương</label>
+    <select id="chapterSelect"></select>
+    <label for="lessonSelect">Bài</label>
+    <select id="lessonSelect"></select>
+    <label for="typeSelect">Dạng</label>
+    <select id="typeSelect"></select>
+    <label for="levelSelect">Mức Độ</label>
+    <select id="levelSelect">
+        <option value="N">Nhận Biết</option>
+        <option value="H">Thông Hiểu</option>
+        <option value="V">Vận Dụng</option>
+        <option value="C">Vận Dụng Cao</option>
+    </select>
+    <!-- Sửa nút "Tạo & Copy" -->
+<button id="generateAndCopyBtn">
+    <i class="fas fa-bolt"></i> Tạo & Copy ID
+</button>
+
+    <!-- Ô hiển thị ID (giữ nguyên) -->
+    <div class="generated-id" id="generatedIdContainer">
+        <input type="text" id="generatedId" readonly placeholder="ID sẽ hiển thị ở đây">
+    </div>
+
+<!-- Sửa nút "Đóng" -->
+<button class="close-button" id="closeDialogBtn">
+    <i class="fas fa-times"></i> Đóng
+</button>
+</div>
+<!-- === KẾT THÚC HTML CỦA DIALOG === -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ace.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-language_tools.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-fold.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+<script src="PdfTeXEngine.js" defer></script>
+<!-- === THÊM SCRIPT CỦA BẠN VÀO ĐÂY === -->
+<script src="ganID.js" ></script>
+<script src="app4.js"></script>
+<script src="drive-integrationV2.js"></script>
+
+</body>
+</html>
