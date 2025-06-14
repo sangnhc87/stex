@@ -147,10 +147,9 @@ function initFooterPanel() {
         // === KHỞI CHẠY MODULE GOOGLE DRIVE THEO CÁCH MỚI ===
 
 if (typeof initializeDriveIntegration === 'function') {
-    // Chỉ cần gọi hàm này. Mọi việc còn lại drive-integrationV2.js sẽ tự lo.
     initializeDriveIntegration(editorEl, () => currentOpenFile);
 } else {
-    console.error("Hàm initializeDriveIntegration không được tìm thấy. Hãy kiểm tra lại thứ tự tải script trong file HTML của bạn.");
+    console.error("Hàm initializeDriveIntegration không được tìm thấy.");
 }
         // Luồng khởi tạo ứng dụng chính
         try {

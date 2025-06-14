@@ -1,71 +1,71 @@
-// drive-integrationV2.js - PHIÊN BẢN SỬA LỖI VÀ TỐI ƯU
+// drive-integrationV2.js - PHIÊN BẢN CHUẨN (KHÔNG DÙNG ONLOAD)
 
 function initializeDriveIntegration(editorInstance, getCurrentFileName) {
     // --- Cấu hình ---
-    // NHỚ THAY BẰNG CLIENT ID CỦA BẠN
     const CLIENT_ID = '445721099356-4l2r9pg4jp1n4rn82jafofjnc74p708e.apps.googleusercontent.com';
-    // API KEY không thực sự cần thiết cho Picker với OAuth, nhưng để đó cũng không sao
-    const API_KEY = 'YOUR_API_KEY_IF_YOU_HAVE_ONE'; 
-    const SCOPES = 'https://www.googleapis.com/auth/drive.file'; // Chỉ cần scope này là đủ
+    const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
     const saveToDriveBtn = document.getElementById('save-to-drive-btn');
     let tokenClient;
     let gapiInited = false;
     let gsiInited = false;
 
-    if (!saveToDriveBtn) {
-        console.error("Nút 'save-to-drive-btn' không được tìm thấy.");
-        return;
-    }
+    if (!saveToDriveBtn) return;
 
-    // Vô hiệu hóa nút lúc đầu
     saveToDriveBtn.disabled = true;
     saveToDriveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     saveToDriveBtn.title = "Đang khởi tạo dịch vụ Google...";
     saveToDriveBtn.addEventListener('click', handleAuthClick);
     
-    // --- LUỒNG KHỞI TẠO ---
-
-    // 1. Tải GAPI script (dùng cho Picker và Drive API)
-    loadGapiScript();
-
-    // 2. Script gsi/client trong HTML sẽ tự động tìm và gọi hàm này khi nó tải xong
-    window.googleApiClientReady = () => {
-        gsiInited = true;
-        // Khởi tạo token client để quản lý việc lấy token
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            callback: (tokenResponse) => {
-                // Callback này sẽ được gọi SAU KHI người dùng đăng nhập và cấp quyền
-                if (tokenResponse && tokenResponse.access_token) {
-                    // Đặt token này cho GAPI client sử dụng trong các request tiếp theo
-                    gapi.client.setToken(tokenResponse);
-                    // Sau khi có token, hiển thị Picker
-                    showPicker();
-                } else {
-                    console.error("Không nhận được token hợp lệ.", tokenResponse);
-                    Swal.fire('Lỗi xác thực', 'Không thể lấy quyền truy cập từ Google. Vui lòng thử lại.', 'error');
-                }
-            },
+    // --- LUỒNG KHỞI TẠO MỚI ---
+    
+    // Hàm này sẽ được gọi từ app4.js để bắt đầu mọi thứ
+    function startInitialization() {
+        // 1. Chờ cho đối tượng 'google' (từ gsi/client) xuất hiện
+        waitForGoogleLibrary().then(() => {
+            gsiInited = true;
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        gapi.client.setToken(tokenResponse);
+                        showPicker();
+                    } else {
+                        console.error("Không nhận được token hợp lệ.", tokenResponse);
+                        Swal.fire('Lỗi xác thực', 'Không thể lấy quyền truy cập từ Google.', 'error');
+                    }
+                },
+            });
+            checkIfReadyAndEnableButton();
         });
-        checkIfReadyAndEnableButton();
-    };
+
+        // 2. Đồng thời tải GAPI script
+        loadGapiScript();
+    }
 
     /**
-     * Tải thư viện gapi.js và khởi tạo các client cần thiết
+     * Dùng một vòng lặp để kiểm tra khi nào thư viện GSI của Google được tải xong
      */
+    function waitForGoogleLibrary() {
+        return new Promise((resolve) => {
+            const interval = setInterval(() => {
+                if (window.google && window.google.accounts) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100); // Kiểm tra mỗi 100ms
+        });
+    }
+
     function loadGapiScript() {
         const script = document.createElement('script');
         script.src = 'https://apis.google.com/js/api.js';
         script.async = true;
         script.defer = true;
         script.onload = () => {
-            // Sau khi gapi.js tải xong, tải các module client và picker
             gapi.load('client:picker', () => {
-                // Khởi tạo Drive API client
                 gapi.client.init({
-                    // apiKey: API_KEY, // không cần khi đã dùng OAuth
                     discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
                 }).then(() => {
                     gapiInited = true;
@@ -75,10 +75,7 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
         };
         document.head.appendChild(script);
     }
-
-    /**
-     * Kiểm tra xem cả GSI và GAPI đã sẵn sàng chưa, nếu rồi thì kích hoạt nút
-     */
+    
     function checkIfReadyAndEnableButton() {
         if (gapiInited && gsiInited) {
             saveToDriveBtn.disabled = false;
@@ -87,36 +84,22 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
         }
     }
 
-    /**
-     * Xử lý khi người dùng nhấn nút lưu
-     */
     function handleAuthClick(event) {
-        event.stopPropagation(); // Ngăn sự kiện nổi bọt
-        
-        // Kiểm tra xem đã có token chưa
+        event.stopPropagation();
         if (gapi.client.getToken() === null) {
-            // Nếu chưa có, yêu cầu một token mới.
-            // Popup đăng nhập sẽ hiện ra, và callback ở initTokenClient sẽ được gọi.
             tokenClient.requestAccessToken({ prompt: 'consent' });
         } else {
-            // Nếu đã có token, yêu cầu lại không cần prompt để làm mới nếu cần
-            // và sau đó hiển thị picker ngay lập tức.
-             tokenClient.requestAccessToken({ prompt: '' });
+            tokenClient.requestAccessToken({ prompt: '' });
         }
     }
     
-    /**
-     * Tạo và hiển thị Google Picker
-     */
     function showPicker() {
         const accessToken = gapi.client.getToken().access_token;
         const view = new google.picker.View(google.picker.ViewId.FOLDERS);
         view.setSelectFolderEnabled(true);
-        
         const picker = new google.picker.PickerBuilder()
             .setAppId(CLIENT_ID.split('-')[0])
             .setOAuthToken(accessToken)
-            // .setDeveloperKey(API_KEY) // không cần khi đã dùng OAuth
             .addView(view)
             .setTitle("Chọn thư mục để lưu file")
             .setCallback(pickerCallback)
@@ -124,10 +107,6 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
         picker.setVisible(true);
     }
 
-    /**
-     * Xử lý kết quả trả về từ Picker
-     * @param {object} data 
-     */
     function pickerCallback(data) {
         if (data.action === google.picker.Action.PICKED) {
             const folder = data.docs[0];
@@ -136,47 +115,33 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
         }
     }
 
-    /**
-     * Tải file hiện tại lên thư mục đã chọn trên Google Drive
-     * @param {string} parentFolderId
-     */
     async function uploadCurrentFileToDrive(parentFolderId) {
+        // (Phần này giữ nguyên, không cần thay đổi)
         const fileName = getCurrentFileName() || 'untitled.tex';
         const fileContent = editorInstance.getValue();
-
         if (!fileContent.trim()) {
             Swal.fire('Tệp rỗng', 'Không có nội dung để lưu.', 'warning');
             return;
         }
-        
         Swal.fire({
             title: 'Đang lưu lên Google Drive...',
             allowOutsideClick: false,
             didOpen: () => { Swal.showLoading(); }
         });
-
         try {
-            // Kiểm tra xem file đã tồn tại chưa
             const searchResponse = await gapi.client.drive.files.list({
                 q: `'${parentFolderId}' in parents and name='${fileName}' and trashed=false`,
                 fields: 'files(id)'
             });
-
-            const metadata = { 
-                'name': fileName, 
-                'mimeType': 'text/x-tex',
-            };
-            
+            const metadata = { 'name': fileName, 'mimeType': 'text/x-tex' };
             let fileId = null;
             if (searchResponse.result.files && searchResponse.result.files.length > 0) {
                 fileId = searchResponse.result.files[0].id;
             } else {
                  metadata.parents = [parentFolderId];
             }
-            
             const boundary = '-------314159265358979323846';
             const multipartRequestBody = createMultipartRequestBody(boundary, metadata, fileContent);
-            
             const requestParams = {
                 path: fileId ? `/upload/drive/v3/files/${fileId}` : '/upload/drive/v3/files',
                 method: fileId ? 'PATCH' : 'POST',
@@ -184,10 +149,8 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
                 headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` },
                 body: multipartRequestBody
             };
-            
             const response = await gapi.client.request(requestParams);
             const file = response.result;
-            
             Swal.fire({
                 icon: 'success',
                 title: 'Thành công!',
@@ -199,9 +162,6 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
         }
     }
 
-    /**
-     * Tiện ích tạo body cho request multipart
-     */
     function createMultipartRequestBody(boundary, metadata, content) {
         const delimiter = `\r\n--${boundary}\r\n`;
         const close_delim = `\r\n--${boundary}--`;
@@ -213,4 +173,7 @@ function initializeDriveIntegration(editorInstance, getCurrentFileName) {
             content +
             close_delim;
     }
+    
+    // Bắt đầu toàn bộ quá trình
+    startInitialization();
 }
