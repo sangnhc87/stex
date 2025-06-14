@@ -6,10 +6,7 @@
     <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
     <meta name="author" content="Nguyễn Văn Sang">
     <!-- THÊM DÒNG NÀY VÀO -->
-    <script src="https://accounts.google.com/gsi/client" async></script>
-    <!-- Khi tải xong, nó sẽ tự động gọi hàm tên là 'gapiLoaded' -->
-    <script src="https://apis.google.com/js/api.js?onload=gapiLoaded" async defer></script>
-    
+    <!-- <script src="https://accounts.google.com/gsi/client" async></script> -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -39,19 +36,41 @@
         </div>
         
         <div class="toolbar-group" style="margin-left: auto;">
-            <i class="fas fa-palette icon-label" title="Chọn giao diện Editor"></i>
-            <select id="theme-selector">
-                <option value="monokai">Mặc Định</option>
-                <option value="github">Light</option>
-                <option value="chrome">Chrome</option>
-                <option value="dracula">Dark</option>
-                <option value="twilight">Twilight</option>
-                <option value="xcode">Xcode</option>
-            </select>
-            <div class="toolbar-separator"></div>
-            <button id="author-info-btn" title="Thông tin tác giả"><i class="fas fa-user-circle"></i></button>
-            <button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button>
-        </div>
+    <i class="fas fa-palette icon-label" title="Chọn giao diện Editor"></i>
+    <select id="theme-selector">
+        <option value="monokai">Mặc Định</option>
+        <option value="github">Light</option>
+        <option value="chrome">Chrome</option>
+        <option value="dracula">Dark</option>
+        <option value="twilight">Twilight</option>
+        <option value="xcode">Xcode</option>
+    </select>
+    <div class="toolbar-separator"></div>
+    <!-- KHU VỰC ĐĂNG NHẬP GOOGLE (ĐÃ SỬA ĐỔI) -->
+<div id="google-auth-container">
+    <!-- Nút "giả" của chúng ta, với icon bạn muốn -->
+    <button id="custom-google-signin-btn" title="Đăng nhập bằng Google">
+        <i class="fab fa-google" style="color: #4285F4;"></i>
+        <i class="fas fa-sign-in-alt"></i>
+    </button>
+    
+    <!-- Nút "thật" của Google, sẽ được giấu đi -->
+    <div id="google-signin-btn" style="display: none;"></div>
+
+    <!-- Thông tin người dùng sau khi đăng nhập (giữ nguyên) -->
+    <div id="user-profile" style="display: none; align-items: center; gap: 10px;">
+        <img id="user-avatar" src="" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">
+        <span id="user-name" style="font-weight: bold;"></span>
+        <button id="google-signout-btn" title="Đăng xuất" class="swal2-styled swal2-deny" style="padding: 5px 10px; margin: 0;"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+</div>
+   
+
+    <button id="author-info-btn" title="Thông tin tác giả"><i class="fas fa-user-circle"></i></button>
+    <button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button>
+    
+</div>
+        
     </div>
     
     <div class="main-container">
@@ -78,6 +97,7 @@
         <button id="save-to-drive-btn" title="Lưu file .tex lên Google Drive">
             <i class="fab fa-google-drive"></i>
         </button>
+        
         <!-- ===================================== -->
         <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
     </div>
@@ -208,7 +228,10 @@
 <script src="PdfTeXEngine.js" defer></script>
 <!-- === THÊM SCRIPT CỦA BẠN VÀO ĐÂY === -->
 <script src="ganID.js" ></script>
-<script src="drive-integration66.js"></script>
 <script src="app6.js"></script>
+<script src="drive-integration66.js"></script>
+<!-- TẢI CẢ 2 SCRIPT CỦA GOOGLE -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="onGoogleScriptLoad()"></script>
 </body>
 </html>

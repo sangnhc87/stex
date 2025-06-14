@@ -145,12 +145,9 @@ function initFooterPanel() {
         initResizer();
         initFooterPanel(); // Giữ lại theo yêu cầu
         // === KHỞI CHẠY MODULE GOOGLE DRIVE THEO CÁCH MỚI ===
-
-if (typeof initializeDriveIntegration === 'function') {
-    initializeDriveIntegration(editorEl, () => currentOpenFile);
-} else {
-    console.error("Hàm initializeDriveIntegration không được tìm thấy.");
-}
+        if (typeof initializeDriveIntegration === 'function') {
+            initializeDriveIntegration(editorEl, () => currentOpenFile);
+        }
         // Luồng khởi tạo ứng dụng chính
         try {
             await openDb();
