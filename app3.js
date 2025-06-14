@@ -50,8 +50,49 @@ function main() {
             </div><hr><p style="text-align: center; font-style: italic; line-height: 1.5;">Thật vui khi công cụ nhỏ này có thể giúp ích cho công việc của bạn.<br>Mọi sự ghi nhận và ủng hộ đều là niềm vinh hạnh đối với một người giáo viên như tôi.<br><strong>Xin trân trọng cảm ơn!</strong></p></div>`; Swal.fire({ title: '<strong>Thông tin Tác giả</strong>', icon: 'info', html: authorHTML, width: '500px', showCloseButton: true, focusConfirm: false, confirmButtonText: '<i class="fa fa-thumbs-up"></i> Tuyệt vời!', }); }
     
     // Giữ lại hàm khởi tạo footer theo yêu cầu
-    function initFooterPanel() { const footerPanel = document.getElementById('footer-panel'); const handle = document.getElementById('footer-handle'); const content = document.getElementById('footer-content'); if (!footerPanel || !handle || !content) return; handle.addEventListener('click', (e) => { if (e.target.closest('.helper-btn')) return; footerPanel.classList.toggle('is-open'); }); content.addEventListener('click', (e) => { const button = e.target.closest('.helper-btn'); if (!button) return; const textToInsert = button.dataset.insert; if (textToInsert) { editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); } }); }
+    // Thay thế hàm initFooterPanel cũ bằng hàm này
+function initFooterPanel() {
+    const footerPanel = document.getElementById('footer-panel');
+    const handle = document.getElementById('footer-handle');
+    const content = document.getElementById('footer-content');
+    const expandBtn = document.getElementById('expand-footer-btn'); // Lấy nút ghim
+    const expandIcon = expandBtn ? expandBtn.querySelector('i') : null; // Lấy icon bên trong nút
 
+    if (!footerPanel || !handle || !content || !expandBtn || !expandIcon) return;
+
+    // Sự kiện click vào tay cầm để "Ghim" hoặc "Bỏ ghim"
+    handle.addEventListener('click', (e) => {
+        // Nếu click vào một nút helper bên trong thì không làm gì cả
+        if (e.target.closest('.helper-btn')) {
+            return;
+        }
+
+        // Bật/tắt class 'is-open' để ghim/bỏ ghim
+        footerPanel.classList.toggle('is-open');
+
+        // Cập nhật icon và title của nút ghim để người dùng biết trạng thái
+        if (footerPanel.classList.contains('is-open')) {
+            expandIcon.classList.remove('fa-chevron-up');
+            expandIcon.classList.add('fa-thumbtack'); // Thay bằng icon ghim
+            expandBtn.title = "Bỏ ghim (để tự động ẩn)";
+        } else {
+            expandIcon.classList.remove('fa-thumbtack');
+            expandIcon.classList.add('fa-chevron-up'); // Trở về icon ban đầu
+            expandBtn.title = "Ghim lại (để luôn hiển thị)";
+        }
+    });
+
+    // Sự kiện click vào các nút helper để chèn text
+    content.addEventListener('click', (e) => {
+        const button = e.target.closest('.helper-btn');
+        if (!button) return;
+        const textToInsert = button.dataset.insert;
+        if (textToInsert) {
+            editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
+            editorEl.focus();
+        }
+    });
+}
     // === CÁC HÀM MỚI CHO KHO SNIPPET ===
     function buildTreeHtml(nodes) { let html = '<ul class="snippet-tree">'; for (const node of nodes) { if (node.type === 'folder') { html += `<li class="snippet-folder"><div class="snippet-folder-header"><i class="fas fa-caret-right folder-toggle"></i><i class="fas fa-folder"></i><span>${node.name}</span></div>${buildTreeHtml(node.children || [])}</li>`; } else if (node.type === 'snippet') { html += `<li class="snippet-item" data-content="${encodeURIComponent(node.content)}"><i class="fas fa-file-alt"></i><span>${node.name}</span></li>`; } } html += '</ul>'; return html; }
     async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', /* TĂNG CHIỀU RỘNG */ showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }

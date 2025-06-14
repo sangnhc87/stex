@@ -113,10 +113,7 @@ html {
     color: white;
 }
 
-/* Đẩy nội dung chính lên để không bị che bởi footer */
-body {
-    padding-bottom: 40px;
-}
+
 
 .main-container {
     display: flex;
@@ -317,63 +314,6 @@ body.is-resizing iframe {
     pointer-events: none;
 }
 
-.footer-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #fff;
-    border-top: 1px solid var(--border-color);
-    z-index: 1000;
-    transition: all 0.3s ease-in-out;
-}
-
-.footer-handle {
-    height: 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 15px;
-    cursor: pointer;
-    background-color: #f7f7f7;
-}
-
-.footer-handle:hover {
-    background-color: #efefef;
-}
-
-.footer-handle span {
-    font-weight: bold;
-    color: #555;
-}
-
-.footer-handle button {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 5px;
-    transition: transform 0.3s;
-}
-
-.footer-content {
-    max-height: 0;
-    overflow: hidden;
-    padding: 0 15px;
-    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
-    border-top: 1px solid transparent;
-}
-
-.footer-panel.is-open .footer-content {
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 15px;
-    border-top-color: var(--border-color);
-}
-
-.footer-panel.is-open .footer-handle button i {
-    transform: rotate(180deg);
-}
 
 .helper-group {
     display: flex;
@@ -709,4 +649,58 @@ body.is-resizing iframe {
     color: var(--secondary-hover);
     transform: none; /* Bỏ hiệu ứng nhấc lên */
     box-shadow: none;
+}
+/* === NÂNG CẤP FOOTER PANEL TỰ ĐỘNG ẨN/HIỆN === */
+
+/* Biến để dễ dàng thay đổi chiều cao của tay cầm */
+:root {
+    --footer-handle-height: 40px; /* Chiều cao phần tay cầm lộ ra khi ẩn */
+}
+
+.footer-panel {
+    position: fixed; /* Luôn nằm ở cuối màn hình */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000; /* Nằm trên các thành phần khác */
+    /* transform: translateY(100%);  */
+    /* SỬA DÒNG NÀY: Đẩy xuống, chỉ chừa lại 1px của viền trên */
+    transform: translateY(calc(100% - 1px)); 
+    
+    /* Tạo hiệu ứng trượt mượt mà */
+    transition: transform 0.3s ease-in-out;
+    
+    /* Thêm các thuộc tính nền và viền cho panel */
+    background-color: #fff;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Khi di chuột vào panel HOẶC khi panel có class 'is-open' (được ghim) */
+.footer-panel:hover,
+.footer-panel.is-open {
+    /* Đẩy nó lên để hiện ra toàn bộ */
+    transform: translateY(0);
+}
+
+/* Định dạng cho tay cầm */
+.footer-handle {
+    height: var(--footer-handle-height);
+    display: flex;
+    /* Căn giữa các icon trên tay cầm */
+    align-items: center; 
+    padding: 0 15px;
+    cursor: pointer;
+    background-color: #f7f7f7;
+}
+
+.footer-handle:hover {
+    background-color: #efefef;
+}
+
+/* Định dạng cho nội dung bên trong */
+.footer-content {
+    /* Đặt chiều cao tối đa để có thể cuộn khi nội dung quá dài */
+    max-height: 250px; 
+    overflow-y: auto;
+    padding: 15px;
 }
