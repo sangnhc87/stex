@@ -146,7 +146,7 @@ function initFooterPanel() {
         initFooterPanel(); // Giữ lại theo yêu cầu
         // === KHỞI CHẠY MODULE GOOGLE DRIVE THEO CÁCH MỚI ===
         // Đặt ở đây để đảm bảo các biến như editorEl đã được khởi tạo
-        
+       
         // Luồng khởi tạo ứng dụng chính
         try {
             await openDb();
