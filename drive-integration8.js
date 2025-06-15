@@ -126,17 +126,18 @@ async function handleSaveClick() {
  */
 function showFolderPicker() {
     const accessToken = gapi.client.getToken().access_token;
-    const appId = GOOGLE_CLIENT_ID.split('-')[0]; // App ID là phần số ở đầu của Client ID
+    const appId = GOOGLE_CLIENT_ID.split('-')[0];
 
+    // Tạo view chỉ để xem thư mục
     const view = new google.picker.View(google.picker.ViewId.FOLDERS);
-    view.setMimeTypes("application/vnd.google-apps.folder"); // Chỉ cho phép chọn thư mục
-    view.setSelectFolderEnabled(true); // Đảm bảo nút "Select" hiện ra cho thư mục
+    view.setMimeTypes("application/vnd.google-apps.folder");
 
     const picker = new google.picker.PickerBuilder()
         .enableFeature(google.picker.Feature.NAV_HIDDEN)
+        // DÙNG HÀM setViewId() ĐỂ CHỈ ĐỊNH CHẾ ĐỘ CHỌN THƯ MỤC
+        .addView(google.picker.ViewId.FOLDERS) // <--- THAY ĐỔI 1: Chỉ định chế độ xem thư mục
         .setAppId(appId)
         .setOAuthToken(accessToken)
-        .addView(view)
         .setTitle("Chọn thư mục để lưu file LaTeX")
         .setCallback(pickerCallback)
         .build();
