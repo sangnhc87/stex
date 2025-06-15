@@ -1,3 +1,11 @@
+/**
+ * ====================================================================
+ *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 6.0 (FINAL - Dùng TokenClient)
+ * ====================================================================
+ * Đây là phiên bản cuối cùng, sử dụng phương pháp initTokenClient ổn định nhất
+ * để giải quyết vấn đề pop-up sau khi reload trang.
+ */
+
 // --- KHAI BÁO BIẾN & CẤU HÌNH TOÀN CỤC ---
 const GOOGLE_CLIENT_ID = '445721099356-4l2r9pg4jp1n4rn82jafofjnc74p708e.apps.googleusercontent.com';
 const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive';
@@ -12,9 +20,9 @@ const AUTHORIZED_EMAILS = [
 let gapiReady = false;
 let pickerApiReady = false;
 let userProfile = null;
+let tokenClient;
 let editorInstanceRef; 
 let getCurrentFileNameRef;
-let oauthToken; 
 
 let selectedDriveFolder = { id: null, name: null };
 
@@ -27,16 +35,16 @@ function updateUIOnLogin(profile) {
     const userAvatarImg = document.getElementById('user-avatar');
     const userNameSpan = document.getElementById('user-name');
     const saveToDriveBtn = document.getElementById('save-to-drive-btn');
+    const changeFolderBtn = document.getElementById('change-drive-folder-btn');
 
     if (signInBtnContainer) signInBtnContainer.style.display = 'none';
     if (userProfileDiv) userProfileDiv.style.display = 'flex';
     if (userAvatarImg) userAvatarImg.src = profile.picture;
     if (userNameSpan) userNameSpan.textContent = profile.given_name || profile.name;
     
-    if (saveToDriveBtn) {
-        saveToDriveBtn.disabled = false;
-        saveToDriveBtn.title = "Lưu file .tex lên Google Drive";
-    }
+    if (saveToDriveBtn) saveToDriveBtn.disabled = false;
+    if (changeFolderBtn) changeFolderBtn.disabled = false;
+    
     loadSelectedFolder();
 }
 
@@ -45,14 +53,14 @@ function updateUIOnLogout() {
     const signInBtnContainer = document.getElementById('google-signin-btn');
     const userProfileDiv = document.getElementById('user-profile');
     const saveToDriveBtn = document.getElementById('save-to-drive-btn');
+    const changeFolderBtn = document.getElementById('change-drive-folder-btn');
 
     if (signInBtnContainer) signInBtnContainer.style.display = 'block';
     if (userProfileDiv) userProfileDiv.style.display = 'none';
     
-    if (saveToDriveBtn) {
-        saveToDriveBtn.disabled = true;
-        saveToDriveBtn.title = "Vui lòng đăng nhập để lưu";
-    }
+    if (saveToDriveBtn) saveToDriveBtn.disabled = true;
+    if (changeFolderBtn) changeFolderBtn.disabled = true;
+    
     updateFolderDisplay(null);
 }
 
@@ -61,11 +69,8 @@ function updateFolderDisplay(folder) {
     if (!changeFolderBtn) return;
     if (folder && folder.name) {
         changeFolderBtn.title = `Đang lưu vào: ${folder.name}\n(Nhấn để đổi)`;
-        // Optional: thêm text vào nút để rõ hơn
-        // changeFolderBtn.innerHTML = `<i class="fas fa-folder-open"></i> <span style="font-size: 0.7em; margin-left: 5px;">${folder.name}</span>`;
     } else {
         changeFolderBtn.title = 'Thay đổi thư mục lưu trên Drive';
-        // changeFolderBtn.innerHTML = `<i class="fas fa-folder-open"></i>`;
     }
 }
 
@@ -90,7 +95,6 @@ function handleSignInResponse(response) {
         console.log(`Access GRANTED for ${userEmail}.`);
         updateUIOnLogin(profile);
     } else {
-        console.warn(`Access DENIED for ${userEmail}.`);
         Swal.fire({ icon: 'error', title: 'Truy cập bị từ chối', html: `Tài khoản <strong>${profile.email}</strong> không có quyền truy cập.` });
         handleSignOut();
     }
@@ -100,7 +104,9 @@ function handleSignOut() {
     if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
     const token = gapi.client.getToken();
     if (token) {
-        google.accounts.oauth2.revoke(token.access_token, () => { console.log('Access token revoked.') });
+        google.accounts.oauth2.revoke(token.access_token, () => {
+            console.log('Access token revoked.');
+        });
         gapi.client.setToken(null);
     }
     localStorage.removeItem('latexEditor_driveFolder');
@@ -112,69 +118,59 @@ async function handleSaveClick() {
         Swal.fire('Chưa đăng nhập', 'Vui lòng đăng nhập trước khi lưu.', 'info');
         return;
     }
-    google.accounts.oauth2.requestImplicitGrant({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GOOGLE_API_SCOPES,
-        hint: userProfile.email,
-        prompt: ''
-    })
-    .then(async (tokenResponse) => {
-        if (tokenResponse.error) throw tokenResponse;
-        oauthToken = tokenResponse;
-        gapi.client.setToken(oauthToken);
+    tokenClient.callback = async (resp) => {
+        if (resp.error) {
+            Swal.fire('Lỗi', `Không thể lấy quyền truy cập Google Drive. Chi tiết: ${resp.error}`, 'error');
+            return;
+        }
         await uploadCurrentFileToDrive();
-    })
-    .catch((err) => {
-        console.error("Implicit Grant Error:", err);
-        Swal.fire('Lỗi cấp quyền', `Không thể lấy quyền truy cập Google Drive. Chi tiết: ${err.error_description || err.error || 'Unknown error.'}`, 'error');
-    });
+    };
+    if (gapi.client.getToken() === null) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+        tokenClient.requestAccessToken({ prompt: '' });
+    }
 }
 
 // --- CÁC HÀM LÀM VIỆC VỚI GOOGLE PICKER ---
 
 function handleChangeFolderClick() {
-    if (!gapiReady || !pickerApiReady) {
-        Swal.fire('Vui lòng đợi', 'Dịch vụ chọn thư mục chưa sẵn sàng. Xin thử lại sau giây lát.', 'warning');
+    if (!pickerApiReady) {
+        Swal.fire('Vui lòng đợi', 'Dịch vụ chọn thư mục chưa sẵn sàng.', 'warning');
         return;
     }
-    // Cần có token trước khi mở Picker
     if (!gapi.client.getToken()) {
         Swal.fire({
             title: 'Cần cấp quyền',
-            text: 'Bạn cần cấp quyền truy cập Drive trước khi có thể chọn thư mục.',
+            text: 'Bạn cần cấp quyền truy cập Drive trước khi chọn thư mục.',
             icon: 'info',
             showCancelButton: true,
             confirmButtonText: 'Cấp quyền ngay'
         }).then(result => {
             if (result.isConfirmed) {
-                google.accounts.oauth2.requestImplicitGrant({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: GOOGLE_API_SCOPES,
-                    hint: userProfile.email,
-                    prompt: 'consent'
-                }).then(tokenResponse => {
-                    if (tokenResponse.error) throw tokenResponse;
-                    oauthToken = tokenResponse;
-                    gapi.client.setToken(oauthToken);
-                    createPicker(); // Mở picker sau khi có token
-                }).catch(err => {
-                     Swal.fire('Lỗi', `Không thể lấy quyền truy cập: ${err.error_description || err.error}`, 'error');
-                });
+                tokenClient.callback = (resp) => {
+                    if (!resp.error) createPicker();
+                };
+                tokenClient.requestAccessToken({ prompt: 'consent' });
             }
         });
     } else {
-         oauthToken = gapi.client.getToken();
-         createPicker();
+        createPicker();
     }
 }
 
 function createPicker() {
+    const token = gapi.client.getToken();
+    if (!token) {
+        console.error("Không thể mở Picker vì không có token.");
+        return;
+    }
     const view = new google.picker.View(google.picker.ViewId.FOLDERS)
         .setMimeTypes('application/vnd.google-apps.folder');
     const picker = new google.picker.PickerBuilder()
         .enableFeature(google.picker.Feature.NAV_HIDDEN)
         .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
-        .setOAuthToken(oauthToken.access_token)
+        .setOAuthToken(token.access_token)
         .addView(view)
         .setCallback(pickerCallback)
         .build();
@@ -187,7 +183,6 @@ function pickerCallback(data) {
         selectedDriveFolder = { id: folder.id, name: folder.name };
         localStorage.setItem('latexEditor_driveFolder', JSON.stringify(selectedDriveFolder));
         updateFolderDisplay(selectedDriveFolder);
-        console.log(`Người dùng đã chọn thư mục: ${folder.name} (ID: ${folder.id})`);
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Sẽ lưu vào: ${folder.name}`, showConfirmButton: false, timer: 2500 });
     }
 }
@@ -250,8 +245,24 @@ function onGoogleScriptLoad() {
         gapiReady = true;
         pickerApiReady = true;
         console.log("GAPI client and Picker API are ready.");
-        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleSignInResponse, auto_select: true });
-        google.accounts.id.renderButton(document.getElementById('google-signin-btn'), { theme: "outline", size: "large" });
+
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_API_SCOPES,
+            callback: ''
+        });
+
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleSignInResponse,
+            auto_select: true
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById('google-signin-btn'),
+            { theme: "outline", size: "large" }
+        );
+
         google.accounts.id.prompt();
     });
 }
@@ -265,5 +276,9 @@ function initializeDriveIntegration(editor, getCurrentFileName) {
     if (saveToDriveBtn) saveToDriveBtn.addEventListener('click', handleSaveClick);
     const changeFolderBtn = document.getElementById('change-drive-folder-btn');
     if (changeFolderBtn) changeFolderBtn.addEventListener('click', handleChangeFolderClick);
+    
+    if (saveToDriveBtn) saveToDriveBtn.disabled = true;
+    if (changeFolderBtn) changeFolderBtn.disabled = true;
+
     console.log("Drive Integration Module Initialized.");
 }
