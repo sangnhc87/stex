@@ -1,11 +1,8 @@
 /**
  * ====================================================================
- *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 4.1 (Tuân thủ chính sách Pop-up)
+ *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 4.0 (Chống Reload)
  * ====================================================================
- * Thay đổi chính:
- * - Không tự động xin quyền truy cập Drive sau khi đăng nhập để tránh bị trình duyệt chặn pop-up.
- * - Chỉ xin quyền truy cập Drive khi người dùng thực sự nhấn nút "Lưu vào Drive" lần đầu tiên.
- *   Điều này đảm bảo pop-up được mở ra bởi hành động trực tiếp của người dùng.
+ * Đây là phiên bản tối ưu để giải quyết vấn đề pop-up sau khi reload trang.
  */
 
 // --- KHAI BÁO BIẾN & CẤU HÌNH TOÀN CỤC ---
@@ -59,6 +56,9 @@ function updateUIOnLogout() {
 
 // --- CÁC HÀM TƯƠNG TÁC VỚI GOOGLE API ---
 
+/**
+ * Xử lý thông tin trả về sau khi đăng nhập thành công.
+ */
 function handleSignInResponse(response) {
     const userProfile = parseJwt(response.credential);
     if (!userProfile || !userProfile.email) {
@@ -69,7 +69,11 @@ function handleSignInResponse(response) {
     if (AUTHORIZED_EMAILS.includes(userEmail)) {
         console.log(`Access GRANTED for ${userEmail}.`);
         updateUIOnLogin(userProfile);
-        // BỎ VIỆC TỰ ĐỘNG XIN QUYỀN Ở ĐÂY
+        
+        // *** LOGIC QUAN TRỌNG NHẤT ĐỂ CHỐNG RELOAD ***
+        // Ngay sau khi đăng nhập thành công, ta tự động và âm thầm xin quyền truy cập Drive.
+        console.log("Silently requesting Drive access token...");
+        tokenClient.requestAccessToken({ prompt: '' });
     } else {
         console.warn(`Access DENIED for ${userEmail}.`);
         Swal.fire({ icon: 'error', title: 'Truy cập bị từ chối', html: `Tài khoản <strong>${userProfile.email}</strong> không có quyền truy cập.` });
@@ -77,43 +81,47 @@ function handleSignInResponse(response) {
     }
 }
 
+/**
+ * Xử lý đăng xuất, thu hồi token.
+ */
 function handleSignOut() {
     if (typeof google !== 'undefined') {
         google.accounts.id.disableAutoSelect();
     }
     const token = gapi.client.getToken();
     if (token) {
-        google.accounts.oauth2.revoke(token.access_token, () => { console.log('Access token revoked.') });
+        google.accounts.oauth2.revoke(token.access_token, () => {
+            console.log('Access token revoked.');
+        });
         gapi.client.setToken(null);
     }
     updateUIOnLogout();
 }
 
 /**
- * Hàm này được gọi khi nhấn "Lưu vào Drive".
- * Đây là nơi duy nhất chúng ta sẽ xin quyền truy cập Drive nếu cần.
+ * Hàm được gọi khi nhấn "Lưu vào Drive".
  */
 async function handleSaveClick() {
     if (gapi.client.getToken()) {
-        // Nếu đã có token, upload ngay
         await uploadCurrentFileToDrive();
     } else {
-        // Nếu chưa có token, yêu cầu quyền.
-        // Vì hành động này xuất phát từ một cú click của người dùng, trình duyệt sẽ cho phép pop-up.
-        tokenClient.callback = async (resp) => {
-            if (resp.error) {
-                Swal.fire('Lỗi', `Không thể lấy quyền truy cập Google Drive. Chi tiết: ${resp.error}`, 'error');
-                return;
+        // Trường hợp này rất hiếm, chỉ xảy ra khi việc tự động xin quyền bị lỗi.
+        Swal.fire({
+            title: 'Cần cấp quyền truy cập',
+            text: 'Bạn cần cấp quyền cho ứng dụng để lưu file vào Google Drive. Một cửa sổ sẽ hiện ra.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Cấp quyền'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Yêu cầu quyền một cách tường minh, người dùng sẽ thấy pop-up.
+                tokenClient.requestAccessToken({ prompt: 'consent' });
             }
-            // Sau khi có token, upload file
-            await uploadCurrentFileToDrive();
-        };
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
     }
 }
 
-
-// --- CÁC HÀM LÀM VIỆC VỚI GOOGLE DRIVE (Giữ nguyên) ---
+// --- CÁC HÀM LÀM VIỆC VỚI GOOGLE DRIVE ---
 async function getOrCreateFolderId() { /* ... */ }
 async function uploadCurrentFileToDrive() { /* ... */ }
 function parseJwt(token) { /* ... */ }
@@ -130,7 +138,20 @@ function onGoogleScriptLoad() {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
             scope: GOOGLE_API_SCOPES,
-            callback: ''
+            prompt: '', 
+            callback: (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error("Token Error:", tokenResponse);
+                } else {
+                    console.log("Access Token granted/refreshed.");
+                    // Nếu callback này được gọi sau một hành động tường minh (như trong handleSaveClick),
+                    // chúng ta có thể gọi lại hàm upload ở đây.
+                    if (gapi.client.getToken()) {
+                        // Kiểm tra xem có cần upload ngay không, ví dụ, đặt một flag.
+                        // For now, just log it. The user will click save again.
+                    }
+                }
+            },
         });
 
         google.accounts.id.initialize({
@@ -161,6 +182,7 @@ function initializeDriveIntegration(editor, getCurrentFileName) {
     }
     console.log("Drive Integration Module Initialized.");
 }
+
 
 // === DÁN LẠI CÁC HÀM ĐÃ BỊ LƯỢC BỎ ĐỂ CODE ĐẦY ĐỦ ===
 async function getOrCreateFolderId(){const searchResponse=await gapi.client.drive.files.list({q:`mimeType='application/vnd.google-apps.folder' and name='${GOOGLE_DRIVE_FOLDER_NAME}' and trashed=false`,fields:'files(id)'});if(searchResponse.result.files&&searchResponse.result.files.length>0){return searchResponse.result.files[0].id}const createResponse=await gapi.client.drive.files.create({resource:{name:GOOGLE_DRIVE_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'},fields:'id'});return createResponse.result.id}async function uploadCurrentFileToDrive(){const fileName=getCurrentFileNameRef()||'untitled.tex';const fileContent=editorInstanceRef.getValue();if(!fileContent.trim()){Swal.fire({icon:'warning',title:'Tệp rỗng',text:'Không có nội dung để lưu.'});return}Swal.fire({title:'Đang lưu lên Google Drive...',text:`Đang chuẩn bị tải lên tệp ${fileName}`,allowOutsideClick:false,didOpen:()=>Swal.showLoading()});try{if(!gapiReady)throw new Error("GAPI client is not ready yet.");const folderId=await getOrCreateFolderId();Swal.update({text:`Đang tải tệp ${fileName} vào thư mục '${GOOGLE_DRIVE_FOLDER_NAME}'...`});const metadata={name:fileName,mimeType:'text/x-tex',parents:[folderId]};const boundary='-------314159265358979323846';const delimiter=`\r\n--${boundary}\r\n`;const close_delim=`\r\n--${boundary}--`;const multipartRequestBody=`${delimiter}Content-Type: application/json\r\n\r\n${JSON.stringify(metadata)}${delimiter}Content-Type: text/plain\r\n\r\n${fileContent}${close_delim}`;const response=await gapi.client.request({path:'/upload/drive/v3/files',method:'POST',params:{uploadType:'multipart'},headers:{'Content-Type':`multipart/related; boundary="${boundary}"`},body:multipartRequestBody});Swal.fire({icon:'success',title:'Thành công!',html:`Đã lưu tệp <strong>${response.result.name}</strong>. <br><br> <a href="https://drive.google.com/file/d/${response.result.id}/view" target="_blank" class="swal2-confirm swal2-styled">Mở trên Drive</a>`,showConfirmButton:false,timer:5000})}catch(err){console.error("Error uploading file to Drive:",err);Swal.fire('Tải lên thất bại',`Chi tiết: ${err.result?.error?.message||err.message||'Lỗi không xác định.'}`,'error')}}function parseJwt(token){try{const base64Url=token.split('.')[1];const base64=base64Url.replace(/-/g,'+').replace(/_/g,'/');const jsonPayload=decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));return JSON.parse(jsonPayload)}catch(e){console.error("Error decoding JWT:",e);return null}}
