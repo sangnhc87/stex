@@ -1,17 +1,17 @@
 /**
  * ====================================================================
- *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 9.0 (FINAL)
+ *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 11.1 (FULL CODE)
  * ====================================================================
- * - Phiên bản hoàn chỉnh và ổn định nhất, gộp chức năng Lưu và Tải.
- * - Lưu file: Cho phép chọn thư mục và hỏi để ghi đè nếu file đã tồn tại.
- * - Tải file: Cho phép chọn file .tex từ toàn bộ Drive.
- * - Yêu cầu cấu hình đầy đủ: Bật API, Scope, Origin và Header COOP.
+ * - Phiên bản hoàn chỉnh 100%, không lược bỏ.
+ * - Tải file: Bắt đầu từ chế độ xem thư mục, cho phép duyệt cây thư mục.
+ * - Lưu file: Cho phép tạo thư mục mới ngay trong cửa sổ chọn nơi lưu.
+ * - Cải thiện trải nghiệm người dùng khi tương tác với Drive.
  */
 
 // --- KHAI BÁO BIẾN & CẤU HÌNH TOÀN CỤC ---
 const GOOGLE_CLIENT_ID = '445721099356-4l2r9pg4jp1n4rn82jafofjnc74p708e.apps.googleusercontent.com';
-const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive'; // Quyền truy cập đầy đủ
-const AUTHORIZED_EMAILS = ['nguyensangnhc@gmail.com']; // Cập nhật email của bạn ở đây
+const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive';
+const AUTHORIZED_EMAILS = ['nguyensangnhc@gmail.com']; // Cập nhật email của bạn tại đây
 
 let gapiReady = false;
 let pickerApiLoaded = false;
@@ -51,7 +51,7 @@ function updateUIOnLogout() {
     }
 }
 
-// --- LOGIC CHÍNH ---
+// --- LOGIC CHÍNH: HIỂN THỊ MENU LỰA CHỌN ---
 async function handleDriveActionClick() {
     if (!gapi.client.getToken() || !pickerApiLoaded) {
         return Swal.fire('Vui lòng đợi', 'Chức năng Google Drive chưa sẵn sàng hoặc bạn chưa đăng nhập.', 'warning');
@@ -59,7 +59,6 @@ async function handleDriveActionClick() {
 
     const { value: action } = await Swal.fire({
         title: 'Google Drive',
-        text: 'Bạn muốn làm gì?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -67,7 +66,7 @@ async function handleDriveActionClick() {
         confirmButtonText: '<i class="fas fa-cloud-download-alt"></i> Tải file',
         cancelButtonText: '<i class="fas fa-save"></i> Lưu file',
     });
-    
+
     if (action) { // Người dùng chọn "Tải file"
         showFilePicker();
     } else if (action === null) { // Người dùng chọn "Lưu file"
@@ -75,7 +74,7 @@ async function handleDriveActionClick() {
     }
 }
 
-// --- LOGIC LƯU FILE ---
+// --- LOGIC LƯU FILE (NÂNG CẤP) ---
 function showFolderPicker() {
     const accessToken = gapi.client.getToken().access_token;
     const view = new google.picker.View(google.picker.ViewId.FOLDERS);
@@ -83,6 +82,7 @@ function showFolderPicker() {
         .setOAuthToken(accessToken)
         .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
         .addView(view)
+        .enableFeature(google.picker.Feature.NEW_DOCUMENT) // Cho phép tạo thư mục mới
         .setTitle("Chọn thư mục để lưu")
         .setCallback(savePickerCallback)
         .build();
@@ -93,70 +93,72 @@ async function savePickerCallback(data) {
     if (data.action === google.picker.Action.PICKED) {
         const folderId = data.docs[0].id;
         const currentFileName = getCurrentFileNameRef() || 'untitled.tex';
-
-        const { value: newFileName } = await Swal.fire({
+        const { value: fileName } = await Swal.fire({
             title: 'Đặt tên file để lưu',
             input: 'text',
             inputValue: currentFileName,
             showCancelButton: true,
             confirmButtonText: 'Lưu',
-            inputValidator: value => !value || !value.trim() ? 'Tên file không được để trống!' : null
+            inputValidator: v => !v || !v.trim() ? 'Tên file không được để trống!' : null
         });
-        if (newFileName) await uploadFileToDrive(folderId, newFileName.trim());
+        if (fileName) await uploadFileToDrive(folderId, fileName.trim());
     }
 }
 
 async function uploadFileToDrive(folderId, fileName) {
     const fileContent = editorInstanceRef.getValue();
-    if (!fileContent.trim()) return Swal.fire({ icon: 'warning', title: 'Tệp rỗng', text: 'Không có nội dung để lưu.' });
+    if (!fileContent.trim()) return Swal.fire({ icon: 'warning', title: 'Tệp rỗng' });
 
-    Swal.fire({ title: 'Đang xử lý...', text: `Kiểm tra file trên Drive...`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const query = `'${folderId}' in parents and name='${fileName}' and trashed=false`;
-        const existingFileResponse = await gapi.client.drive.files.list({ q: query, fields: 'files(id)' });
+        const { result } = await gapi.client.drive.files.list({ q: query, fields: 'files(id)' });
         
         let fileIdToUpdate = null;
-        if (existingFileResponse.result.files && existingFileResponse.result.files.length > 0) {
-            fileIdToUpdate = existingFileResponse.result.files[0].id;
-            const result = await Swal.fire({
-                title: 'File đã tồn tại', text: `File "${fileName}" đã có. Bạn có muốn ghi đè lên nó không?`,
-                icon: 'warning', showCancelButton: true, confirmButtonText: 'Ghi đè', cancelButtonText: 'Hủy'
+        if (result.files && result.files.length > 0) {
+            fileIdToUpdate = result.files[0].id;
+            const res = await Swal.fire({
+                title: 'File đã tồn tại', text: `Ghi đè lên file "${fileName}"?`,
+                icon: 'warning', showCancelButton: true, confirmButtonText: 'Ghi đè'
             });
-            if (!result.isConfirmed) {
-                Swal.fire('Đã hủy', 'Hành động lưu file đã bị hủy.', 'info');
-                return;
-            }
+            if (!res.isConfirmed) return Swal.fire('Đã hủy', '', 'info');
         }
-        
-        Swal.update({ title: 'Đang lưu...', text: fileIdToUpdate ? `Đang ghi đè file ${fileName}...` : `Đang tạo file mới ${fileName}...`});
 
-        const metadata = { name: fileName, mimeType: 'text/x-tex', parents: fileIdToUpdate ? undefined : [folderId] };
-        const boundary = '-------314159265358979323846';
+        Swal.update({ text: fileIdToUpdate ? `Đang ghi đè file...` : `Đang tạo file mới...` });
+        
+        const metadata = { name: fileName, mimeType: 'text/x-tex' };
+        if (!fileIdToUpdate) metadata.parents = [folderId];
+        
+        const boundary = 'b' + Date.now();
         const delimiter = `\r\n--${boundary}\r\n`;
         const close_delim = `\r\n--${boundary}--`;
         
-        const path = fileIdToUpdate ? `/upload/drive/v3/files/${fileIdToUpdate}?uploadType=multipart` : '/upload/drive/v3/files?uploadType=multipart';
+        const path = fileIdToUpdate ? `/upload/drive/v3/files/${fileIdToUpdate}` : '/upload/drive/v3/files';
         const method = fileIdToUpdate ? 'PATCH' : 'POST';
         
-        const multipartRequestBody = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}${delimiter}Content-Type: text/plain; charset=UTF-8\r\n\r\n${fileContent}${close_delim}`;
+        const body = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}${delimiter}Content-Type: text/plain; charset=UTF-8\r\n\r\n${fileContent}${close_delim}`;
         
-        const response = await gapi.client.request({ path, method, body: multipartRequestBody, headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` } });
+        const response = await gapi.client.request({ path, method, params: { uploadType: 'multipart' }, headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` }, body });
 
-        Swal.fire({ icon: 'success', title: 'Thành công!', html: `Đã lưu tệp <strong>${response.result.name}</strong>. <br><br> <a href="https://drive.google.com/file/d/${response.result.id}/view" target="_blank" class="swal2-confirm swal2-styled">Mở trên Drive</a>`, showConfirmButton: false, timer: 5000 });
+        Swal.fire({ icon: 'success', title: 'Thành công!', html: `Đã lưu tệp <strong>${response.result.name}</strong>.`, showConfirmButton: false, timer: 3000 });
     } catch (err) {
-        Swal.fire('Lưu file thất bại', `Chi tiết: ${err.result?.error?.message || err.message}`, 'error');
+        Swal.fire('Lưu file thất bại', err.result?.error?.message || err.message, 'error');
     }
 }
 
-// --- LOGIC TẢI FILE ---
+// --- LOGIC TẢI FILE (NÂNG CẤP) ---
 function showFilePicker() {
     const accessToken = gapi.client.getToken().access_token;
-    const view = new google.picker.View(google.picker.ViewId.DOCS);
-    view.setMimeTypes("text/x-tex,text/plain,application/x-tex");
+    const folderView = new google.picker.View(google.picker.ViewId.FOLDERS);
+    const docsView = new google.picker.View(google.picker.ViewId.DOCS);
+    docsView.setMimeTypes("text/x-tex,text/plain,application/x-tex,application/vnd.google-apps.folder");
+    docsView.setSelectFolderEnabled(true);
+
     const picker = new google.picker.PickerBuilder()
         .setOAuthToken(accessToken)
         .setAppId(GOOGLE_CLIENT_ID.split('-')[0])
-        .addView(view)
+        .addView(folderView)
+        .addView(docsView)
         .setTitle("Chọn một file .tex để tải")
         .setCallback(loadFilePickerCallback)
         .build();
@@ -166,22 +168,109 @@ function showFilePicker() {
 async function loadFilePickerCallback(data) {
     if (data.action === google.picker.Action.PICKED) {
         const file = data.docs[0];
-        Swal.fire({ title: 'Đang tải file...', text: `Đang tải nội dung từ file "${file.name}"`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        // Không cho phép chọn thư mục
+        if (file.mimeType === 'application/vnd.google-apps.folder') {
+            return Swal.fire('Lựa chọn không hợp lệ', 'Vui lòng chọn một file .tex, không phải thư mục.', 'warning');
+        }
+        Swal.fire({ title: 'Đang tải file...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         try {
             const response = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
             if (loadFileContentRef) loadFileContentRef(file.name, response.body);
-            else throw new Error("Không thể tải file vào trình soạn thảo.");
+            else throw new Error("Lỗi kết nối với trình soạn thảo.");
             Swal.close();
         } catch (err) {
-            Swal.fire('Tải file thất bại', `Chi tiết: ${err.message}`, 'error');
+            Swal.fire('Tải file thất bại', err.message, 'error');
         }
     }
 }
 
 // --- KHỞI TẠO VÀ CÁC HÀM HELPER ---
-function parseJwt(e){try{const t=e.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"),n=decodeURIComponent(atob(t).split("").map(o=>"%"+("00"+o.charCodeAt(0).toString(16)).slice(-2)).join(""));return JSON.parse(n)}catch(t){return console.error("Error decoding JWT:",t),null}}
-function handleSignInResponse(e){const t=parseJwt(e.credential);if(!t||!t.email)return void Swal.fire("Lỗi Đăng Nhập","Không thể lấy thông tin email.","error");const n=t.email.toLowerCase();AUTHORIZED_EMAILS.includes(n)?(updateUIOnLogin(t),tokenClient.requestAccessToken({prompt:""})):(Swal.fire({icon:"error",title:"Truy cập bị từ chối",html:`Tài khoản <strong>${t.email}</strong> không có quyền truy cập.`}),handleSignOut())}
-function handleSignOut(){"undefined"!=typeof google&&google.accounts&&google.accounts.id.disableAutoSelect();const e=gapi.client.getToken();e&&google.accounts.oauth2.revoke(e.access_token,()=>console.log("Access token revoked.")),gapi.client.setToken(null),updateUIOnLogout()}
-function onGoogleScriptLoad(){google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleSignInResponse,auto_select:!0}),google.accounts.id.renderButton(document.getElementById("google-signin-btn"),{theme:"outline",size:"large"}),google.accounts.id.prompt(),gapi.load("client:picker",initializeGapiClient)}
-async function initializeGapiClient(){await gapi.client.init({}),await gapi.client.load("https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"),gapiReady=!0,pickerApiLoaded=!0,console.log("GAPI Client and Picker API are ready."),tokenClient=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:GOOGLE_API_SCOPES,prompt:"",callback:e=>{e.error?console.error("Token Error:",e):console.log("Access Token granted/refreshed successfully.")}})}
-function initializeDriveIntegration(e,t,n){editorInstanceRef=e,getCurrentFileNameRef=t,loadFileContentRef=n;const o=document.getElementById("drive-action-btn");o&&o.addEventListener("click",handleDriveActionClick),document.getElementById("google-signout-btn")?.addEventListener("click",handleSignOut),updateUIOnLogout(),console.log("Drive Integration Module Initialized.")}
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64Url).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Error decoding JWT:", e);
+        return null;
+    }
+}
+
+function handleSignInResponse(response) {
+    const userProfile = parseJwt(response.credential);
+    if (!userProfile || !userProfile.email) {
+        return Swal.fire("Lỗi Đăng Nhập", "Không thể lấy thông tin email.", "error");
+    }
+    const userEmail = userProfile.email.toLowerCase();
+    if (AUTHORIZED_EMAILS.includes(userEmail)) {
+        updateUIOnLogin(userProfile);
+        tokenClient.requestAccessToken({ prompt: "" });
+    } else {
+        Swal.fire({ icon: "error", title: "Truy cập bị từ chối", html: `Tài khoản <strong>${userProfile.email}</strong> không có quyền truy cập.` });
+        handleSignOut();
+    }
+}
+
+function handleSignOut() {
+    if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.disableAutoSelect();
+    }
+    const token = gapi.client.getToken();
+    if (token) {
+        google.accounts.oauth2.revoke(token.access_token, () => console.log('Access token revoked.'));
+    }
+    gapi.client.setToken(null);
+    updateUIOnLogout();
+}
+
+function onGoogleScriptLoad() {
+    // 1. Khởi tạo GSI (Đăng nhập)
+    google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleSignInResponse,
+        auto_select: true
+    });
+    google.accounts.id.renderButton(
+        document.getElementById('google-signin-btn'),
+        { theme: "outline", size: "large" }
+    );
+    google.accounts.id.prompt();
+
+    // 2. Tải GAPI (Drive & Picker)
+    gapi.load('client:picker', initializeGapiClient);
+}
+
+async function initializeGapiClient() {
+    // 3. Khởi tạo GAPI client
+    await gapi.client.init({});
+    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+    gapiReady = true;
+    pickerApiLoaded = true;
+    console.log("GAPI Client and Picker API are ready.");
+
+    // 4. Khởi tạo Token Client (để lấy access token ngầm)
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_API_SCOPES,
+        prompt: "",
+        callback: (tokenResponse) => {
+            if (tokenResponse.error) console.error("Token Error:", tokenResponse);
+            else console.log("Access Token granted/refreshed successfully.");
+        }
+    });
+}
+
+function initializeDriveIntegration(editor, getCurrentFileName, loadFileFunc) {
+    editorInstanceRef = editor;
+    getCurrentFileNameRef = getCurrentFileName;
+    loadFileContentRef = loadFileFunc;
+
+    const driveActionBtn = document.getElementById('drive-action-btn');
+    if (driveActionBtn) driveActionBtn.addEventListener('click', handleDriveActionClick);
+    
+    const signOutBtn = document.getElementById('google-signout-btn');
+    if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
+    
+    updateUIOnLogout(); // Vô hiệu hóa nút Drive lúc đầu
+    console.log("Drive Integration Module Initialized.");
+}
