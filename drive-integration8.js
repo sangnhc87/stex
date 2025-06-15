@@ -121,24 +121,29 @@ async function handleSaveClick() {
     }
 }
 
-/**
- * Hiển thị cửa sổ chọn thư mục của Google (Google Picker).
- */
+// Dán vào file drive-integration8.js, thay thế hàm cũ
+
 function showFolderPicker() {
+    // Kiểm tra lại để chắc chắn
+    if (!gapi.client.getToken() || !gapi.client.getToken().access_token) {
+        console.error("Cannot show picker: Missing access token.");
+        Swal.fire('Lỗi', 'Không tìm thấy token xác thực. Vui lòng thử đăng nhập lại.', 'error');
+        return;
+    }
+
     const accessToken = gapi.client.getToken().access_token;
     const appId = GOOGLE_CLIENT_ID.split('-')[0];
 
-    // Tạo view chỉ để xem thư mục
+    // Tạo một view chỉ để hiển thị thư mục
     const view = new google.picker.View(google.picker.ViewId.FOLDERS);
     view.setMimeTypes("application/vnd.google-apps.folder");
 
     const picker = new google.picker.PickerBuilder()
         .enableFeature(google.picker.Feature.NAV_HIDDEN)
-        // DÙNG HÀM setViewId() ĐỂ CHỈ ĐỊNH CHẾ ĐỘ CHỌN THƯ MỤC
-        .addView(google.picker.ViewId.FOLDERS) // <--- THAY ĐỔI 1: Chỉ định chế độ xem thư mục
         .setAppId(appId)
         .setOAuthToken(accessToken)
-        .setTitle("Chọn thư mục để lưu file LaTeX")
+        .addView(view) // Sử dụng view đã tạo
+        .setTitle("Chọn thư mục để lưu file")
         .setCallback(pickerCallback)
         .build();
     picker.setVisible(true);
