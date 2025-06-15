@@ -1,4 +1,6 @@
-//<script defer>
+//<script> 
+// Bỏ defer để đảm bảo script này chạy tuần tự
+
 function main() {
     // === LẤY CÁC PHẦN TỬ DOM (ĐÃ CẬP NHẬT) ===
     const editorEl = ace.edit("editor");
@@ -24,6 +26,8 @@ function main() {
     const snippetManagerBtn = document.getElementById('snippet-manager-btn');
     const editSnippetsBtn = document.getElementById('edit-snippets-btn');
     const downloadCurrentTexBtn = document.getElementById('download-current-tex-btn');
+    const openGanIdBtn = document.getElementById('open-gan-id-btn'); // Thêm nút gán ID
+
     // === CÁC BIẾN VÀ HẰNG SỐ (ĐÃ CẬP NHẬT) ===
     const globalEn = new PdfTeXEngine();
     let mainTexFile = 'main.tex';
@@ -34,8 +38,13 @@ function main() {
     const STORE_NAME = 'StyFilesStore';
     const TEXLIVE_BASE_URL = "https://texlive2.swiftlatex.com/pdftex/";
     const TEXLIVE_VERSION = '26';
-    const TEMPLATES = { 'DeThi': `...`, 'VeHinh': `...`, 'Beamer': `...`, 'book': `...` }; 
-    const PREPACKAGED_FILES = { /* ... */ };
+    const TEMPLATES = { 
+        'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\begin{document}\n\nĐây là mẫu đề thi.\n\n\\end{document}`, 
+        'VeHinh': `\\documentclass[12pt,tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\t% Vẽ hình ở đây\n\\end{tikzpicture}\n\\end{document}`, 
+        'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`, 
+        'book': `\\documentclass{book}\n\\usepackage[utf8]{vietnam}\n\\title{Tiêu đề sách}\n\\author{Tác giả}\n\\begin{document}\n\\frontmatter\n\\maketitle\n\\mainmatter\n\\chapter{Chương 1}\n\n\\end{document}` 
+    }; 
+    const PREPACKAGED_FILES = { /* Có thể để trống hoặc thêm các file mặc định */ };
     const DEFAULT_SNIPPETS_JSON = `[ { "name": "Môi trường cơ bản", "type": "folder", "children": [ { "name": "Itemize", "type": "snippet", "content": "\\\\begin{itemize}\\n\\t\\\\item \\n\\\\end{itemize}" }, { "name": "Enumerate", "type": "snippet", "content": "\\\\begin{enumerate}\\n\\t\\\\item \\n\\\\end{enumerate}" } ] }, { "name": "Toán học", "type": "folder", "children": [ { "name": "Phân số", "type": "snippet", "content": "\\\\dfrac{$1}{$2}" } ] } ]`;
 
     // === CÁC HÀM CƠ SỞ VÀ NÂNG CAO ===
@@ -45,68 +54,112 @@ function main() {
     function getAllFilesFromDb() { return new Promise((resolve, reject) => { if (!db) return reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readonly'); const store = transaction.objectStore(STORE_NAME); const request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
     function deleteFileFromDb(name) { return new Promise((resolve, reject) => { if (!db) return reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readwrite'); const store = transaction.objectStore(STORE_NAME); const request = store.delete(name); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
     function initResizer() { const resizer = document.getElementById('resizer'); const editorPane = document.querySelector('.editor-pane'); let isResizing = false; resizer.addEventListener('mousedown', (e) => { e.preventDefault(); isResizing = true; document.body.classList.add('is-resizing'); const onMouseMove = (moveEvent) => { if (!isResizing) return; const containerRect = resizer.parentElement.getBoundingClientRect(); const newEditorWidth = moveEvent.clientX - containerRect.left; if (newEditorWidth > 200 && (containerRect.width - newEditorWidth - resizer.offsetWidth) > 200) { editorPane.style.flexBasis = `${newEditorWidth}px`; } }; const onMouseUp = () => { isResizing = false; document.body.classList.remove('is-resizing'); document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); editorEl.resize(true); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); }); }
-    async function showAuthorInfo() { let qrImageHTML = ''; try { const imageData = await getFileFromDb('QR.png'); if (imageData) { const base64String = btoa(String.fromCharCode.apply(null, imageData)); const imageSrc = `data:image/png;base64,${base64String}`; qrImageHTML = `<div style="text-align: center; margin-top: 15px; margin-bottom: 15px;"><img src="${imageSrc}" alt="Ủng Hộ Ly Cafe" style="width: 150px; height: 150px; border: 2px solid #ddd; border-radius: 8px;"></div>`; } } catch (error) { console.error("Không thể tải ảnh QR:", error); } const authorHTML = `<div style="text-align: left; font-size: 16px; line-height: 1.8;"><p><i class="fas fa-user-tie"></i><strong>Họ và tên:</strong> Nguyễn Văn Sang</p><p><i class="fas fa-briefcase"></i><strong>Chức vụ:</strong> GV THPT Nguyễn Hữu Cảnh, TP.HCM</p><p><i class="fab fa-facebook"></i><strong>Facebook:</strong> <a href="https://www.facebook.com/nguyenvan.sang.92798072/" target="_blank">Liên Hệ Góp Ý Qua Facebook</a></p>${qrImageHTML}<div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
-                <img src="QR.png" alt="Ủng Hộ Ly Cafe" style="width: 150px; height: 150px; border: 2px solid #ddd; border-radius: 8px;">
-            </div><hr><p style="text-align: center; font-style: italic; line-height: 1.5;">Thật vui khi công cụ nhỏ này có thể giúp ích cho công việc của bạn.<br>Mọi sự ghi nhận và ủng hộ đều là niềm vinh hạnh đối với một người giáo viên như tôi.<br><strong>Xin trân trọng cảm ơn!</strong></p></div>`; Swal.fire({ title: '<strong>Thông tin Tác giả</strong>', icon: 'info', html: authorHTML, width: '500px', showCloseButton: true, focusConfirm: false, confirmButtonText: '<i class="fa fa-thumbs-up"></i> Tuyệt vời!', }); }
     
-    // Giữ lại hàm khởi tạo footer theo yêu cầu
-    // Thay thế hàm initFooterPanel cũ bằng hàm này
-function initFooterPanel() {
-    const footerPanel = document.getElementById('footer-panel');
-    const handle = document.getElementById('footer-handle');
-    const content = document.getElementById('footer-content');
-    const expandBtn = document.getElementById('expand-footer-btn'); // Lấy nút ghim
-    const expandIcon = expandBtn ? expandBtn.querySelector('i') : null; // Lấy icon bên trong nút
+    async function showAuthorInfo() { 
+        let qrImageHTML = ''; 
+        try { 
+            const imageData = await getFileFromDb('QR.png'); 
+            if (imageData) { 
+                const base64String = btoa(String.fromCharCode.apply(null, imageData)); 
+                const imageSrc = `data:image/png;base64,${base64String}`; 
+                qrImageHTML = `<div style="text-align: center; margin-top: 15px; margin-bottom: 15px;"><img src="${imageSrc}" alt="Ủng Hộ Ly Cafe" style="width: 150px; height: 150px; border: 2px solid #ddd; border-radius: 8px;"></div>`; 
+            } else {
+                 qrImageHTML = `<div style="text-align: center; margin-top: 15px; margin-bottom: 15px;"><img src="QR.png" alt="Ủng Hộ Ly Cafe" style="width: 150px; height: 150px; border: 2px solid #ddd; border-radius: 8px;"></div>`;
+            }
+        } catch (error) { 
+            console.error("Không thể tải ảnh QR từ DB:", error); 
+            qrImageHTML = `<div style="text-align: center; margin-top: 15px; margin-bottom: 15px;"><img src="QR.png" alt="Ủng Hộ Ly Cafe" style="width: 150px; height: 150px; border: 2px solid #ddd; border-radius: 8px;"></div>`;
+        } 
+        const authorHTML = `<div style="text-align: left; font-size: 16px; line-height: 1.8;"><p><i class="fas fa-user-tie"></i><strong>Họ và tên:</strong> Nguyễn Văn Sang</p><p><i class="fas fa-briefcase"></i><strong>Chức vụ:</strong> GV THPT Nguyễn Hữu Cảnh, TP.HCM</p><p><i class="fab fa-facebook"></i><strong>Facebook:</strong> <a href="https://www.facebook.com/nguyenvan.sang.92798072/" target="_blank">Liên Hệ Góp Ý Qua Facebook</a></p>${qrImageHTML}<hr><p style="text-align: center; font-style: italic; line-height: 1.5;">Thật vui khi công cụ nhỏ này có thể giúp ích cho công việc của bạn.<br>Mọi sự ghi nhận và ủng hộ đều là niềm vinh hạnh đối với một người giáo viên như tôi.<br><strong>Xin trân trọng cảm ơn!</strong></p></div>`; Swal.fire({ title: '<strong>Thông tin Tác giả</strong>', icon: 'info', html: authorHTML, width: '500px', showCloseButton: true, focusConfirm: false, confirmButtonText: '<i class="fa fa-thumbs-up"></i> Tuyệt vời!', }); 
+    }
+    
+    function initFooterPanel() {
+        const footerPanel = document.getElementById('footer-panel');
+        const handle = document.getElementById('footer-handle');
+        const content = document.getElementById('footer-content');
+        const expandBtn = document.getElementById('expand-footer-btn');
+        const expandIcon = expandBtn ? expandBtn.querySelector('i') : null;
+        if (!footerPanel || !handle || !content || !expandBtn || !expandIcon) return;
+        handle.addEventListener('click', (e) => {
+            if (e.target.closest('.helper-btn') || e.target.closest('#save-to-drive-btn')) { return; }
+            footerPanel.classList.toggle('is-open');
+            if (footerPanel.classList.contains('is-open')) {
+                expandIcon.classList.remove('fa-chevron-up');
+                expandIcon.classList.add('fa-thumbtack');
+                expandBtn.title = "Bỏ ghim (để tự động ẩn)";
+            } else {
+                expandIcon.classList.remove('fa-thumbtack');
+                expandIcon.classList.add('fa-chevron-up');
+                expandBtn.title = "Ghim lại (để luôn hiển thị)";
+            }
+        });
+        content.addEventListener('click', (e) => {
+            const button = e.target.closest('.helper-btn');
+            if (!button) return;
+            const textToInsert = button.dataset.insert;
+            if (textToInsert) {
+                editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
+                editorEl.focus();
+            }
+        });
+    }
 
-    if (!footerPanel || !handle || !content || !expandBtn || !expandIcon) return;
-
-    // Sự kiện click vào tay cầm để "Ghim" hoặc "Bỏ ghim"
-    handle.addEventListener('click', (e) => {
-        // Nếu click vào một nút helper bên trong thì không làm gì cả
-        if (e.target.closest('.helper-btn')) {
-            return;
-        }
-
-        // Bật/tắt class 'is-open' để ghim/bỏ ghim
-        footerPanel.classList.toggle('is-open');
-
-        // Cập nhật icon và title của nút ghim để người dùng biết trạng thái
-        if (footerPanel.classList.contains('is-open')) {
-            expandIcon.classList.remove('fa-chevron-up');
-            expandIcon.classList.add('fa-thumbtack'); // Thay bằng icon ghim
-            expandBtn.title = "Bỏ ghim (để tự động ẩn)";
-        } else {
-            expandIcon.classList.remove('fa-thumbtack');
-            expandIcon.classList.add('fa-chevron-up'); // Trở về icon ban đầu
-            expandBtn.title = "Ghim lại (để luôn hiển thị)";
-        }
-    });
-
-    // Sự kiện click vào các nút helper để chèn text
-    content.addEventListener('click', (e) => {
-        const button = e.target.closest('.helper-btn');
-        if (!button) return;
-        const textToInsert = button.dataset.insert;
-        if (textToInsert) {
-            editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
-            editorEl.focus();
-        }
-    });
-}
-    // === CÁC HÀM MỚI CHO KHO SNIPPET ===
     function buildTreeHtml(nodes) { let html = '<ul class="snippet-tree">'; for (const node of nodes) { if (node.type === 'folder') { html += `<li class="snippet-folder"><div class="snippet-folder-header"><i class="fas fa-caret-right folder-toggle"></i><i class="fas fa-folder"></i><span>${node.name}</span></div>${buildTreeHtml(node.children || [])}</li>`; } else if (node.type === 'snippet') { html += `<li class="snippet-item" data-content="${encodeURIComponent(node.content)}"><i class="fas fa-file-alt"></i><span>${node.name}</span></li>`; } } html += '</ul>'; return html; }
-    async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', /* TĂNG CHIỀU RỘNG */ showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }
+    async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }
 
-    // === CÁC HÀM CHÍNH (ĐÃ CẬP NHẬT) ===
     async function openFileInEditor(fileName) { if (!fileName) { editorEl.setValue('Không có file để mở. Vui lòng tạo file mới.', -1); currentOpenFile = ''; return; } if (currentOpenFile && editorEl.getValue()) { const currentContent = editorEl.getValue(); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); } let fileData = await getFileFromDb(fileName); if (!fileData) { let defaultContent = ''; if (fileName === 'snippets.json') defaultContent = DEFAULT_SNIPPETS_JSON; else if (fileName === 'suggestions.json') defaultContent = '[]'; const textEncoder = new TextEncoder(); fileData = textEncoder.encode(defaultContent); await saveFileToDb(fileName, fileData); } editorEl.setValue(new TextDecoder().decode(fileData), -1); currentOpenFile = fileName; const isMainFile = Array.from(mainFileSelector.options).some(opt => opt.value === fileName); if (isMainFile) mainTexFile = fileName; if (fileName.endsWith('.json')) { editorEl.session.setMode("ace/mode/json"); compileBtn.innerHTML = `<i class="fas fa-save"></i> Save File`; } else { editorEl.session.setMode("ace/mode/latex"); compileBtn.innerHTML = isMainFile ? '<i class="fas fa-play"></i> Compile' : '<i class="fas fa-save"></i> Save File'; } }
+    
     async function compile() { 
-        if (currentOpenFile.endsWith('.json')) { const currentContent = editorEl.getValue(); try { JSON.parse(currentContent); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); 
-        if (currentOpenFile === 'suggestions.json') await loadCustomSuggestions(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}!`, showConfirmButton: false, timer: 2000 }); } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi cú pháp JSON', html: `Vui lòng sửa lỗi trước khi lưu:<br><pre style="text-align:left; background-color:#f3f3f3; padding: 5px;">${e.message}</pre>`, }); } return; } 
-        if (mainFileSelector.value !== currentOpenFile) { const currentContent = editorEl.getValue(); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}`, showConfirmButton: false, timer: 2000 }); return; } 
-        if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = `Đang biên dịch ${mainTexFile}...`; compileBtn.disabled = true; compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...'; const currentContentData = new TextEncoder().encode(editorEl.getValue()); await saveFileToDb(mainTexFile, currentContentData); globalEn.writeMemFSFile(mainTexFile, currentContentData); globalEn.setEngineMainFile(mainTexFile); const r = await globalEn.compileLaTeX(); consoleOutput.innerHTML = r.log || "No log output."; loadingOverlay.style.display = 'none'; compileBtn.disabled = false; compileBtn.innerHTML = '<i class="fas fa-play"></i>Biên Dịch'; if (r.status === 0) { const pdfblob = new Blob([r.pdf], { type: 'application/pdf' }); const objectURL = URL.createObjectURL(pdfblob); pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`; await parseLogAndCacheDependencies(r.log); } else { pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Biên dịch thất bại. Kiểm tra Console Output.</div>`; } 
+        if (currentOpenFile.endsWith('.json')) { 
+            const currentContent = editorEl.getValue(); 
+            try { 
+                JSON.parse(currentContent); 
+                const textEncoder = new TextEncoder(); 
+                await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); 
+                if (currentOpenFile === 'suggestions.json') await loadCustomSuggestions(); 
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}!`, showConfirmButton: false, timer: 2000 }); 
+            } catch (e) { 
+                Swal.fire({ icon: 'error', title: 'Lỗi cú pháp JSON', html: `Vui lòng sửa lỗi trước khi lưu:<br><pre style="text-align:left; background-color:#f3f3f3; padding: 5px;">${e.message}</pre>`, }); 
+            } 
+            return; 
+        } 
         
+        if (mainFileSelector.value !== currentOpenFile) { 
+            const currentContent = editorEl.getValue(); 
+            const textEncoder = new TextEncoder(); 
+            await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); 
+            globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); 
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}`, showConfirmButton: false, timer: 2000 }); 
+            return; 
+        } 
+        
+        if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; } 
+        loadingOverlay.style.display = 'flex'; 
+        loadingText.textContent = `Đang biên dịch ${mainTexFile}...`; 
+        compileBtn.disabled = true; 
+        compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...'; 
+        
+        const currentContentData = new TextEncoder().encode(editorEl.getValue()); 
+        await saveFileToDb(mainTexFile, currentContentData); 
+        globalEn.writeMemFSFile(mainTexFile, currentContentData); 
+        globalEn.setEngineMainFile(mainTexFile); 
+        
+        const r = await globalEn.compileLaTeX(); 
+        consoleOutput.innerHTML = r.log || "No log output."; 
+        loadingOverlay.style.display = 'none'; 
+        compileBtn.disabled = false; 
+        compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên Dịch'; 
+        
+        if (r.status === 0) { 
+            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' }); 
+            const objectURL = URL.createObjectURL(pdfblob); 
+            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`; 
+            await parseLogAndCacheDependencies(r.log); 
+        } else { 
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Biên dịch thất bại. Kiểm tra Console Output.</div>`; 
+        } 
     } 
-    // === HÀM KHỞI TẠO CHÍNH ===
+    
     async function init() {
         // Cấu hình Editor và Theme
         const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
@@ -140,14 +193,23 @@ function initFooterPanel() {
         if (editSnippetsBtn) editSnippetsBtn.addEventListener('click', () => openFileInEditor('snippets.json'));
         if (editSuggestionsBtn) editSuggestionsBtn.addEventListener('click', () => openFileInEditor('suggestions.json'));
         if (downloadCurrentTexBtn) downloadCurrentTexBtn.addEventListener('click', () => { const content = editorEl.getValue(); if (!content.trim()) return Swal.fire({icon:'warning', title:'Tệp rỗng', text:'Không có nội dung để tải về!'}); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], {type:'text/plain;charset=utf-8'})); link.download = currentOpenFile || 'current-file.tex'; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); });
+        if (openGanIdBtn) openGanIdBtn.addEventListener('click', () => {
+             if (typeof openAssignIdDialog === 'function') {
+                 openAssignIdDialog();
+             } else {
+                 console.error('Hàm gán ID không tồn tại');
+             }
+        });
 
         // Khởi tạo các thành phần giao diện
         initResizer();
-        initFooterPanel(); // Giữ lại theo yêu cầu
-        // === KHỞI CHẠY MODULE GOOGLE DRIVE THEO CÁCH MỚI ===
+        initFooterPanel();
+
+        // === KHỞI CHẠY MODULE GOOGLE DRIVE ===
         if (typeof initializeDriveIntegration === 'function') {
             initializeDriveIntegration(editorEl, () => currentOpenFile);
         }
+        
         // Luồng khởi tạo ứng dụng chính
         try {
             await openDb();
@@ -168,7 +230,6 @@ function initFooterPanel() {
         }
     }
     
-    // (Tôi đã dán lại các hàm phụ ở đây để bạn không cần làm gì cả)
     async function updateMainFileSelector() { const allFiles = (await getAllFilesFromDb()).map(f => f.name); const validPrefixes = ['main', 'file', 'de']; mainFileSelector.innerHTML = ''; const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort(); if (filteredTexFiles.length === 0) { const option = document.createElement('option'); option.textContent = 'Không có file chính'; option.disabled = true; mainFileSelector.appendChild(option); return; } filteredTexFiles.forEach(fileName => { const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option); }); if (filteredTexFiles.includes(mainTexFile)) { mainFileSelector.value = mainTexFile; } else { mainTexFile = filteredTexFiles[0] || ''; mainFileSelector.value = mainTexFile; } }
     function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
     async function handleTemplateChange(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); } ; }
@@ -179,7 +240,7 @@ function initFooterPanel() {
     async function handleZipLoad(event) { const file = event.target.files[0]; if (!file) return; loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang giải nén và xử lý file...'; try { const zip = await JSZip.loadAsync(file); const fileEntries = Object.values(zip.files).filter(entry => !entry.dir && !entry.name.startsWith('__MACOSX/') && !entry.name.endsWith('/.DS_Store')); if (fileEntries.length === 0) { loadingOverlay.style.display = 'none'; Swal.fire('Tệp ZIP trống', 'Không tìm thấy tệp hợp lệ nào để import.', 'warning'); return; } let commonPath = ''; const firstPath = fileEntries[0].name; const firstSlashIndex = firstPath.indexOf('/'); if (firstSlashIndex > -1) { const potentialRoot = firstPath.substring(0, firstSlashIndex + 1); if (fileEntries.every(entry => entry.name.startsWith(potentialRoot))) { commonPath = potentialRoot; } } const promises = fileEntries.map(zipEntry => { return zipEntry.async('uint8array').then(async (content) => { const finalFileName = zipEntry.name.substring(commonPath.length); if (finalFileName) { await saveFileToDb(finalFileName, content); globalEn.writeMemFSFile(finalFileName, content); } }); }); await Promise.all(promises); Swal.fire('Thành công!', `${promises.length} file từ ${file.name} đã được giải nén và lưu lại!`, 'success'); updateMainFileSelector(); } catch (error) { console.error("Error processing zip file:", error); Swal.fire('Lỗi', 'Không thể xử lý file zip. Vui lòng kiểm tra file và thử lại.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; event.target.value = ''; } }
     async function downloadProjectAsZip() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang nén dự án...'; try { const files = await getAllFilesFromDb(); if (files.length === 0) { Swal.fire('Thông báo', 'Không có file nào để tải về.', 'info'); return; } const zip = new JSZip(); files.forEach(file => zip.file(file.name, file.data)); const blob = await zip.generateAsync({ type: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const date = new Date().toISOString().slice(0, 10); link.download = `latex-project-${date}.zip`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { console.error("Error creating zip file:", error); Swal.fire('Lỗi', 'Không thể tạo file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; } }
     function clearStyCache() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } Swal.fire({ title: 'Bạn chắc chắn?', html: "Hành động này sẽ <b>xóa tất cả các file đã cache</b> (gói .sty, .cls...).<br>Hành động này không thể hoàn tác và sẽ tải lại trang.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Vâng, xóa hết!', cancelButtonText: 'Hủy' }).then((result) => { if (result.isConfirmed) { db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).clear().onsuccess = () => Swal.fire('Đã xóa!', 'Cache đã được dọn dẹp. Trang sẽ tải lại.', 'success').then(() => location.reload()); } }); }
-    // === HÀM HƯỚNG DẪN ĐƯỢC NÂNG CẤP ===
+    
     function showHelpModal() {
         const helpHTML = `
             <div style="padding: 10px;">
@@ -210,6 +271,7 @@ function initFooterPanel() {
                     <li><i class="fas fa-sitemap"></i><b> Quản lý File:</b> Thêm, xóa, mở và tải lên các file lẻ.</li>
                     <li><i class="fas fa-key"></i><b> File chính:</b> Chọn file <code>.tex</code> chính để biên dịch.</li>
                     <li><i class="fas fa-magic"></i><b> Mẫu:</b> Nhanh chóng tạo một file .tex mới từ các mẫu có sẵn.</li>
+                    <li><i class="fab fa-google"></i><b> Đăng nhập:</b> Lưu và đồng bộ file với Google Drive (chỉ tài khoản được cấp phép).</li>
                 </ul>
             </div>
         `;
@@ -219,6 +281,7 @@ function initFooterPanel() {
             confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!',
         });
     }
+    
     async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
     async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
     async function loadCustomSuggestions() { const fileData = await getFileFromDb('suggestions.json'); if (fileData) { try { customSuggestions = JSON.parse(new TextDecoder().decode(fileData)); } catch(e) { console.error('Failed to parse suggestions.json:', e); customSuggestions = []; } } }
