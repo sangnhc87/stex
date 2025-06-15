@@ -1,26 +1,26 @@
 /**
  * ====================================================================
- *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 6.0 (FINAL)
+ *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 4.1 (Nâng cao)
  * ====================================================================
- * - Tích hợp Google Picker API để người dùng chọn thư mục lưu file.
- * - Tối ưu hóa luồng tải và khởi tạo API để tăng độ ổn định.
- * - Cải thiện xử lý lỗi và thông báo cho người dùng.
+ * - Quay lại luồng gốc: Lưu vào một thư mục cố định.
+ * - Thêm tính năng: Cho phép người dùng đặt tên file trước khi lưu.
+ * - Tự động xử lý file trùng lặp bằng cách thêm timestamp.
  * - Tác giả nâng cấp: AI Assistant (dựa trên code của Nguyễn Văn Sang)
  */
 
 // --- KHAI BÁO BIẾN & CẤU HÌNH TOÀN CỤC ---
 const GOOGLE_CLIENT_ID = '445721099356-4l2r9pg4jp1n4rn82jafofjnc74p708e.apps.googleusercontent.com';
-const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive';
+const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive.file'; // Chỉ cần quyền drive.file
+const GOOGLE_DRIVE_FOLDER_NAME = 'Dự án LaTeX từ Editor';
 
 // QUAN TRỌNG: Cập nhật danh sách email của bạn và đồng nghiệp ở đây!
 const AUTHORIZED_EMAILS = [
     'nguyensangnhc@gmail.com',    // Email của bạn
-    // 'dongnghiep1@example.com',   // Bỏ comment và thay bằng email đồng nghiệp
+    // 'dongnghiep1@example.com',
     // 'dongnghiep2@example.com'
 ];
 
 let gapiReady = false;
-let pickerApiLoaded = false;
 let tokenClient;
 let editorInstanceRef; 
 let getCurrentFileNameRef;
@@ -74,7 +74,7 @@ function handleSignInResponse(response) {
         tokenClient.requestAccessToken({ prompt: '' });
     } else {
         console.warn(`Access DENIED for ${userEmail}.`);
-        Swal.fire({ icon: 'error', title: 'Truy cập bị từ chối', html: `Tài khoản <strong>${userProfile.email}</strong> không có quyền sử dụng tính năng này.` });
+        Swal.fire({ icon: 'error', title: 'Truy cập bị từ chối', html: `Tài khoản <strong>${userProfile.email}</strong> không có quyền truy cập.` });
         handleSignOut();
     }
 }
@@ -93,58 +93,70 @@ function handleSignOut() {
     updateUIOnLogout();
 }
 
+/**
+ * NÂNG CẤP: Hỏi người dùng tên file trước khi lưu.
+ */
 async function handleSaveClick() {
-    // Kiểm tra các điều kiện tiên quyết trước khi mở Picker
     if (!gapi.client.getToken()) {
-        Swal.fire('Chưa đăng nhập', "Bạn cần đăng nhập để lưu file vào Google Drive.", 'info');
+        Swal.fire('Chưa đăng nhập', "Bạn cần đăng nhập để lưu file.", 'info');
         return;
     }
-    if (!pickerApiLoaded) {
-        Swal.fire('Vui lòng đợi', 'API để chọn thư mục chưa sẵn sàng. Vui lòng thử lại sau giây lát.', 'warning');
-        return;
-    }
-    showFolderPicker();
-}
+    
+    const currentFileName = getCurrentFileNameRef() || 'untitled.tex';
 
-function showFolderPicker() {
-    const accessToken = gapi.client.getToken().access_token;
-    if (!accessToken) {
-        Swal.fire('Lỗi', 'Không tìm thấy token xác thực. Vui lòng thử đăng nhập lại.', 'error');
-        return;
-    }
+    const { value: newFileName } = await Swal.fire({
+        title: 'Đặt tên file để lưu',
+        input: 'text',
+        inputValue: currentFileName,
+        showCancelButton: true,
+        confirmButtonText: 'Lưu vào Drive',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return 'Tên file không được để trống!'
+            }
+        }
+    });
 
-    const appId = GOOGLE_CLIENT_ID.split('-')[0];
-    const view = new google.picker.View(google.picker.ViewId.FOLDERS);
-    view.setMimeTypes("application/vnd.google-apps.folder");
-
-    const picker = new google.picker.PickerBuilder()
-        .enableFeature(google.picker.Feature.NAV_HIDDEN)
-        .setAppId(appId)
-        .setOAuthToken(accessToken)
-        .addView(view)
-        .setTitle("Chọn thư mục để lưu file")
-        .setCallback(pickerCallback)
-        .build();
-    picker.setVisible(true);
-}
-
-async function pickerCallback(data) {
-    if (data.action === google.picker.Action.PICKED) {
-        const folder = data.docs[0];
-        const folderId = folder.id;
-        console.log(`User selected folder ID: ${folderId}`);
-        await uploadCurrentFileToDrive(folderId);
-    } else if (data.action === google.picker.Action.CANCEL) {
-        console.log("User cancelled the folder selection.");
+    if (newFileName) {
+        // Nếu người dùng nhấn "Lưu", gọi hàm upload với tên file mới
+        await uploadCurrentFileToDrive(newFileName.trim());
     }
 }
 
 // --- CÁC HÀM LÀM VIỆC VỚI GOOGLE DRIVE ---
 
-async function uploadCurrentFileToDrive(folderId) {
-    const fileName = getCurrentFileNameRef() || 'untitled.tex';
-    const fileContent = editorInstanceRef.getValue();
+/**
+ * Tìm hoặc tạo thư mục lưu trữ trên Drive.
+ * @returns {Promise<string>} ID của thư mục.
+ */
+async function getOrCreateFolderId() {
+    const query = `mimeType='application/vnd.google-apps.folder' and name='${GOOGLE_DRIVE_FOLDER_NAME}' and trashed=false`;
+    const searchResponse = await gapi.client.drive.files.list({ q: query, fields: 'files(id)' });
 
+    if (searchResponse.result.files && searchResponse.result.files.length > 0) {
+        console.log(`Found folder '${GOOGLE_DRIVE_FOLDER_NAME}' with ID: ${searchResponse.result.files[0].id}`);
+        return searchResponse.result.files[0].id;
+    } else {
+        console.log(`Folder '${GOOGLE_DRIVE_FOLDER_NAME}' not found, creating a new one...`);
+        const createResponse = await gapi.client.drive.files.create({
+            resource: {
+                name: GOOGLE_DRIVE_FOLDER_NAME,
+                mimeType: 'application/vnd.google-apps.folder'
+            },
+            fields: 'id'
+        });
+        console.log(`Created new folder with ID: ${createResponse.result.id}`);
+        return createResponse.result.id;
+    }
+}
+
+/**
+ * NÂNG CẤP: Tải file lên Drive, có xử lý trùng lặp.
+ * @param {string} fileName Tên file do người dùng đặt.
+ */
+async function uploadCurrentFileToDrive(fileName) {
+    const fileContent = editorInstanceRef.getValue();
     if (!fileContent.trim()) {
         Swal.fire({ icon: 'warning', title: 'Tệp rỗng', text: 'Không có nội dung để lưu.' });
         return;
@@ -159,11 +171,32 @@ async function uploadCurrentFileToDrive(folderId) {
 
     try {
         if (!gapiReady) {
-            throw new Error("GAPI client is not ready.");
+            throw new Error("GAPI client is not ready yet.");
         }
-        Swal.update({ text: `Đang tải tệp ${fileName} lên thư mục đã chọn...` });
 
-        const metadata = { name: fileName, mimeType: 'text/x-tex', parents: [folderId] };
+        // 1. Lấy ID của thư mục đích
+        const folderId = await getOrCreateFolderId();
+
+        // 2. NÂNG CẤP: Kiểm tra xem file có tên tương tự đã tồn tại chưa
+        let finalFileName = fileName;
+        const checkQuery = `'${folderId}' in parents and name='${fileName}' and trashed=false`;
+        const checkResponse = await gapi.client.drive.files.list({ q: checkQuery, fields: 'files(id)' });
+
+        if (checkResponse.result.files && checkResponse.result.files.length > 0) {
+            // Nếu file đã tồn tại, thêm timestamp vào tên
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            const nameWithoutExt = fileName.includes('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+            const extension = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')) : '';
+            finalFileName = `${nameWithoutExt}-${timestamp}${extension}`;
+            console.log(`File '${fileName}' exists. Renaming to '${finalFileName}' to avoid conflict.`);
+            Swal.update({ text: `File đã tồn tại. Đang lưu với tên mới: ${finalFileName}` });
+        } else {
+             Swal.update({text: `Đang tải tệp ${fileName} vào thư mục '${GOOGLE_DRIVE_FOLDER_NAME}'...`});
+        }
+
+        // 3. Chuẩn bị và tải file lên
+        const metadata = { name: finalFileName, mimeType: 'text/x-tex', parents: [folderId] };
         const boundary = '-------314159265358979323846';
         const delimiter = `\r\n--${boundary}\r\n`;
         const close_delim = `\r\n--${boundary}--`;
@@ -207,43 +240,37 @@ function parseJwt(token) {
 // --- KHỞI TẠO MODULE ---
 
 function onGoogleScriptLoad() {
-    // 1. Khởi tạo GSI (Đăng nhập) trước tiên
-    google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleSignInResponse,
-        auto_select: true
-    });
-    google.accounts.id.renderButton(
-        document.getElementById('google-signin-btn'),
-        { theme: "outline", size: "large", text: "signin_with", shape: "rectangular" }
-    );
-    google.accounts.id.prompt();
-
-    // 2. Tải GAPI (Drive, Picker)
-    gapi.load('client:picker', initializeGapiClient);
-}
-
-async function initializeGapiClient() {
-    // 3. Khởi tạo GAPI client
-    await gapi.client.init({}).then(() => {
-        gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
+    gapi.load('client', async () => {
+        await gapi.client.init({});
+        await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
         gapiReady = true;
-        pickerApiLoaded = true; // GAPI và Picker được tải cùng lúc
-        console.log("GAPI Client and Picker API are ready.");
-    });
-    
-    // 4. Khởi tạo Token Client (để lấy access token ngầm)
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: GOOGLE_API_SCOPES,
-        prompt: '',
-        callback: (tokenResponse) => {
-            if (tokenResponse.error) {
-                console.error("Token Error:", tokenResponse);
-            } else {
-                console.log("Access Token granted/refreshed successfully.");
-            }
-        },
+        console.log("GAPI client for Drive V3 is ready.");
+
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_API_SCOPES,
+            prompt: '', 
+            callback: (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error("Token Error:", tokenResponse);
+                } else {
+                    console.log("Access Token granted/refreshed successfully.");
+                }
+            },
+        });
+
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleSignInResponse,
+            auto_select: true
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById('google-signin-btn'),
+            { theme: "outline", size: "large" }
+        );
+
+        google.accounts.id.prompt();
     });
 }
 
