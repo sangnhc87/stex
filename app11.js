@@ -1,4 +1,104 @@
 //<script> 
+// File: app11.js
+
+/**
+ * Hàm gập hoặc mở tất cả các môi trường có tên cho trước trong tài liệu.
+ * @param {string} envName - Tên của môi trường cần gập/mở (ví dụ: 'ex', 'bt').
+ */
+
+function toggleFoldAllEnvironments(envNames) {
+    if (!envNames || envNames.length === 0) return;
+
+    const editor = ace.edit("editor");
+    const session = editor.session;
+    const document = session.getDocument();
+    const lines = document.getAllLines();
+    
+    // Tạo một chuỗi regex từ mảng các tên môi trường
+    // Ví dụ: ['ex', 'bt'] -> (ex|bt)
+    const envPattern = `(${envNames.join('|')})`;
+    const beginRegex = new RegExp(`^\\\\begin\\{${envPattern}\\}`);
+    const endRegex = new RegExp(`^\\\\end\\{${envPattern}\\}`);
+
+    // Logic kiểm tra để quyết định gập hay mở (không đổi)
+    let shouldUnfold = false;
+    const allFolds = session.getAllFolds();
+    for (const fold of allFolds) {
+        const line = session.getLine(fold.start.row);
+        if (beginRegex.test(line.trim())) {
+            shouldUnfold = true;
+            break;
+        }
+    }
+
+    if (shouldUnfold) {
+        // --- LOGIC MỞ HẾT ---
+        console.log(`Unfolding all [${envNames.join(', ')}] environments.`);
+        // Để chỉ mở các môi trường cụ thể, chúng ta cần lặp và xóa fold
+        // Đây là cách làm chính xác hơn là unfold tất cả
+        const foldsToRemove = [];
+        for (const fold of allFolds) {
+             const line = session.getLine(fold.start.row);
+             if (beginRegex.test(line.trim())) {
+                 foldsToRemove.push(fold);
+             }
+        }
+        session.removeFolds(foldsToRemove);
+
+    } else {
+        // --- LOGIC GẬP HẾT ---
+        console.log(`Folding all [${envNames.join(', ')}] environments.`);
+        for (let i = 0; i < lines.length; i++) {
+            if (beginRegex.test(lines[i].trim())) {
+                let endRow = -1;
+                // Cần một stack để xử lý lồng nhau đúng cách
+                let depth = 1; 
+                for (let j = i + 1; j < lines.length; j++) {
+                    const currentLine = lines[j].trim();
+                    if (beginRegex.test(currentLine)) {
+                        depth++;
+                    } else if (endRegex.test(currentLine)) {
+                        depth--;
+                        if (depth === 0) {
+                            endRow = j;
+                            break;
+                        }
+                    }
+                }
+                
+                if (endRow !== -1) {
+                    session.addFold("...", new ace.Range(i, lines[i].length, endRow, 0));
+                    i = endRow;
+                }
+            }
+        }
+    }
+}
+// File: app11.js
+
+/**
+ * Thay đổi cỡ chữ của trình soạn thảo.
+ * @param {number} delta - Lượng thay đổi (ví dụ: 1 để tăng, -1 để giảm).
+ */
+function changeEditorFontSize(delta) {
+    const editor = ace.edit("editor");
+    const currentSize = editor.getFontSize();
+    const newSize = currentSize + delta;
+
+    // Giới hạn cỡ chữ trong khoảng hợp lý (ví dụ: từ 10px đến 30px)
+    if (newSize >= 10 && newSize <= 30) {
+        editor.setFontSize(newSize);
+        
+        // Cập nhật hiển thị
+        const currentFontSizeSpan = document.getElementById('current-font-size');
+        if (currentFontSizeSpan) {
+            currentFontSizeSpan.textContent = `${newSize}`;
+        }
+        
+        // Lưu lựa chọn vào localStorage để lần sau mở lại vẫn giữ nguyên
+        localStorage.setItem('editorFontSize', newSize);
+    }
+}
 // Bỏ defer để đảm bảo script này chạy tuần tự
 let isMathPreviewInitialized = false; // Cờ để kiểm tra đã khởi tạo hay chưa
 function initMathPreview() {
@@ -102,7 +202,9 @@ function main() {
     const editSnippetsBtn = document.getElementById('edit-snippets-btn');
     const downloadCurrentTexBtn = document.getElementById('download-current-tex-btn');
     const openGanIdBtn = document.getElementById('open-gan-id-btn'); // Thêm nút gán ID
-    
+    const decreaseFontSizeBtn = document.getElementById('decrease-font-size-btn');
+    const increaseFontSizeBtn = document.getElementById('increase-font-size-btn');
+    const currentFontSizeSpan = document.getElementById('current-font-size');
     // === CÁC BIẾN VÀ HẰNG SỐ (ĐÃ CẬP NHẬT) ===
     const globalEn = new PdfTeXEngine();
     let mainTexFile = 'main.tex';
@@ -243,9 +345,15 @@ function main() {
         editorEl.setTheme(`ace/theme/${savedTheme}`);
         if (themeSelector) themeSelector.value = savedTheme;
         editorEl.session.setMode("ace/mode/latex");
-        editorEl.session.setUseWrapMode(true);
-        editorEl.setFontSize(16);
-        editorEl.resize(true);
+        // --- ÁP DỤNG CỠ CHỮ ĐÃ LƯU ---
+    const savedFontSize = parseInt(localStorage.getItem('editorFontSize')) || 16;
+    editorEl.setFontSize(savedFontSize);
+    if (currentFontSizeSpan) { // currentFontSizeSpan đã được lấy ở hàm main()
+        currentFontSizeSpan.textContent = `${savedFontSize}`;
+    }
+    // ---------------------------------
+    
+    editorEl.resize(true)
         editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, showFoldWidgets: true });
         editorEl.session.setFoldStyle("markbeginend");
         const langTools = ace.require("ace/ext/language_tools");
@@ -277,7 +385,31 @@ function main() {
                  console.error('Hàm gán ID không tồn tại');
              }
         });
+        // File: app11.js
+// Trong hàm init()
 
+// ...
+// === GÁN SỰ KIỆN CHO CÁC NÚT GẬP HÀNG LOẠT (PHIÊN BẢN MỚI) ===
+const foldProblemsBtn = document.getElementById('fold-problems-btn');
+if (foldProblemsBtn) {
+    // Nút này sẽ xử lý các môi trường 'ex', 'vd', 'bt'
+    foldProblemsBtn.addEventListener('click', () => toggleFoldAllEnvironments(['ex', 'vd', 'bt']));
+}
+
+const foldStructureBtn = document.getElementById('fold-structure-btn');
+if (foldStructureBtn) {
+    // Nút này xử lý 'section' và 'subsection'
+    // Bạn có thể thêm 'chapter', 'subsubsection'... vào mảng này
+    foldStructureBtn.addEventListener('click', () => toggleFoldAllEnvironments(['section', 'subsection']));
+}
+// --- GÁN SỰ KIỆN CHO NÚT CỠ CHỮ ---
+    if (decreaseFontSizeBtn) {
+        decreaseFontSizeBtn.addEventListener('click', () => changeEditorFontSize(-1));
+    }
+    if (increaseFontSizeBtn) {
+        increaseFontSizeBtn.addEventListener('click', () => changeEditorFontSize(1));
+    }
+// ...
         // Khởi tạo các thành phần giao diện
         initResizer();
         initFooterPanel();

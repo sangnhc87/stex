@@ -84,6 +84,59 @@
     -webkit-user-select: none;
     transition: opacity 0.1s ease-in-out;
 }
+/* CSS cho các nút gập hàng loạt */
+.fold-button {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-family: monospace; /* Font cho dễ đọc tên môi trường */
+    font-size: 1em;
+    margin-left: 5px;
+    border-radius: 4px;
+}
+
+.fold-button:hover {
+    background-color: #777;
+}
+
+.fold-button i {
+    margin-right: 5px;
+}
+/* CSS cho cụm điều khiển cỡ chữ */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    background-color: #333;
+    border-radius: 4px;
+    margin-left: 10px;
+    border: 1px solid #555;
+}
+
+.font-size-controls button {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.font-size-controls button:hover {
+    background-color: #555;
+}
+
+.font-size-controls #current-font-size {
+    padding: 0 8px;
+    font-weight: bold;
+    color: #f1c40f; /* Màu vàng để nổi bật */
+    min-width: 40px; /* Đảm bảo chiều rộng không đổi khi số thay đổi */
+    text-align: center;
+    border-left: 1px solid #555;
+    border-right: 1px solid #555;
+}
     </style>
 </head>
 <body>
@@ -103,6 +156,11 @@
             <button id="clear-cache-btn" title="Xóa cache"><i class="fas fa-trash-alt"></i></button>
             <button id="open-v2-btn" title="Mở Editor V2"><i class="fas fa-external-link-alt"></i></button>
             <button id="open-gan-id-btn" title="Gán ID cho câu hỏi"><i class="fas fa-tags"></i></button>
+            <!-- === THÊM CÁC NÚT MỚI VÀO ĐÂY === -->
+    <div class="toolbar-separator"></div>
+   <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
+<!-- <button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
+<button id="fold-structure-btn" class="fold-button" title="Gập/Mở Chương, Mục"><i class="fas fa-sitemap"></i> </button> -->
         </div>
         
         <div class="toolbar-group" style="margin-left: auto; align-items: center;">
@@ -155,6 +213,9 @@
     <div class="footer-panel" id="footer-panel">
         <div class="footer-handle" id="footer-handle">
     <span><i class="fas fa-tools"></i></span>
+     <!-- Nút mở rộng/thu gọn -->
+    <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
+    
     <!-- Nút tải file .tex hiện tại -->
     <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i class="fas fa-file-download"></i></button>
     
@@ -170,8 +231,15 @@
         </button>
     </div>
     
-    <!-- Nút mở rộng/thu gọn -->
-    <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
+      <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
+<button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
+<button id="fold-structure-btn" class="fold-button" title="Gập/Mở Chương, Mục"><i class="fas fa-sitemap"></i> </button>
+<!-- === THÊM CỤM NÚT TĂNG/GIẢM CỠ CHỮ VÀO ĐÂY === -->
+<div class="font-size-controls">
+    <button id="decrease-font-size-btn" title="Giảm cỡ chữ"><i class="fas fa-minus"></i></button>
+    <span id="current-font-size">16</span>
+    <button id="increase-font-size-btn" title="Tăng cỡ chữ"><i class="fas fa-plus"></i></button>
+</div>
 </div>
         <div class="footer-content" id="footer-content">
             <!-- Môi trường -->
