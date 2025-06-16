@@ -255,36 +255,35 @@ async function uploadCurrentFileToDrive(e){const o=editorInstanceRef.getValue();
 function parseJwt(e){try{const o=e.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"),t=decodeURIComponent(atob(o).split("").map(l=>"%"+("00"+l.charCodeAt(0).toString(16)).slice(-2)).join(""));return JSON.parse(t)}catch(o){return console.error("Error decoding JWT:",o),null}}
 
 
-// --- KHỞI TẠO MODULE ---// --- KHỞI TẠO MODULE ---
-// COPY TỪ ĐÂY
+// --- KHỞI TẠO MODULE ---//
 function onGoogleScriptLoad() {
-    // DÒNG NÀY SẼ GIÚP BẠN TÌM LỖI
-    // MỞ CONSOLE (F12) ĐỂ XEM ĐỊA CHỈ NÀY VÀ THÊM VÀO GOOGLE CLOUD
-    console.log('---[ QUAN TRỌNG ]---');
-    console.log('Dán địa chỉ này vào mục "Authorized redirect URIs" trên Google Cloud:');
-    console.log(window.location.href);
-    console.log('--------------------');
-    
-    // Phần code còn lại giữ nguyên
+    // 1. Khởi tạo với callback, không dùng redirect nữa
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleSignInResponse, 
-        ux_mode: 'redirect'
+        callback: handleSignInResponse, // Hàm này sẽ được gọi khi đăng nhập thành công
+        auto_select: true // Tự động đăng nhập lại nếu người dùng đã cho phép
     });
 
+    // 2. Render nút đăng nhập như cũ
     google.accounts.id.renderButton(
         document.getElementById('google-signin-btn'),
-        { 
-            theme: "outline", 
-            size: "large", 
-            type: "standard",
-            text: "signin_with" 
-        }
+        { theme: "outline", size: "large" }
     );
 
+    // 3. Tự động hiển thị popup đăng nhập nếu người dùng chưa đăng nhập
+    //    Đây là cách tốt nhất để duy trì trạng thái đăng nhập
+    google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // Nếu popup không hiển thị (ví dụ: bị trình duyệt chặn hoặc
+            // người dùng đã đăng nhập), không cần làm gì thêm.
+            // Trạng thái sẽ được xử lý bởi auto_select hoặc khi người dùng bấm nút.
+            console.log('Google prompt was not displayed.');
+        }
+    });
+
+    // Phần gapi giữ nguyên
     gapi.load('client:picker', initializeGapiClient);
 }
-// COPY ĐẾN ĐÂY
 async function initializeGapiClient() {
     await gapi.client.init({});
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
