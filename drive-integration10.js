@@ -255,8 +255,17 @@ async function uploadCurrentFileToDrive(e){const o=editorInstanceRef.getValue();
 function parseJwt(e){try{const o=e.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"),t=decodeURIComponent(atob(o).split("").map(l=>"%"+("00"+l.charCodeAt(0).toString(16)).slice(-2)).join(""));return JSON.parse(t)}catch(o){return console.error("Error decoding JWT:",o),null}}
 
 
-// --- KHỞI TẠO MODULE ---
+// --- KHỞI TẠO MODULE ---// --- KHỞI TẠO MODULE ---
+// COPY TỪ ĐÂY
 function onGoogleScriptLoad() {
+    // DÒNG NÀY SẼ GIÚP BẠN TÌM LỖI
+    // MỞ CONSOLE (F12) ĐỂ XEM ĐỊA CHỈ NÀY VÀ THÊM VÀO GOOGLE CLOUD
+    console.log('---[ QUAN TRỌNG ]---');
+    console.log('Dán địa chỉ này vào mục "Authorized redirect URIs" trên Google Cloud:');
+    console.log(window.location.href);
+    console.log('--------------------');
+    
+    // Phần code còn lại giữ nguyên
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleSignInResponse, 
@@ -275,7 +284,7 @@ function onGoogleScriptLoad() {
 
     gapi.load('client:picker', initializeGapiClient);
 }
-
+// COPY ĐẾN ĐÂY
 async function initializeGapiClient() {
     await gapi.client.init({});
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
