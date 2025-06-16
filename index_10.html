@@ -10,20 +10,33 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="styleV3.css">
     <style>
-#drive-action-btn {
-    background-color: #4a8df1; /* Màu xanh của Google */
-    color: white;
+        /* Thêm vào styleV3.css hoặc thẻ <style> */
+.drive-buttons-group {
+    display: flex;
+    border: 1px solid #555;
     border-radius: 5px;
+    overflow: hidden; /* Để bo góc hoạt động */
     margin: 0 5px;
+}
+
+.drive-buttons-group button {
+    background-color: #4CAF50; /* Màu xanh lá cây cho Google Drive */
+    color: white;
     border: none;
-    padding: 6px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
-#drive-action-btn:hover {
-    background-color: #357ae8;
+
+.drive-buttons-group button:first-child {
+    border-right: 1px solid #3e8e41;
 }
-#drive-action-btn:disabled {
+
+.drive-buttons-group button:hover {
+    background-color: #45a049;
+}
+
+.drive-buttons-group button:disabled {
     background-color: #6c757d;
     cursor: not-allowed;
     opacity: 0.65;
@@ -101,10 +114,16 @@
     <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i class="fas fa-file-download"></i></button>
     
     <!-- Cụm nút Google Drive -->
-    <!-- Nút Google Drive đa năng -->
-<button id="drive-action-btn" title="Tương tác với Google Drive">
-    <i class="fab fa-google-drive"></i>
-</button>
+    <div class="drive-buttons-group">
+        <button id="save-to-drive-btn" title="Lưu file .tex lên Google Drive">
+            <i class="fab fa-google-drive"></i>
+            <i class="fas fa-save" style="font-size: 0.7em; margin-left: 2px;"></i>
+        </button>
+        <button id="load-from-drive-btn" title="Tải file .tex từ Google Drive">
+            <i class="fab fa-google-drive"></i>
+            <i class="fas fa-cloud-download-alt" style="font-size: 0.7em; margin-left: 2px;"></i>
+        </button>
+    </div>
     
     <!-- Nút mở rộng/thu gọn -->
     <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>

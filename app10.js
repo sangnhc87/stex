@@ -72,44 +72,38 @@ function main() {
         } 
         const authorHTML = `<div style="text-align: left; font-size: 16px; line-height: 1.8;"><p><i class="fas fa-user-tie"></i><strong>Họ và tên:</strong> Nguyễn Văn Sang</p><p><i class="fas fa-briefcase"></i><strong>Chức vụ:</strong> GV THPT Nguyễn Hữu Cảnh, TP.HCM</p><p><i class="fab fa-facebook"></i><strong>Facebook:</strong> <a href="https://www.facebook.com/nguyenvan.sang.92798072/" target="_blank">Liên Hệ Góp Ý Qua Facebook</a></p>${qrImageHTML}<hr><p style="text-align: center; font-style: italic; line-height: 1.5;">Thật vui khi công cụ nhỏ này có thể giúp ích cho công việc của bạn.<br>Mọi sự ghi nhận và ủng hộ đều là niềm vinh hạnh đối với một người giáo viên như tôi.<br><strong>Xin trân trọng cảm ơn!</strong></p></div>`; Swal.fire({ title: '<strong>Thông tin Tác giả</strong>', icon: 'info', html: authorHTML, width: '500px', showCloseButton: true, focusConfirm: false, confirmButtonText: '<i class="fa fa-thumbs-up"></i> Tuyệt vời!', }); 
     }
-    function initFooterPanel() {
-    const footerPanel = document.getElementById('footer-panel');
-    const handle = document.getElementById('footer-handle');
-    const content = document.getElementById('footer-content');
-    const expandBtn = document.getElementById('expand-footer-btn');
-    const expandIcon = expandBtn ? expandBtn.querySelector('i') : null;
-    if (!footerPanel || !handle || !content || !expandBtn || !expandIcon) return;
-
-    handle.addEventListener('click', (e) => {
-        // === SỬA Ở ĐÂY ===
-        // Thay '#save-to-drive-btn' bằng '#drive-action-btn'
-        if (e.target.closest('.helper-btn') || e.target.closest('#drive-action-btn')) {
-            return; // Nếu nhấn vào nút helper hoặc nút Drive, không đóng/mở footer
-        }
-        
-        // Đoạn code còn lại giữ nguyên
-        footerPanel.classList.toggle('is-open');
-        if (footerPanel.classList.contains('is-open')) {
-            expandIcon.classList.remove('fa-chevron-up');
-            expandIcon.classList.add('fa-thumbtack');
-            expandBtn.title = "Bỏ ghim (để tự động ẩn)";
-        } else {
-            expandIcon.classList.remove('fa-thumbtack');
-            expandIcon.classList.add('fa-chevron-up');
-            expandBtn.title = "Ghim lại (để luôn hiển thị)";
-        }
-    });
     
-    content.addEventListener('click', (e) => {
-        const button = e.target.closest('.helper-btn');
-        if (!button) return;
-        const textToInsert = button.dataset.insert;
-        if (textToInsert) {
-            editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
-            editorEl.focus();
-        }
-    });
-}
+    function initFooterPanel() {
+        const footerPanel = document.getElementById('footer-panel');
+        const handle = document.getElementById('footer-handle');
+        const content = document.getElementById('footer-content');
+        const expandBtn = document.getElementById('expand-footer-btn');
+        const expandIcon = expandBtn ? expandBtn.querySelector('i') : null;
+        if (!footerPanel || !handle || !content || !expandBtn || !expandIcon) return;
+        handle.addEventListener('click', (e) => {
+            if (e.target.closest('.helper-btn') || e.target.closest('#save-to-drive-btn')) { return; }
+            footerPanel.classList.toggle('is-open');
+            if (footerPanel.classList.contains('is-open')) {
+                expandIcon.classList.remove('fa-chevron-up');
+                expandIcon.classList.add('fa-thumbtack');
+                expandBtn.title = "Bỏ ghim (để tự động ẩn)";
+            } else {
+                expandIcon.classList.remove('fa-thumbtack');
+                expandIcon.classList.add('fa-chevron-up');
+                expandBtn.title = "Ghim lại (để luôn hiển thị)";
+            }
+        });
+        content.addEventListener('click', (e) => {
+            const button = e.target.closest('.helper-btn');
+            if (!button) return;
+            const textToInsert = button.dataset.insert;
+            if (textToInsert) {
+                editorEl.insert(textToInsert.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
+                editorEl.focus();
+            }
+        });
+    }
+
     function buildTreeHtml(nodes) { let html = '<ul class="snippet-tree">'; for (const node of nodes) { if (node.type === 'folder') { html += `<li class="snippet-folder"><div class="snippet-folder-header"><i class="fas fa-caret-right folder-toggle"></i><i class="fas fa-folder"></i><span>${node.name}</span></div>${buildTreeHtml(node.children || [])}</li>`; } else if (node.type === 'snippet') { html += `<li class="snippet-item" data-content="${encodeURIComponent(node.content)}"><i class="fas fa-file-alt"></i><span>${node.name}</span></li>`; } } html += '</ul>'; return html; }
     async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }
 
