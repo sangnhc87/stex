@@ -137,6 +137,123 @@
     border-left: 1px solid #555;
     border-right: 1px solid #555;
 }
+/* CSS cho nút Tools đặc biệt */
+#latex-tools-btn {
+    background-color: #9b59b6; /* Màu tím Amethyst */
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-left: 5px; /* Tạo khoảng cách với nút bên trái */
+}
+
+#latex-tools-btn:hover {
+    background-color: #8e44ad; /* Màu tím đậm hơn khi di chuột */
+    transform: translateY(-1px); /* Hiệu ứng nhấc lên một chút */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#latex-tools-btn i {
+    margin-right: 6px;
+    animation: magic-sparkle 2s infinite; /* Thêm hiệu ứng lấp lánh cho icon */
+}
+
+/* Hiệu ứng lấp lánh cho icon magic */
+@keyframes magic-sparkle {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+}
+/* ================================================= */
+/* === TÙY BIẾN GIAO DIỆN CHO LATEX TOOLS MODAL === */
+/* ================================================= */
+
+/* Định dạng chung cho form bên trong modal */
+#latex-tools-form {
+    text-align: left;
+    font-size: 1em;
+}
+
+#latex-tools-form hr {
+    margin: 1.5rem 0; /* Tăng khoảng cách cho đường gạch ngang */
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Style cho các checkbox tùy chỉnh - phần quan trọng nhất */
+#latex-tools-form .form-check {
+    padding-left: 0;
+    margin-bottom: 15px;
+}
+
+#latex-tools-form .form-check-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 1.05em; /* Chữ to hơn một chút */
+}
+
+/* Ẩn checkbox mặc định */
+#latex-tools-form .form-check-input {
+    display: none;
+}
+
+/* Tạo ra một checkbox giả bằng ::before */
+#latex-tools-form .form-check-label::before {
+    content: '';
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    border: 2px solid #bdc3c7; /* Viền xám */
+    border-radius: 4px;
+    background-color: #fff;
+    transition: all 0.2s;
+    flex-shrink: 0; /* Ngăn không cho co lại */
+}
+
+/* Thay đổi style khi checkbox được CHỌN */
+#latex-tools-form .form-check-input:checked + .form-check-label::before {
+    background-color: #3498db; /* Màu xanh dương khi được chọn */
+    border-color: #2980b9;
+    /* Thêm icon dấu tick vào */
+    content: '\f00c'; /* Mã của icon check trong Font Awesome */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: white;
+    text-align: center;
+    line-height: 18px; /* Căn giữa dấu tick */
+    font-size: 14px;
+}
+
+/* Hiệu ứng khi di chuột vào label */
+#latex-tools-form .form-check-label:hover::before {
+    border-color: #3498db;
+}
+
+/* Style cho khu vực tùy chọn đánh số */
+#numbering-options {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    padding-left: 25px;
+    margin-top: 10px;
+    display: none; /* Giữ nguyên trạng thái ẩn ban đầu */
+}
+
+#numbering-options .form-label {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Nút bấm trong modal */
+.swal2-styled.swal2-confirm {
+    background-color: #28a745 !important; /* Màu xanh lá cây cho nút "Thực hiện" */
+    font-size: 1.1em !important;
+}
     </style>
 </head>
 <body>
@@ -239,7 +356,9 @@
     <button id="decrease-font-size-btn" title="Giảm cỡ chữ"><i class="fas fa-minus"></i></button>
     <span id="current-font-size">16</span>
     <button id="increase-font-size-btn" title="Tăng cỡ chữ"><i class="fas fa-plus"></i></button>
+
 </div>
+<button id="latex-tools-btn" class="toolbar-btn" title="Các công cụ xử lý LaTeX"><i class="fas fa-magic"></i> Tools</button>
 </div>
         <div class="footer-content" id="footer-content">
             <!-- Môi trường -->
