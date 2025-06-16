@@ -256,32 +256,17 @@ function parseJwt(e){try{const o=e.split(".")[1].replace(/-/g,"+").replace(/_/g,
 
 
 // --- KHỞI TẠO MODULE ---
-// --- KHỞI TẠO MODULE ---
 function onGoogleScriptLoad() {
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        // QUAN TRỌNG: Vẫn giữ callback. Thư viện sẽ tự gọi nó sau khi redirect về.
-        callback: handleSignInResponse, 
-        ux_mode: 'redirect' // Chuyển sang chế độ redirect
+        callback: handleSignInResponse,
+        auto_select: true
     });
-
     google.accounts.id.renderButton(
         document.getElementById('google-signin-btn'),
-        { 
-            theme: "outline", 
-            size: "large", 
-            type: "standard", // type: 'standard' là bắt buộc cho ux_mode: 'redirect'
-            text: "signin_with" 
-        }
+        { theme: "outline", size: "large" }
     );
-
-    // QUAN TRỌNG: Không gọi prompt() trong chế độ redirect, 
-    // vì hành động này sẽ do người dùng bấm nút.
-    // google.accounts.id.prompt(); 
-
-    // QUAN TRỌNG: Xóa hàm không tồn tại đi
-    // google.accounts.id.handleRedirectNotification(...);
-
+    google.accounts.id.prompt();
     gapi.load('client:picker', initializeGapiClient);
 }
 
