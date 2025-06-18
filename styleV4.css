@@ -1,0 +1,254 @@
+/* =================================================================== */
+/* ===                  FILE CSS CHÍNH (styleV3.css)               === */
+/* ===                   DÀNH CHO DỰ ÁN LATEX IDE                  === */
+/* =================================================================== */
+
+/* --- BIẾN MÀU SẮC TOÀN CỤC (TÙY CHỌN) --- */
+:root {
+    --color-primary: #3498db;
+    --color-success: #2ecc71;
+    --color-warning: #f1c40f;
+    --color-danger: #e74c3c;
+    --color-purple: #9b59b6;
+    --color-teal: #16a085;
+    --color-dark-bg: #2c3e50;
+    --color-light-text: #ecf0f1;
+}
+
+
+/* ================================================= */
+/* === STYLE CHUNG CHO CÁC NÚT TRÊN TOOLBAR      === */
+/* ================================================= */
+
+/* --- 1. Class nền tảng cho tất cả các nút --- */
+.toolbar-btn {
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-left: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+    box-shadow: none;
+}
+
+.toolbar-btn i {
+    margin-right: 6px;
+}
+
+/* --- 2. Áp dụng màu sắc riêng cho từng nút bằng ID --- */
+
+/* Nút Tools */
+#latex-tools-btn {
+    background-color: var(--color-purple);
+}
+#latex-tools-btn:hover {
+    background-color: #8e44ad;
+}
+#latex-tools-btn i {
+    animation: magic-sparkle 2s infinite;
+}
+
+@keyframes magic-sparkle {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+/* Nút QR Đáp án */
+#generate-qr-btn {
+    background-color: var(--color-teal);
+}
+#generate-qr-btn:hover {
+    background-color: #1abc9c;
+}
+
+/* Các nút gập hàng loạt */
+.fold-button {
+    background-color: #555;
+    font-family: monospace;
+}
+.fold-button:hover {
+    background-color: #777;
+}
+
+/* Cụm nút Google Drive */
+.drive-buttons-group {
+    display: flex;
+    border: 1px solid #3e8e41;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 0 5px;
+}
+.drive-buttons-group button {
+    background-color: var(--color-success);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.drive-buttons-group button:first-child {
+    border-right: 1px solid #27ae60;
+}
+.drive-buttons-group button:hover {
+    background-color: #27ae60;
+}
+
+
+/* ================================================= */
+/* === CÁC TIỆN ÍCH KHÁC TRÊN TOOLBAR            === */
+/* ================================================= */
+
+/* Cụm điều khiển cỡ chữ */
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    background-color: #333;
+    border-radius: 4px;
+    margin-left: 10px;
+    border: 1px solid #555;
+}
+.font-size-controls button {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.font-size-controls button:hover {
+    background-color: #555;
+}
+.font-size-controls #current-font-size {
+    padding: 0 8px;
+    font-weight: bold;
+    color: var(--color-warning);
+    min-width: 40px;
+    text-align: center;
+    border-left: 1px solid #555;
+    border-right: 1px solid #555;
+}
+
+
+/* ================================================= */
+/* === CÁC THÀNH PHẦN GIAO DIỆN KHÁC             === */
+/* ================================================= */
+
+/* Tooltip xem trước công thức toán */
+#math-tooltip {
+    position: absolute;
+    display: none;
+    padding: 12px 15px;
+    background-color: var(--color-dark-bg);
+    color: var(--color-light-text);
+    border: 1px solid #34495e;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    z-index: 10000;
+    font-size: 1.2em;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: opacity 0.1s ease-in-out;
+}
+
+
+/* ================================================= */
+/* === TÙY BIẾN GIAO DIỆN CHO SWEETALERT2 MODAL   === */
+/* ================================================= */
+
+/* --- Modal của "Latex Tools" --- */
+#latex-tools-form {
+    text-align: left;
+    font-size: 1em;
+}
+#latex-tools-form hr {
+    margin: 1.5rem 0;
+    border-top: 1px solid #e0e0e0;
+}
+#latex-tools-form .form-check {
+    padding-left: 0;
+    margin-bottom: 15px;
+}
+#latex-tools-form .form-check-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 1.05em;
+}
+#latex-tools-form .form-check-input {
+    display: none; /* Ẩn checkbox mặc định */
+}
+#latex-tools-form .form-check-label::before {
+    content: '';
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    border: 2px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: #fff;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+#latex-tools-form .form-check-input:checked + .form-check-label::before {
+    background-color: var(--color-primary);
+    border-color: #2980b9;
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: white;
+    text-align: center;
+    line-height: 18px;
+    font-size: 14px;
+}
+#latex-tools-form .form-check-label:hover::before {
+    border-color: var(--color-primary);
+}
+#numbering-options {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    padding-left: 25px;
+    margin-top: 10px;
+    display: none;
+}
+#numbering-options .form-label {
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* --- Modal của "QR Code" --- */
+.swal2-popup.qr-modal-wide {
+    width: 700px !important;
+}
+.swal2-popup #qr-result-textarea {
+    width: 95% !important;
+    height: 180px !important;
+    margin: 10px auto;
+    font-size: 1em;
+    font-family: monospace;
+}
+
+/* --- Style chung cho nút bấm trong các modal --- */
+.swal2-styled.swal2-confirm {
+    background-color: var(--color-success) !important;
+    font-size: 1.1em !important;
+}

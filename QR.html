@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chuyển Đáp Án Thành Mã QR</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .card {
+            margin-top: 50px;
+            margin-bottom: 50px; /* Thêm margin dưới cho card */
+        }
+        .footer-text {
+            margin-top: 20px;
+            font-size: 90%;
+            color: #6c757d;
+        }
+        #qrcode {
+            margin-top: 20px;
+            text-align: center; /* Căn giữa QR code */
+            min-height: 150px; /* Đảm bảo có không gian hiển thị */
+        }
+        #qrcode canvas, #qrcode img {
+            margin: 0 auto; /* Căn giữa canvas/image QR code */
+        }
+        .status-message {
+            margin-top: 15px;
+            font-style: italic;
+            color: #007bff; /* Màu xanh cho thông báo */
+        }
+         .error-message {
+            margin-top: 15px;
+            font-style: italic;
+            color: #dc3545; /* Màu đỏ cho lỗi */
+        }
+    </style>
+    <!-- QR Code Library (Using JSDelivr - qrcode by kazuhikoarase) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Chuyển Đáp Án Thành Mã QR </h4>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="texFile">Chọn file .tex (có thể chọn nhiều file)</label>
+                    <input type="file" class="form-control-file" id="texFile" accept=".tex" multiple>
+                </div>
+
+                <div class="form-group">
+                    <label>Mã đề</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="madeOption" id="madeFromTex" value="fromTex" checked>
+                        <label class="form-check-label" for="madeFromTex">
+                            Lấy mã đề từ \newcommand{\made}{...} trong file (lấy 3 ký tự sau dấu "{")
+                        </label>
+                    </div>
+                </div>
+
+                 <!-- Các nút xử lý file -->
+                <button class="btn btn-success mt-3" id="processUntlapBtn">Phần Mềm UnTlap</button>
+                <button class="btn btn-primary mt-3" id="processTnmakerStringBtn">Phần Mềm TNMaker</button>
+                <button class="btn btn-info mt-3" id="processSmarttestBtn">Phần Mềm Smarttest</button>
+
+
+                 <!-- Thông báo trạng thái -->
+                <div id="statusMessage" class="status-message" style="display: none;"></div>
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+
+                <div class="footer-text">
+                    <p>Kết quả sẽ được hiển thị trong khung bên dưới.</p>
+                </div>
+
+                <!-- Textarea hiển thị chuỗi KEY hoặc JSON -->
+                <div class="form-group mt-4">
+                    <label for="keyStringOutput">Kết quả (KEY gốc hoặc JSON):</label>
+                    <textarea class="form-control" id="keyStringOutput" rows="10"></textarea> <!-- Tăng số dòng -->
+                </div>
+
+                <!-- QR Code Display -->
+                 <h5 class="mt-4">Mã QR cho nội dung hiển thị:</h5> <!-- Cập nhật label -->
+                <div id="qrcode" class="mt-3">
+                     <p>Mã QR sẽ hiển thị ở đây sau khi xử lý.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Thư viện Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Hàm hiển thị thông báo trạng thái
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            const errorDiv = document.getElementById('errorMessage');
+
+            if (isError) {
+                statusDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.innerText = message;
+            } else {
+                errorDiv.style.display = 'none';
+                statusDiv.style.display = 'block';
+                statusDiv.innerText = message;
+            }
+        }
+
+        // Hàm ẩn thông báo
+        function hideMessages() {
+             document.getElementById('statusMessage').style.display = 'none';
+             document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Các hàm xử lý dữ liệu LaTeX (giữ nguyên)
+        function xoaNoiDungTruocNgoacMo(text) {
+            return text.replace(/(\\shortans)\s*[^\{]*(\{)/g, '$1$2');
+        }
+
+        function xoaNgoacConTrongShortans(text) {
+            let result = '';
+            let i = 0;
+            const shortansPrefix = '\\shortans{';
+            const prefixLength = shortansPrefix.length;
+
+            while (i < text.length) {
+                if (text.startsWith(shortansPrefix, i)) {
+                    let startIndex = i + prefixLength;
+                    let braceCount = 1;
+                    let j = startIndex;
+
+                    while (j < text.length && braceCount > 0) {
+                        if (text[j] === '{') {
+                            braceCount++;
+                        } else if (text[j] === '}') {
+                            braceCount--;
+                        }
+                        j++;
+                    }
+
+                    if (braceCount === 0) {
+                        let innerContent = text.slice(startIndex, j - 1);
+                        let noiDungKhongNgoac = innerContent.replace(/[{}]/g, '');
+                        noiDungKhongNgoac = noiDungKhongNgoac
+                            .replace(/\$/g, '')
+                            .replace(/\s+/g, '')
+                            .replace(/,/g, '.');
+                        result += '\\shortans{' + noiDungKhongNgoac + '}';
+                        i = j;
+                    } else {
+                        result += text[i];
+                        i++;
+                    }
+                } else {
+                    result += text[i];
+                    i++;
+                }
+            }
+            return result;
+        }
+
+        function layCacNgoacLon(text) {
+            let positions = [];
+            let stack = [];
+            let startIndex = null;
+            for (let i = 0; i < text.length; i++) {
+                let kyTu = text[i];
+                if (kyTu === '{') {
+                    if (stack.length === 0) {
+                        startIndex = i;
+                    }
+                    stack.push(i);
+                } else if (kyTu === '}') {
+                    if (stack.length > 0) {
+                        stack.pop();
+                        if (stack.length === 0 && startIndex !== null) {
+                            positions.push([startIndex, i]);
+                            startIndex = null;
+                        }
+                    }
+                }
+            }
+             if(stack.length > 0) {
+                 console.warn("Cảnh báo: Có dấu { chưa đóng trong đoạn text:", text);
+             }
+            return positions;
+        }
+
+        function extractLatexData(content) {
+            content = content.replace(/^%.*$/gm, '');
+            content = content.replace(/^\s*$/gm, '');
+
+            content = xoaNgoacConTrongShortans(content);
+            content = xoaNoiDungTruocNgoacMo(content);
+
+            const regexChoice = /\\begin\{ex\}[\s\S]*?\\choice(?!TF)\s*([\s\S]*?)\\loigiai/gs;
+            const regexChoiceTF = /\\begin\{ex\}[\s\S]*?\\choiceTF\s*([\s\S]*?)\\loigiai/gs;
+            const regexShortans = /\\shortans\{([\s\S]*?)\}/gs;
+
+            let extractedData = [];
+            let match;
+
+            regexChoice.lastIndex = 0;
+            while ((match = regexChoice.exec(content)) !== null) {
+                 const choicesBlock = match[1].trim();
+                 const positions = layCacNgoacLon(choicesBlock);
+
+                 if (positions.length >= 4) {
+                    const answers = positions.slice(0, 4).map(pair => choicesBlock.substring(pair[0] + 1, pair[1]));
+                    const correctAnswerIndex = answers.findIndex(answer => answer.includes('\\True'));
+                    if (correctAnswerIndex !== -1) {
+                        extractedData.push(String.fromCharCode(65 + correctAnswerIndex)); // A, B, C, D
+                    } else {
+                        extractedData.push("N/A_Choice_NoTrue");
+                        console.warn("Không tìm thấy \\True trong khối \\choice:", choicesBlock);
+                    }
+                 } else {
+                     extractedData.push("N/A_Choice_Not4");
+                     console.warn("Không đủ 4 cặp ngoặc trong khối \\choice:", choicesBlock);
+                 }
+            }
+
+            regexChoiceTF.lastIndex = 0;
+            while ((match = regexChoiceTF.exec(content)) !== null) {
+                 const choicesBlock = match[1].trim();
+                 const positions = layCacNgoacLon(choicesBlock);
+
+                 if (positions.length >= 4) {
+                    const answers = positions.slice(0, 4).map(pair => choicesBlock.substring(pair[0] + 1, pair[1]));
+                    const result = answers.map(answer => answer.includes('\\True') ? 'Đ' : 'S').join('');
+                    extractedData.push(result);
+                 } else {
+                     extractedData.push("N/A_ChoiceTF_Not4");
+                     console.warn("Không đủ 4 cặp ngoặc trong khối \\choiceTF:", choicesBlock);
+                 }
+            }
+
+             regexShortans.lastIndex = 0;
+            while ((match = regexShortans.exec(content)) !== null) {
+                let answer = match[1];
+                if (answer !== undefined) {
+                    answer = answer.replace(/,/g, '.')
+                               .replace(/\$/g, '')
+                               .replace(/\{|\}/g, '')
+                               .replace(/\s+/g, '')
+                               .trim();
+
+                    if (answer === '') {
+                         extractedData.push("N/A_Shortans_Empty");
+                         console.warn("Nội dung \\shortans{} bị rỗng.");
+                    } else {
+                        const num = parseFloat(answer);
+                        if (!isNaN(num)) {
+                             extractedData.push(num); // Giữ là số để xử lý sau
+                        } else {
+                             extractedData.push(answer);
+                        }
+                    }
+                } else {
+                    extractedData.push("N/A_Shortans_NoContent");
+                     console.warn("Regex \\shortans{} không lấy được nội dung.");
+                }
+            }
+
+             console.log("Dữ liệu trích xuất thô:", extractedData);
+            return extractedData;
+        }
+
+        function extractMadeFromTex(content) {
+            const regexMade = /\\newcommand\{\\made\}\{(.{3})\}/;
+            const match = content.match(regexMade);
+            if (match && match[1]) {
+                return match[1];
+            }
+            return null;
+        }
+
+        // HÀM: Định dạng dữ liệu trích xuất thành CHUỖI giá trị cho TNMaker (Chuỗi)
+        function formatExtractedDataToStringValue(extractedData) {
+             let singleCharAnswers = []; // A, B, C, D
+             let trueFalseAnswers = []; // Chứa Đ/S (chuỗi)
+             let numberOrOtherAnswers = []; // Chứa số hoặc chuỗi khác
+
+             for (const item of extractedData) {
+                 if (typeof item === 'string' && item.startsWith("N/A")) { continue; }
+
+                 if (typeof item === 'string' && /^[A-D]$/.test(item)) {
+                     singleCharAnswers.push(item);
+                 } else if (typeof item === 'string' && /^[ĐS]+$/.test(item) && item.length > 1) {
+                     trueFalseAnswers.push(item);
+                 } else if (typeof item === 'number' || (typeof item === 'string' && item !== '')) {
+                     numberOrOtherAnswers.push(String(item));
+                 }
+             }
+
+             const answersA = singleCharAnswers.join('');
+             const answersTFString = trueFalseAnswers.join('');
+             const answersTFFormatted = answersTFString ? answersTFString.match(/.{1,4}/g)?.join('_') || answersTFString : '';
+             const answersNumFormatted = numberOrOtherAnswers.join('_');
+
+             const answerParts = [answersA, answersTFFormatted, answersNumFormatted].filter(part => part !== '');
+             const answerValueString = answerParts.join('#');
+
+             return answerValueString;
+        }
+
+        // Hàm hiển thị kết quả cho nút UnTlap
+        function processDataAndDisplayKey(allExtractedData, currentMades) {
+            let keyString = "";
+
+            if (allExtractedData.length === 0 || allExtractedData.every(arr => arr.length === 0)) {
+                 keyString = "Không có dữ liệu đáp án nào được trích xuất từ các file đã chọn.";
+                 showStatus("Không có dữ liệu đáp án nào được trích xuất.", true);
+            } else {
+                 for (let i = 0; i < allExtractedData.length; i++) {
+                    keyString += currentMades[i] + "\n";
+
+                    let singleCharAnswers = [];
+                    let trueFalseAnswers = [];
+                    let numberOrOtherAnswers = [];
+
+                    for (const item of allExtractedData[i]) {
+                        if (typeof item === 'string' && item.startsWith("N/A")) { continue; }
+
+                        if (typeof item === 'string' && /^[A-D]$/.test(item)) {
+                            singleCharAnswers.push(item);
+                        } else if (typeof item === 'string' && /^[ĐS]+$/.test(item) && item.length > 1) {
+                            trueFalseAnswers.push(item);
+                        } else if (typeof item === 'number' || (typeof item === 'string' && item !== '')) {
+                            numberOrOtherAnswers.push(String(item));
+                        }
+                    }
+
+                    if (singleCharAnswers.length > 0) { keyString += singleCharAnswers.join('') + "\n"; }
+                    if (trueFalseAnswers.length > 0) { keyString += trueFalseAnswers.join('') + "\n"; }
+                    if (numberOrOtherAnswers.length > 0) { keyString += numberOrOtherAnswers.join('|') + "\n"; }
+                    if (i < allExtractedData.length - 1) { keyString += "\n"; }
+                }
+                showStatus("Trích xuất đáp án thành công!", false);
+            }
+
+            let finalKeyStringOriginal = keyString.trim();
+            document.getElementById('keyStringOutput').value = finalKeyStringOriginal;
+            updateQRCode(finalKeyStringOriginal);
+        }
+
+        // Cập nhật QR Code
+        function updateQRCode(text) {
+            const qrcodeDiv = document.getElementById("qrcode");
+            qrcodeDiv.innerHTML = '';
+
+             if (!text || text.trim() === "") {
+                 qrcodeDiv.innerHTML = "<p>Không có dữ liệu để tạo mã QR.</p>";
+                 return;
+             }
+
+            const canvas = document.createElement('canvas');
+            qrcodeDiv.appendChild(canvas);
+
+            QRCode.toCanvas(canvas, text, {
+                errorCorrectionLevel: 'M',
+                margin: 1,
+                width: 256
+            }, function (error) {
+                if (error) {
+                    console.error("Lỗi khi tạo mã QR:", error);
+                    qrcodeDiv.innerHTML = `<p style="color: red;">Lỗi khi tạo mã QR: Dữ liệu có thể quá lớn.</p>`;
+                    showStatus(`Lỗi tạo mã QR: ${error.message}`, true);
+                } else {
+                    hideMessages();
+                }
+            });
+        }
+
+        // Hàm xử lý chung để đọc file .tex và lấy mã đề
+        async function processTexFilesCommon() {
+            const fileInput = document.getElementById('texFile');
+            hideMessages();
+            document.getElementById('keyStringOutput').value = '';
+            document.getElementById("qrcode").innerHTML = '<p>Đang xử lý file và tạo mã QR...</p>';
+
+            if (fileInput.files.length === 0) {
+                showStatus('Vui lòng chọn ít nhất một file .tex trước!', true);
+                return null;
+            }
+
+            const files = Array.from(fileInput.files);
+
+            function readFileAsText(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
+
+            let allExtractedData = [];
+            let currentMades = [];
+            let anyFileProcessedSuccessfully = false;
+
+            for (let i = 0; i < files.length; i++) {
+                let file = files[i];
+                showStatus(`Đang xử lý file: ${file.name} (${i + 1}/${files.length})...`, false);
+                let content = await readFileAsText(file);
+                let madeName = extractMadeFromTex(content) || `File${i + 1}`;
+
+                let extracted = extractLatexData(content);
+                let filteredExtracted = extracted.filter(item => typeof item !== 'string' || !item.startsWith("N/A"));
+
+                if (filteredExtracted.length > 0) {
+                     allExtractedData.push(filteredExtracted);
+                     currentMades.push(madeName);
+                     anyFileProcessedSuccessfully = true;
+                } else {
+                     showStatus(`Cảnh báo: Không có dữ liệu đáp án hợp lệ nào được trích xuất từ file "${file.name}".`, false);
+                }
+            }
+
+            if (!anyFileProcessedSuccessfully) {
+                 showStatus("Không tìm thấy dữ liệu đáp án hợp lệ nào từ các file đã chọn.", true);
+                 return null;
+            }
+
+            return { allExtractedData, currentMades };
+        }
+
+        // === Listener cho nút "Phần Mềm UnTlap" ===
+        document.getElementById('processUntlapBtn').addEventListener('click', async function () {
+            this.disabled = true;
+            const result = await processTexFilesCommon();
+            if (result) {
+                processDataAndDisplayKey(result.allExtractedData, result.currentMades);
+            } else {
+                 document.getElementById("qrcode").innerHTML = '<p style="color: red;">Không thể tạo mã QR do không có dữ liệu hợp lệ.</p>';
+            }
+            this.disabled = false;
+        });
+
+        // === Listener cho nút "Phần Mềm TNMaker (Chuỗi)" ===
+        document.getElementById('processTnmakerStringBtn').addEventListener('click', async function () {
+            this.disabled = true;
+            const result = await processTexFilesCommon();
+            if (result) {
+                const { allExtractedData, currentMades } = result;
+                const jsonObject = {};
+                for (let i = 0; i < allExtractedData.length; i++) {
+                    jsonObject[currentMades[i]] = formatExtractedDataToStringValue(allExtractedData[i]);
+                }
+                jsonObject["success"] = true;
+                jsonObject["type"] = 5;
+                const jsonString = JSON.stringify(jsonObject, null, 2);
+                document.getElementById('keyStringOutput').value = jsonString;
+                updateQRCode(jsonString.trim());
+                showStatus("Đã xử lý file(s) và hiển thị JSON (TNMaker Chuỗi).", false);
+            } else {
+                 document.getElementById("qrcode").innerHTML = '<p style="color: red;">Không thể tạo mã QR do không có dữ liệu hợp lệ.</p>';
+            }
+            this.disabled = false;
+        });
+
+        // === Listener cho nút "Phần Mềm Smarttest" (ĐÃ CẬP NHẬT THEO YÊU CẦU MỚI) ===
+         document.getElementById('processSmarttestBtn').addEventListener('click', async function () {
+            this.disabled = true;
+            const result = await processTexFilesCommon();
+            if (result) {
+                const { allExtractedData, currentMades } = result;
+                const jsonObject = {};
+
+                for (let i = 0; i < allExtractedData.length; i++) {
+                    const madeName = currentMades[i];
+                    const extractedData = allExtractedData[i];
+
+                    // Chuyển đổi TẤT CẢ các phần tử trong mảng thành chuỗi (string)
+                    const dataAsStringArray = extractedData.map(item => String(item));
+
+                    // Gán mảng đã chuyển đổi vào đối tượng JSON
+                    jsonObject[madeName] = dataAsStringArray;
+                }
+
+                jsonObject["success"] = true;
+                jsonObject["type"] = 5;
+
+                const jsonString = JSON.stringify(jsonObject, null, 2);
+                document.getElementById('keyStringOutput').value = jsonString;
+                updateQRCode(jsonString.trim());
+                showStatus("Đã xử lý file(s) và hiển thị JSON (Smarttest).", false);
+            } else {
+                 document.getElementById("qrcode").innerHTML = '<p style="color: red;">Không thể tạo mã QR do không có dữ liệu hợp lệ.</p>';
+            }
+            this.disabled = false;
+         });
+
+        // === Listener cho textarea để tự động cập nhật QR khi sửa tay ===
+        document.addEventListener('DOMContentLoaded', () => {
+             document.getElementById("qrcode").innerHTML = '<p>Mã QR sẽ hiển thị ở đây sau khi xử lý.</p>';
+            const keyStringTextarea = document.getElementById('keyStringOutput');
+            let updateTimer = null;
+            keyStringTextarea.addEventListener('input', function() {
+                clearTimeout(updateTimer);
+                updateTimer = setTimeout(() => {
+                    updateQRCode(this.value.trim());
+                    hideMessages();
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

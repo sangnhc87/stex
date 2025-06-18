@@ -569,6 +569,10 @@ function main() {
              }
         });
         // File: app11.js
+const generateQrBtn = document.getElementById('generate-qr-btn');
+if (generateQrBtn) {
+    generateQrBtn.addEventListener('click', () => QrAnswerExtractor.showModal());
+}
 // Trong hàm init()
         const latexToolsBtn = document.getElementById('latex-tools-btn');
         if (latexToolsBtn) {

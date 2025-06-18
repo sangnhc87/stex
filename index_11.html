@@ -10,251 +10,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <!-- **** THÊM DÒNG NÀY VÀO **** -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <!-- === THÊM THƯ VIỆN QR CODE VÀO ĐÂY === -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
     <link rel="stylesheet" href="styleV3.css">
-    <style>
-        /* Thêm vào styleV3.css hoặc thẻ <style> */
-.drive-buttons-group {
-    display: flex;
-    border: 1px solid #555;
-    border-radius: 5px;
-    overflow: hidden; /* Để bo góc hoạt động */
-    margin: 0 5px;
-}
-
-.drive-buttons-group button {
-    background-color: #4CAF50; /* Màu xanh lá cây cho Google Drive */
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.drive-buttons-group button:first-child {
-    border-right: 1px solid #3e8e41;
-}
-
-.drive-buttons-group button:hover {
-    background-color: #45a049;
-}
-
-.drive-buttons-group button:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-    opacity: 0.65;
-}
-/* CSS cho Tooltip xem trước công thức toán */
-#math-tooltip {
-    position: absolute;
-    display: none;
-    padding: 12px 15px; /* Tăng khoảng đệm */
-    background-color: #f9f9f9; /* Nền xám rất nhẹ */
-    border: 1px solid #d1d1d1;
-    border-radius: 6px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    z-index: 10000;
-    
-    /* QUAN TRỌNG: Tăng kích thước font chữ */
-    font-size: 1.25em; /* To hơn 25% so với chữ thường */
-    
-    /* Ngăn không cho người dùng vô tình chọn chữ trong tooltip */
-    user-select: none;
-    -webkit-user-select: none;
-}
-/* CSS cho Tooltip xem trước công thức toán - Giao diện MỚI MÀU XANH */
-#math-tooltip {
-    position: absolute;
-    display: none;
-    padding: 12px 15px;
-    
-    /* GIAO DIỆN MÀU XANH CHUYÊN NGHIỆP */
-    background-color: #f0f5f7; /* Xanh sẫm (Slate Blue) - Giống màu nền IDE */
-    color: #ff7d04;           /* Chữ màu trắng ngà, dịu mắt */
-    border: 1px solid #34495e; /* Viền đậm hơn nền một chút */
-    
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Đổ bóng rõ hơn */
-    z-index: 10000;
-    
-    /* Kích thước và font */
-    font-size: 1.2em; /* Có thể điều chỉnh 1.2em hoặc 1.25em tùy ý */
-    
-    /* Ngăn chọn chữ và thêm hiệu ứng mượt mà */
-    user-select: none;
-    -webkit-user-select: none;
-    transition: opacity 0.1s ease-in-out;
-}
-/* CSS cho các nút gập hàng loạt */
-.fold-button {
-    background-color: #555;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    font-family: monospace; /* Font cho dễ đọc tên môi trường */
-    font-size: 1em;
-    margin-left: 5px;
-    border-radius: 4px;
-}
-
-.fold-button:hover {
-    background-color: #777;
-}
-
-.fold-button i {
-    margin-right: 5px;
-}
-/* CSS cho cụm điều khiển cỡ chữ */
-.font-size-controls {
-    display: flex;
-    align-items: center;
-    background-color: #333;
-    border-radius: 4px;
-    margin-left: 10px;
-    border: 1px solid #555;
-}
-
-.font-size-controls button {
-    background-color: transparent;
-    border: none;
-    color: white;
-    padding: 6px 8px;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-
-.font-size-controls button:hover {
-    background-color: #555;
-}
-
-.font-size-controls #current-font-size {
-    padding: 0 8px;
-    font-weight: bold;
-    color: #f1c40f; /* Màu vàng để nổi bật */
-    min-width: 40px; /* Đảm bảo chiều rộng không đổi khi số thay đổi */
-    text-align: center;
-    border-left: 1px solid #555;
-    border-right: 1px solid #555;
-}
-/* CSS cho nút Tools đặc biệt */
-#latex-tools-btn {
-    background-color: #9b59b6; /* Màu tím Amethyst */
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    font-weight: bold;
-    border-radius: 4px;
-    margin-left: 5px; /* Tạo khoảng cách với nút bên trái */
-}
-
-#latex-tools-btn:hover {
-    background-color: #8e44ad; /* Màu tím đậm hơn khi di chuột */
-    transform: translateY(-1px); /* Hiệu ứng nhấc lên một chút */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-#latex-tools-btn i {
-    margin-right: 6px;
-    animation: magic-sparkle 2s infinite; /* Thêm hiệu ứng lấp lánh cho icon */
-}
-
-/* Hiệu ứng lấp lánh cho icon magic */
-@keyframes magic-sparkle {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.7; }
-}
-/* ================================================= */
-/* === TÙY BIẾN GIAO DIỆN CHO LATEX TOOLS MODAL === */
-/* ================================================= */
-
-/* Định dạng chung cho form bên trong modal */
-#latex-tools-form {
-    text-align: left;
-    font-size: 1em;
-}
-
-#latex-tools-form hr {
-    margin: 1.5rem 0; /* Tăng khoảng cách cho đường gạch ngang */
-    border-top: 1px solid #e0e0e0;
-}
-
-/* Style cho các checkbox tùy chỉnh - phần quan trọng nhất */
-#latex-tools-form .form-check {
-    padding-left: 0;
-    margin-bottom: 15px;
-}
-
-#latex-tools-form .form-check-label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    font-size: 1.05em; /* Chữ to hơn một chút */
-}
-
-/* Ẩn checkbox mặc định */
-#latex-tools-form .form-check-input {
-    display: none;
-}
-
-/* Tạo ra một checkbox giả bằng ::before */
-#latex-tools-form .form-check-label::before {
-    content: '';
-    display: inline-block;
-    width: 22px;
-    height: 22px;
-    margin-right: 12px;
-    border: 2px solid #bdc3c7; /* Viền xám */
-    border-radius: 4px;
-    background-color: #fff;
-    transition: all 0.2s;
-    flex-shrink: 0; /* Ngăn không cho co lại */
-}
-
-/* Thay đổi style khi checkbox được CHỌN */
-#latex-tools-form .form-check-input:checked + .form-check-label::before {
-    background-color: #3498db; /* Màu xanh dương khi được chọn */
-    border-color: #2980b9;
-    /* Thêm icon dấu tick vào */
-    content: '\f00c'; /* Mã của icon check trong Font Awesome */
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    color: white;
-    text-align: center;
-    line-height: 18px; /* Căn giữa dấu tick */
-    font-size: 14px;
-}
-
-/* Hiệu ứng khi di chuột vào label */
-#latex-tools-form .form-check-label:hover::before {
-    border-color: #3498db;
-}
-
-/* Style cho khu vực tùy chọn đánh số */
-#numbering-options {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 5px;
-    padding: 15px;
-    padding-left: 25px;
-    margin-top: 10px;
-    display: none; /* Giữ nguyên trạng thái ẩn ban đầu */
-}
-
-#numbering-options .form-label {
-    font-size: 0.9em;
-    font-weight: 500;
-    color: #495057;
-}
-
-/* Nút bấm trong modal */
-.swal2-styled.swal2-confirm {
-    background-color: #28a745 !important; /* Màu xanh lá cây cho nút "Thực hiện" */
-    font-size: 1.1em !important;
-}
-    </style>
+   <link rel="stylesheet" href="styleV4.css">
 </head>
 <body>
     <!-- Thêm vào đâu đó trong <body>, ví dụ ngay sau thẻ <body> -->
@@ -356,9 +116,9 @@
     <button id="decrease-font-size-btn" title="Giảm cỡ chữ"><i class="fas fa-minus"></i></button>
     <span id="current-font-size">16</span>
     <button id="increase-font-size-btn" title="Tăng cỡ chữ"><i class="fas fa-plus"></i></button>
-
 </div>
 <button id="latex-tools-btn" class="toolbar-btn" title="Các công cụ xử lý LaTeX"><i class="fas fa-magic"></i> Tools</button>
+<button id="generate-qr-btn" class="toolbar-btn" title="Tạo QR Code cho đáp án"><i class="fas fa-qrcode"></i> QR</button>
 </div>
         <div class="footer-content" id="footer-content">
             <!-- Môi trường -->
@@ -450,7 +210,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="PdfTeXEngine.js" defer></script>
     <script src="ganID.js" defer></script>
-    
+    <script src="QrAnswerExtractor.js" defer></script>
     <script src="drive-integration10.js"></script>
     <script src="app11.js"></script>
 
