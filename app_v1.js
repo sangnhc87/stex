@@ -7,7 +7,7 @@
 // =====================================================================
 // ===        KHỐI MÃ THAY THẾ PdfTeXEngine (TRÁI TIM MỚI)        ===
 // =====================================================================
-const BACKEND_API_URL = 'https://tikz-server-797442200106.asia-southeast1.run.app';
+const BACKEND_API_URL = 'https://tikz2png-227060125780.asia-southeast1.run.app';
 
 var exports = {};
 var EngineStatus;
