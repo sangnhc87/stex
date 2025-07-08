@@ -1,12 +1,9 @@
-// =================================================================
-// ===      app_v1.js - PHIÊN BẢN HOÀN CHỈNH, NÂNG CẤP           ===
-// ===       Sử dụng Backend API & Đã gỡ bỏ Google Drive         ===
-// =================================================================
 "use strict";
 
 // =====================================================================
 // ===        KHỐI MÃ THAY THẾ PdfTeXEngine (TRÁI TIM MỚI)        ===
 // =====================================================================
+
 const BACKEND_API_URL = 'https://tikz2png-227060125780.asia-southeast1.run.app';
 
 var exports = {};
@@ -79,9 +76,7 @@ class PdfTeXEngine {
             const mainContent = new TextDecoder().decode(this.fileBuffer[this.mainFile] || '');
             const compileBody = new URLSearchParams({ latex_code: mainContent, session_id: this.sessionId });
             const compileRes = await fetch(`${BACKEND_API_URL}/api/compile-latex-pdf`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: compileBody
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: compileBody
             });
             if (compileRes.ok) {
                 report.status = 0;
@@ -101,7 +96,6 @@ class PdfTeXEngine {
         return report;
     }
 }
-
 function numberQuestions(text, selectedEnvs, startNumber) {
     let questionCounters = {};
     selectedEnvs.forEach(env => {
@@ -424,22 +418,24 @@ function initMathPreview() {
 }
 
 function main() {
-    // --- Lấy các element DOM (đã bỏ các element của Drive) ---
+    // === LẤY CÁC PHẦN TỬ DOM ===
     const editorEl = ace.edit("editor");
     const compileBtn = document.getElementById("compile-btn");
     const consoleOutput = document.getElementById("console");
     const pdfbox = document.getElementById("pdfbox");
+    const zipLoaderInput = document.getElementById('zip-loader-input');
+    const templateSelector = document.getElementById('template-selector');
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
-    // ... các element khác
-    
-    // --- Khai báo biến ---
-    const globalEn = new PdfTeXEngine(); // Sử dụng engine mới
+    // Các element khác bạn có thể lấy ở đây
+
+    // === CÁC BIẾN VÀ HẰNG SỐ ===
+    const globalEn = new PdfTeXEngine();
     let mainTexFile = 'main.tex';
     let currentOpenFile = 'main.tex';
     let db;
     let customSuggestions = [];
-    const DB_NAME = 'LaTeX_IDE_DB_v2'; // Đổi tên DB để tránh xung đột
+    const DB_NAME = 'LaTeX_IDE_DB_v3'; // Đổi tên để có cache sạch
     const STORE_NAME = 'ProjectFiles';
     const TEMPLATES = { 
         'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\begin{document}\n\nĐây là mẫu đề thi.\n\n\\end{document}`, 
@@ -447,9 +443,15 @@ function main() {
         'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`, 
         'book': `\\documentclass{book}\n\\usepackage[utf8]{vietnam}\n\\title{Tiêu đề sách}\n\\author{Tác giả}\n\\begin{document}\n\\frontmatter\n\\maketitle\n\\mainmatter\n\\chapter{Chương 1}\n\n\\end{document}` 
     }; 
-    const PREPACKAGED_FILES = { /* Có thể để trống hoặc thêm các file mặc định */ };
+    const PREPACKAGED_FILES = {};
     const DEFAULT_SNIPPETS_JSON = `[ { "name": "Môi trường cơ bản", "type": "folder", "children": [ { "name": "Itemize", "type": "snippet", "content": "\\\\begin{itemize}\\n\\t\\\\item \\n\\\\end{itemize}" }, { "name": "Enumerate", "type": "snippet", "content": "\\\\begin{enumerate}\\n\\t\\\\item \\n\\\\end{enumerate}" } ] }, { "name": "Toán học", "type": "folder", "children": [ { "name": "Phân số", "type": "snippet", "content": "\\\\dfrac{$1}{$2}" } ] } ]`;
 
+    // === CÁC HÀM CƠ SỞ (GIỮ NGUYÊN) ===
+    function openDb() { return new Promise((resolve, reject) => { const req = indexedDB.open(DB_NAME, 2); req.onerror = () => reject("DB Error"); req.onsuccess = e => { db = e.target.result; resolve(); }; req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME, { keyPath: 'name' }); }; }); }
+    function saveFileToDb(name, data) { if (!db) return Promise.reject("DB not open"); const tx = db.transaction([STORE_NAME], 'readwrite'); return new Promise((resolve, reject) => { const req = tx.objectStore(STORE_NAME).put({ name, data }); req.onsuccess = resolve; req.onerror = e => reject(e.target.error); }); }
+    function getFileFromDb(name) { return new Promise(resolve => { if (!db) return resolve(null); db.transaction([STORE_NAME]).objectStore(STORE_NAME).get(name).onsuccess = e => resolve(e.target.result ? e.target.result.data : null); }); }
+    function getAllFilesFromDb() { return new Promise(resolve => { if (!db) return resolve([]); db.transaction([STORE_NAME]).objectStore(STORE_NAME).getAll().onsuccess = e => resolve(e.target.result); }); }
+    function deleteFileFromDb(name) { return new Promise(resolve => { if (!db) return resolve(); db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).delete(name).onsuccess = resolve; }); }
     // === CÁC HÀM CƠ SỞ VÀ NÂNG CAO ===
     function openDb() { return new Promise((resolve, reject) => { const request = indexedDB.open(DB_NAME, 2); request.onerror = () => reject("Error opening IndexedDB."); request.onsuccess = (event) => { db = event.target.result; resolve(); }; request.onupgradeneeded = (event) => { const db = event.target.result; if (!db.objectStoreNames.contains(STORE_NAME)) { db.createObjectStore(STORE_NAME, { keyPath: 'name' }); } }; }); }
     function saveFileToDb(name, data) { if (!db) return Promise.reject("DB not open"); const transaction = db.transaction([STORE_NAME], 'readwrite'); const store = transaction.objectStore(STORE_NAME); return new Promise((resolve, reject) => { const request = store.put({ name, data }); request.onsuccess = resolve; request.onerror = (e) => reject(`Failed to save ${name}: ${e.target.error}`); }); }
@@ -511,45 +513,50 @@ function main() {
     async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }
 
     async function openFileInEditor(fileName) { if (!fileName) { editorEl.setValue('Không có file để mở. Vui lòng tạo file mới.', -1); currentOpenFile = ''; return; } if (currentOpenFile && editorEl.getValue()) { const currentContent = editorEl.getValue(); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); } let fileData = await getFileFromDb(fileName); if (!fileData) { let defaultContent = ''; if (fileName === 'snippets.json') defaultContent = DEFAULT_SNIPPETS_JSON; else if (fileName === 'suggestions.json') defaultContent = '[]'; const textEncoder = new TextEncoder(); fileData = textEncoder.encode(defaultContent); await saveFileToDb(fileName, fileData); } editorEl.setValue(new TextDecoder().decode(fileData), -1); currentOpenFile = fileName; const isMainFile = Array.from(mainFileSelector.options).some(opt => opt.value === fileName); if (isMainFile) mainTexFile = fileName; if (fileName.endsWith('.json')) { editorEl.session.setMode("ace/mode/json"); compileBtn.innerHTML = `<i class="fas fa-save"></i> Save File`; } else { editorEl.session.setMode("ace/mode/latex"); compileBtn.innerHTML = isMainFile ? '<i class="fas fa-play"></i> Compile' : '<i class="fas fa-save"></i> Save File'; } }
-    
+   
+
+    // === HÀM COMPILE() ĐÃ ĐƯỢC NÂNG CẤP ===
     async function compile() {
         if (!globalEn.isReady()) {
             Swal.fire('Chưa sẵn sàng', 'Đang kết nối đến server biên dịch...', 'info');
             return;
         }
-        
-        // Logic lưu các file JSON hoặc file .tex không phải file chính
-        if (currentOpenFile.endsWith('.json') || document.getElementById('main-file-selector').value !== currentOpenFile) {
+
+        // Lưu file JSON và các file .tex không phải file chính
+        if (currentOpenFile.endsWith('.json') || mainTexFile !== currentOpenFile) {
             const content = new TextEncoder().encode(editorEl.getValue());
             await saveFileToDb(currentOpenFile, content);
             globalEn.writeMemFSFile(currentOpenFile, content);
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu: ${currentOpenFile}`, showConfirmButton: false, timer: 1500 });
-            if (currentOpenFile.endsWith('.json')) return; // Không biên dịch file JSON
+            if (currentOpenFile.endsWith('.json')) {
+                if (currentOpenFile === 'suggestions.json') await loadCustomSuggestions();
+                return;
+            }
         }
         
+        // Chỉ biên dịch file chính
+        if (mainTexFile !== currentOpenFile) return;
+
         loadingOverlay.style.display = 'flex';
         loadingText.textContent = `Đang biên dịch ${mainTexFile}...`;
         compileBtn.disabled = true;
         compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
     
         try {
-            // Cập nhật nội dung file chính vào bộ đệm trước khi biên dịch
             globalEn.writeMemFSFile(mainTexFile, editorEl.getValue());
             globalEn.setEngineMainFile(mainTexFile);
             
-            // Gọi engine mới để biên dịch
             const r = await globalEn.compileLaTeX();
     
-            // Xử lý kết quả
-            consoleOutput.innerHTML = r.log || "No log output.";
+            consoleOutput.innerHTML = r.log.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
             if (r.status === 0 && r.pdf) {
                 const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
                 pdfbox.innerHTML = `<embed src="${URL.createObjectURL(pdfblob)}" width="100%" height="100%" type="application/pdf">`;
             } else {
-                pdfbox.innerHTML = `<div style="padding: 20px; color: #ff5555; background: #333; white-space: pre-wrap; height: 100%; overflow: auto;">${r.log}</div>`;
+                pdfbox.innerHTML = `<div class="error-display">Biên dịch thất bại.</div>`;
             }
         } catch (error) {
-            pdfbox.innerHTML = `<div style="padding: 20px; color: #ff5555; background: #333; white-space: pre-wrap;">Lỗi client: ${error.message}</div>`;
+            pdfbox.innerHTML = `<div class="error-display">Lỗi client: ${error.message}</div>`;
         } finally {
             loadingOverlay.style.display = 'none';
             compileBtn.disabled = false;
@@ -557,51 +564,111 @@ function main() {
         }
     }
 
-    // --- Hàm init đã được nâng cấp và dọn dẹp ---
-    async function init() {
-        // ... Cấu hình Editor, Theme, Font, ...
+    // === HÀM INIT() ĐÃ ĐƯỢC DỌN DẸP VÀ NÂNG CẤP ===
+    // === HÀM INIT() - Điểm khởi chạy chính (ĐÃ HOÀN CHỈNH) ===
+async function init() {
+    
+    // --- 1. Cấu hình Editor và Theme ---
+    const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
+    const themeSelector = document.getElementById('theme-selector');
+    if (themeSelector) themeSelector.value = savedTheme;
+    editorEl.setTheme(`ace/theme/${savedTheme}`);
+    editorEl.session.setMode("ace/mode/latex");
+    
+    const savedFontSize = parseInt(localStorage.getItem('editorFontSize')) || 16;
+    const currentFontSizeSpan = document.getElementById('current-font-size');
+    editorEl.setFontSize(savedFontSize);
+    if (currentFontSizeSpan) currentFontSizeSpan.textContent = `${savedFontSize}`;
+    
+    editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, showFoldWidgets: true });
+    editorEl.session.setFoldStyle("markbeginend");
+    const langTools = ace.require("ace/ext/language_tools");
+    const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
+    langTools.addCompleter(customCompleter);
+
+    // --- 2. Gán sự kiện cho tất cả các nút (đã loại bỏ các nút Drive) ---
+    const zipLoaderInput = document.getElementById('zip-loader-input');
+    const templateSelector = document.getElementById('template-selector');
+    const consoleHeader = document.getElementById("console-header");
+    
+    document.getElementById('compile-btn')?.addEventListener('click', compile);
+    document.getElementById('zip-loader-btn')?.addEventListener('click', () => zipLoaderInput.click());
+    zipLoaderInput?.addEventListener('change', handleZipLoad);
+    document.getElementById('file-manager-btn')?.addEventListener('click', showFileManager);
+    templateSelector?.addEventListener('change', handleTemplateChange);
+    consoleHeader?.addEventListener('click', toggleConsole);
+    document.getElementById('clear-cache-btn')?.addEventListener('click', clearStyCache);
+    document.getElementById('show-help-btn')?.addEventListener('click', showHelpModal);
+    document.getElementById('download-zip-btn')?.addEventListener('click', downloadProjectAsZip);
+    document.getElementById('open-v2-btn')?.addEventListener('click', () => window.open('indexV4.html', '_blank'));
+    document.getElementById('author-info-btn')?.addEventListener('click', showAuthorInfo);
+    themeSelector?.addEventListener('change', (e) => { const theme = e.target.value; editorEl.setTheme(`ace/theme/${theme}`); localStorage.setItem('editorTheme', theme); });
+    document.getElementById('snippet-manager-btn')?.addEventListener('click', showSnippetManager);
+    document.getElementById('edit-snippets-btn')?.addEventListener('click', () => openFileInEditor('snippets.json'));
+    document.getElementById('edit-suggestions-btn')?.addEventListener('click', () => openFileInEditor('suggestions.json'));
+    document.getElementById('download-current-tex-btn')?.addEventListener('click', () => { 
+        const content = editorEl.getValue(); 
+        if (!content.trim()) return Swal.fire({icon:'warning', title:'Tệp rỗng'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([content], {type:'text/plain;charset=utf-8'}));
+        link.download = currentOpenFile || 'current-file.tex';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
+    document.getElementById('open-gan-id-btn')?.addEventListener('click', () => { if (typeof openAssignIdDialog === 'function') openAssignIdDialog(); });
+    document.getElementById('generate-qr-btn')?.addEventListener('click', () => QrAnswerExtractor.showModal());
+    document.getElementById('latex-tools-btn')?.addEventListener('click', showLatexToolsModal);
+    document.getElementById('fold-problems-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['ex', 'vd', 'bt']));
+    document.getElementById('fold-structure-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['section', 'subsection']));
+    document.getElementById('decrease-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(-1));
+    document.getElementById('increase-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(1));
+
+    // --- 3. Khởi tạo các thành phần giao diện khác ---
+    initResizer();
+    initFooterPanel();
+    initMathPreview();
+    
+    // --- 4. Luồng khởi tạo ứng dụng chính ---
+    try {
+        await openDb();
+        await loadCustomSuggestions();
+
+        // Kết nối đến server backend
+        await globalEn.loadEngine(); 
         
-        // Gán sự kiện cho các nút (KHÔNG CÓ CÁC NÚT DRIVE)
-        document.getElementById('compile-btn')?.addEventListener('click', compile);
-        // ... Gán tất cả các listener khác ...
-
-        // Khởi tạo các thành phần giao diện
-        initResizer();
-        initFooterPanel();
-        // ...
-        
-        // Luồng khởi tạo chính
-        try {
-            await openDb();
-            await loadCustomSuggestions();
-
-            // Kết nối đến server backend
-            await globalEn.loadEngine(); 
-            
-            // Load các file đã lưu từ DB vào bộ đệm của engine
-            const files = await getAllFilesFromDb();
-            if (files.length === 0) {
-                // Nếu là lần đầu chạy, tạo file main.tex mẫu
-                const defaultContent = `\\documentclass{article}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
-                const fileData = new TextEncoder().encode(defaultContent);
-                await saveFileToDb('main.tex', fileData);
-                files.push({ name: 'main.tex', data: fileData });
-            }
-            files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
-
-            await updateMainFileSelector();
-            const firstMainFile = document.getElementById('main-file-selector').value || 'main.tex';
-            await openFileInEditor(firstMainFile);
-            
-            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
-            compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Kết nối server thành công. Sẵn sàng!";
-        } catch (err) {
-            console.error(err);
-            consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
-            compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi Backend';
+        // Load các file đã lưu từ DB vào bộ đệm của engine
+        const files = await getAllFilesFromDb();
+        if (files.length === 0) {
+            // Nếu là lần đầu chạy, tạo file main.tex mẫu
+            const defaultContent = `\\documentclass{article}\n\\usepackage{graphicx}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
+            const fileData = new TextEncoder().encode(defaultContent);
+            await saveFileToDb('main.tex', fileData);
+            files.push({ name: 'main.tex', data: fileData });
         }
+        files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
+
+        // Tự động quyết định file chính để mở (không cần selector)
+        const mainFiles = files.filter(f => f.name.endsWith('.tex')).map(f => f.name);
+        mainTexFile = mainFiles.find(name => name === 'main.tex') || mainFiles[0] || 'main.tex';
+        
+        // Mở file chính trong editor
+        await openFileInEditor(mainTexFile);
+
+        // Cập nhật lại dropdown file chính (nếu có)
+        // Hàm này giờ sẽ chỉ cập nhật UI, không gây lỗi nếu thẻ không tồn tại
+        await updateMainFileSelector(); 
+
+        // Báo hiệu sẵn sàng
+        compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
+        compileBtn.disabled = false;
+        consoleOutput.innerHTML = "Kết nối server thành công. Sẵn sàng!";
+
+    } catch (err) {
+        console.error("Lỗi trong quá trình khởi tạo:", err);
+        consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
+        compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi Backend';
     }
+}
     
     async function updateMainFileSelector() { const allFiles = (await getAllFilesFromDb()).map(f => f.name); const validPrefixes = ['main', 'file', 'de']; mainFileSelector.innerHTML = ''; const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort(); if (filteredTexFiles.length === 0) { const option = document.createElement('option'); option.textContent = 'Không có file chính'; option.disabled = true; mainFileSelector.appendChild(option); return; } filteredTexFiles.forEach(fileName => { const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option); }); if (filteredTexFiles.includes(mainTexFile)) { mainFileSelector.value = mainTexFile; } else { mainTexFile = filteredTexFiles[0] || ''; mainFileSelector.value = mainTexFile; } }
     function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
@@ -667,8 +734,4 @@ function main() {
 }
 
 // ĐIỂM BẮT ĐẦU CỦA TOÀN BỘ SCRIPT
-if (document.readyState === 'loading') { 
-    document.addEventListener('DOMContentLoaded', main); 
-} else { 
-    main(); 
-}
+main();
