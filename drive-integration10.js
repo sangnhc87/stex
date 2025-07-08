@@ -272,14 +272,11 @@ function onGoogleScriptLoad() {
 
     // 3. Tự động hiển thị popup đăng nhập nếu người dùng chưa đăng nhập
     //    Đây là cách tốt nhất để duy trì trạng thái đăng nhập
-    google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Nếu popup không hiển thị (ví dụ: bị trình duyệt chặn hoặc
-            // người dùng đã đăng nhập), không cần làm gì thêm.
-            // Trạng thái sẽ được xử lý bởi auto_select hoặc khi người dùng bấm nút.
-            console.log('Google prompt was not displayed.');
-        }
-    });
+    // google.accounts.id.prompt((notification) => {
+    //     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+    //         console.log('Google prompt was not displayed.');
+    //     }
+    // });
 
     // Phần gapi giữ nguyên
     gapi.load('client:picker', initializeGapiClient);
