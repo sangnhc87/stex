@@ -77,8 +77,8 @@ function handleSignInResponse(response) {
     if (AUTHORIZED_EMAILS.includes(userEmail)) {
         console.log(`Access GRANTED for ${userEmail}.`);
         updateUIOnLogin(userProfile);
-        console.log("Silently requesting Drive access token...");
-        tokenClient.requestAccessToken({ prompt: '' });
+        // console.log("Silently requesting Drive access token...");
+        // tokenClient.requestAccessToken({ prompt: '' });
     } else {
         console.warn(`Access DENIED for ${userEmail}.`);
         Swal.fire({ icon: 'error', title: 'Truy cập bị từ chối', html: `Tài khoản <strong>${userProfile.email}</strong> không có quyền truy cập.` });
@@ -101,42 +101,47 @@ function handleSignOut() {
 }
 
 /**
- * NÂNG CẤP: Hỏi người dùng tên file trước khi lưu.
+ * Hàm được gọi khi người dùng nhấn nút "Tải từ Drive".
+ * NÂNG CẤP: Kiểm tra và yêu cầu token trước khi mở Google Picker.
  */
-async function handleSaveClick() {
-    if (!gapi.client.getToken()) {
-        Swal.fire('Chưa đăng nhập', "Bạn cần đăng nhập để lưu file.", 'info');
-        return;
-    }
-    
-    const currentFileName = getCurrentFileNameRef() || 'untitled.tex';
+async function handleLoadClick() {
+    try {
+        // --- BƯỚC 1: KIỂM TRA VÀ YÊU CẦU TOKEN NẾU CẦN ---
+        if (!gapi.client.getToken()) {
+            console.log("Token truy cập Drive không tồn tại. Đang yêu cầu...");
+            const preRequestToast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, title: 'Chuẩn bị mở cửa sổ cấp quyền Google Drive...' });
+            preRequestToast.fire();
 
-    const { value: newFileName } = await Swal.fire({
-        title: 'Đặt tên file để lưu',
-        input: 'text',
-        inputValue: currentFileName,
-        showCancelButton: true,
-        confirmButtonText: 'Lưu vào Drive',
-        cancelButtonText: 'Hủy',
-        inputValidator: (value) => {
-            if (!value || !value.trim()) {
-                return 'Tên file không được để trống!'
-            }
+            await new Promise((resolve, reject) => {
+                tokenClient.callback = (resp) => {
+                    if (resp && resp.access_token) {
+                        gapi.client.setToken(resp);
+                        resolve(resp);
+                    } else {
+                        reject(new Error(resp.error || 'Người dùng đã hủy hoặc có lỗi xảy ra.'));
+                    }
+                };
+                tokenClient.requestAccessToken();
+            });
         }
-    });
+        
+        // --- BƯỚC 2: MỞ GOOGLE PICKER (LOGIC CŨ) ---
+        if (pickerApiLoaded) {
+            showFilePicker();
+        } else {
+            Swal.fire("Vui lòng đợi", "API để chọn file chưa sẵn sàng.", "warning");
+        }
 
-    if (newFileName) {
-        // Nếu người dùng nhấn "Lưu", gọi hàm upload với tên file mới
-        await uploadCurrentFileToDrive(newFileName.trim());
+    } catch (err) {
+        console.error("Quá trình tải file bị hủy hoặc thất bại:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Hủy bỏ',
+            text: `Không thể tiếp tục vì chưa được cấp quyền truy cập Google Drive. Lỗi: ${err.message}`
+        });
     }
 }
 
-// --- CÁC HÀM LÀM VIỆC VỚI GOOGLE DRIVE ---
-
-/**
- * Tìm hoặc tạo thư mục lưu trữ trên Drive.
- * @returns {Promise<string>} ID của thư mục.
- */
 async function getOrCreateFolderId() {
     const query = `mimeType='application/vnd.google-apps.folder' and name='${GOOGLE_DRIVE_FOLDER_NAME}' and trashed=false`;
     const searchResponse = await gapi.client.drive.files.list({ q: query, fields: 'files(id)' });
@@ -245,7 +250,27 @@ function parseJwt(token) {
 }
 function handleSignInResponse(e){const o=parseJwt(e.credential);if(!o||!o.email)return void Swal.fire("Lỗi Đăng Nhập","Không thể lấy thông tin email.","error");const t=o.email.toLowerCase();AUTHORIZED_EMAILS.includes(t)?(console.log(`Access GRANTED for ${t}.`),updateUIOnLogin(o),console.log("Silently requesting Drive access token..."),tokenClient.requestAccessToken({prompt:""})):(console.warn(`Access DENIED for ${t}.`),Swal.fire({icon:"error",title:"Truy cập bị từ chối",html:`Tài khoản <strong>${o.email}</strong> không có quyền truy cập.`}),handleSignOut())}
 function handleSignOut(){"undefined"!=typeof google&&google.accounts&&google.accounts.id.disableAutoSelect();const e=gapi.client.getToken();e&&google.accounts.oauth2.revoke(e.access_token,()=>{console.log("Access token revoked.")}),gapi.client.setToken(null),updateUIOnLogout()}
-async function handleSaveClick(){if(gapi.client.getToken()){const e=getCurrentFileNameRef()||"untitled.tex",{value:o}=await Swal.fire({title:"Đặt tên file để lưu",input:"text",inputValue:e,showCancelButton:!0,confirmButtonText:"Lưu vào Drive",cancelButtonText:"Hủy",inputValidator:t=>!t||!t.trim()?"Tên file không được để trống!":null});o&&await uploadCurrentFileToDrive(o.trim())}else Swal.fire("Chưa đăng nhập","Bạn cần đăng nhập để lưu file.","info")}
+async function handleSaveClick() {
+    // Bước 1: Yêu cầu quyền. Nếu không được cấp, hàm sẽ dừng lại.
+    const hasToken = await requestDriveTokenIfNeeded();
+    if (!hasToken) return;
+    
+    // Bước 2: Nếu đã có quyền, tiếp tục logic hỏi tên file và lưu
+    const currentFileName = getCurrentFileNameRef() || 'untitled.tex';
+    const { value: newFileName } = await Swal.fire({
+        title: 'Đặt tên file để lưu',
+        input: 'text',
+        inputValue: currentFileName,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save"></i> Lưu vào Drive',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => !value || !value.trim() ? 'Tên file không được để trống!' : null
+    });
+
+    if (newFileName) {
+        await uploadCurrentFileToDrive(newFileName.trim());
+    }
+}
 function handleLoadClick(){gapi.client.getToken()?pickerApiLoaded?showFilePicker():Swal.fire("Vui lòng đợi","API để chọn file chưa sẵn sàng.","warning"):Swal.fire("Chưa đăng nhập","Bạn cần đăng nhập để tải file.","info")}
 function showFilePicker(){const e=gapi.client.getToken().access_token;if(!e)return Swal.fire("Lỗi","Không tìm thấy token xác thực.","error");const o=new google.picker.View(google.picker.ViewId.DOCS);o.setMimeTypes("text/x-tex,text/plain,application/x-tex");const t=new google.picker.PickerBuilder().enableFeature(google.picker.Feature.NAV_HIDDEN).setAppId(GOOGLE_CLIENT_ID.split("-")[0]).setOAuthToken(e).addView(o).setTitle("Chọn một file .tex để tải").setCallback(filePickerCallback).build();t.setVisible(!0)}
 async function filePickerCallback(e){e.action===google.picker.Action.PICKED&&await downloadFileFromDrive(e.docs[0].id,e.docs[0].name)}
