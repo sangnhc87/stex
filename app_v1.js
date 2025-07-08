@@ -621,11 +621,14 @@ async function openFileInEditor(fileName) {
         }
     }
 
-    // === HÀM INIT() ĐÃ ĐƯỢC DỌN DẸP VÀ NÂNG CẤP ===
-    // === HÀM INIT() - Điểm khởi chạy chính (ĐÃ HOÀN CHỈNH) ===
+    /**
+ * Hàm khởi tạo chính của toàn bộ ứng dụng.
+ * PHIÊN BẢN NÂNG CẤP: Đã dọn dẹp, loại bỏ các thành phần không còn dùng
+ * và sửa lỗi liên quan đến việc không tìm thấy `main-file-selector`.
+ */
 async function init() {
     
-    // --- 1. Cấu hình Editor và Theme ---
+    // --- BƯỚC 1: Cấu hình Editor và Theme ---
     const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
     const themeSelector = document.getElementById('theme-selector');
     if (themeSelector) themeSelector.value = savedTheme;
@@ -643,17 +646,17 @@ async function init() {
     const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
     langTools.addCompleter(customCompleter);
 
-    // --- 2. Gán sự kiện cho tất cả các nút (đã loại bỏ các nút Drive) ---
+    // --- BƯỚC 2: Gán sự kiện cho tất cả các nút trên giao diện ---
+    // (Đã loại bỏ các listener cho các nút Google Drive và mainFileSelector)
     const zipLoaderInput = document.getElementById('zip-loader-input');
     const templateSelector = document.getElementById('template-selector');
-    const consoleHeader = document.getElementById("console-header");
     
     document.getElementById('compile-btn')?.addEventListener('click', compile);
-    document.getElementById('zip-loader-btn')?.addEventListener('click', () => zipLoaderInput.click());
+    document.getElementById('zip-loader-btn')?.addEventListener('click', () => zipLoaderInput?.click());
     zipLoaderInput?.addEventListener('change', handleZipLoad);
     document.getElementById('file-manager-btn')?.addEventListener('click', showFileManager);
     templateSelector?.addEventListener('change', handleTemplateChange);
-    consoleHeader?.addEventListener('click', toggleConsole);
+    document.getElementById('console-header')?.addEventListener('click', toggleConsole);
     document.getElementById('clear-cache-btn')?.addEventListener('click', clearStyCache);
     document.getElementById('show-help-btn')?.addEventListener('click', showHelpModal);
     document.getElementById('download-zip-btn')?.addEventListener('click', downloadProjectAsZip);
@@ -680,12 +683,12 @@ async function init() {
     document.getElementById('decrease-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(-1));
     document.getElementById('increase-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(1));
 
-    // --- 3. Khởi tạo các thành phần giao diện khác ---
+    // --- BƯỚC 3: Khởi tạo các thành phần giao diện khác ---
     initResizer();
     initFooterPanel();
     initMathPreview();
     
-    // --- 4. Luồng khởi tạo ứng dụng chính ---
+    // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
     try {
         await openDb();
         await loadCustomSuggestions();
@@ -705,16 +708,15 @@ async function init() {
         files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
 
         // Tự động quyết định file chính để mở (không cần selector)
-        const mainFiles = files.filter(f => f.name.endsWith('.tex')).map(f => f.name);
-        mainTexFile = mainFiles.find(name => name === 'main.tex') || mainFiles[0] || 'main.tex';
+        const texFiles = files.filter(f => f.name.endsWith('.tex')).map(f => f.name);
+        mainTexFile = texFiles.find(name => name === 'main.tex') || texFiles[0] || 'main.tex';
+        
+        // Cập nhật lại dropdown file chính (nếu nó tồn tại trên UI)
+        await updateMainFileSelector(); 
         
         // Mở file chính trong editor
         await openFileInEditor(mainTexFile);
-
-        // Cập nhật lại dropdown file chính (nếu có)
-        // Hàm này giờ sẽ chỉ cập nhật UI, không gây lỗi nếu thẻ không tồn tại
-        await updateMainFileSelector(); 
-
+        
         // Báo hiệu sẵn sàng
         compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
         compileBtn.disabled = false;
@@ -727,7 +729,42 @@ async function init() {
     }
 }
     
-    async function updateMainFileSelector() { const allFiles = (await getAllFilesFromDb()).map(f => f.name); const validPrefixes = ['main', 'file', 'de']; mainFileSelector.innerHTML = ''; const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort(); if (filteredTexFiles.length === 0) { const option = document.createElement('option'); option.textContent = 'Không có file chính'; option.disabled = true; mainFileSelector.appendChild(option); return; } filteredTexFiles.forEach(fileName => { const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option); }); if (filteredTexFiles.includes(mainTexFile)) { mainFileSelector.value = mainTexFile; } else { mainTexFile = filteredTexFiles[0] || ''; mainFileSelector.value = mainTexFile; } }
+   async function updateMainFileSelector() {
+    const mainFileSelector = document.getElementById('main-file-selector');
+    // --- BƯỚC KIỂM TRA QUAN TRỌNG ---
+    if (!mainFileSelector) {
+        console.log("Không tìm thấy element 'main-file-selector'. Bỏ qua việc cập nhật UI.");
+        return; // Thoát khỏi hàm nếu không tìm thấy element
+    }
+
+    // Đoạn code còn lại chỉ chạy nếu element tồn tại
+    const allFiles = (await getAllFilesFromDb()).map(f => f.name);
+    const validPrefixes = ['main', 'file', 'de'];
+    mainFileSelector.innerHTML = '';
+    const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort();
+    
+    if (filteredTexFiles.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'Không có file chính';
+        option.disabled = true;
+        mainFileSelector.appendChild(option);
+        return;
+    }
+
+    filteredTexFiles.forEach(fileName => {
+        const option = document.createElement('option');
+        option.value = fileName;
+        option.textContent = fileName;
+        mainFileSelector.appendChild(option);
+    });
+
+    if (filteredTexFiles.includes(mainTexFile)) {
+        mainFileSelector.value = mainTexFile;
+    } else {
+        mainTexFile = filteredTexFiles[0] || '';
+        mainFileSelector.value = mainTexFile;
+    }
+}
     function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
     async function handleTemplateChange(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); } ; }
     async function showFileManager() { try { const files = await getAllFilesFromDb(); files.sort((a, b) => a.name.localeCompare(b.name)); const getFileIcon = (fileName) => { if (fileName.endsWith('.tex')) return 'fa-file-code'; if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt'; if (fileName.endsWith('.json')) return 'fa-file-medical-alt'; if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image'; return 'fa-file'; }; let fileListHtml = files.map(file => `<div class="file-manager-item" data-filename="${file.name}"><div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div><div class="file-actions"><button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button><button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button></div></div>`).join(''); if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>'; const managerHTML = `<div class="swal2-content" style="text-align: left;"><div style="display: flex; gap: 10px; margin-bottom: 10px;"><input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex"><button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button></div> <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button></div><div id="file-manager-container">${fileListHtml}</div>`; Swal.fire({ title: '<strong>Quản lý File Dự án</strong>', html: managerHTML, width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: () => { const fileLoaderInput = document.createElement('input'); fileLoaderInput.type = 'file'; fileLoaderInput.multiple = true; fileLoaderInput.style.display = 'none'; document.body.appendChild(fileLoaderInput); document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile); document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click()); fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); document.body.removeChild(fileLoaderInput); }); document.getElementById('file-manager-container').addEventListener('click', handleFileAction); } }); } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); } }
