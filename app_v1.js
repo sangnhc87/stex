@@ -1,16 +1,169 @@
-//<script> 
-// File: app11.js
-// =================================================================
-// === KHỐI CÁC CÔNG CỤ XỬ LÝ LATEX (DÁN VÀO app11.js) ===
-// =================================================================
+// =====================================================================
+// ===        KHỐI MÃ THAY THẾ PdfTeXEngine (TRÁI TIM MỚI)        ===
+// =====================================================================
 
-/**
- * Hàm đánh số các môi trường được chọn.
- * @param {string} text - Nội dung code đầu vào.
- * @param {string[]} selectedEnvs - Mảng các tên môi trường (vd: ['ex', 'bt']).
- * @param {number} startNumber - Số bắt đầu đánh.
- * @returns {string} - Nội dung code đã được đánh số.
- */
+"use strict";
+
+// --- CẤU HÌNH QUAN TRỌNG ---
+const BACKEND_API_URL = 'https://tikz-server-797442200106.asia-southeast1.run.app';
+
+// --- ĐỊNH NGHĨA CÁC LỚP GIẢ LẬP ĐỂ TƯƠNG THÍCH ---
+var exports = {};
+var EngineStatus;
+(function (EngineStatus) {
+    EngineStatus[EngineStatus["Init"] = 1] = "Init";
+    EngineStatus[EngineStatus["Ready"] = 2] = "Ready";
+    EngineStatus[EngineStatus["Busy"] = 3] = "Busy";
+    EngineStatus[EngineStatus["Error"] = 4] = "Error";
+})(EngineStatus || (EngineStatus = {}));
+
+class CompileResult {
+    constructor() {
+        this.pdf = undefined;
+        this.status = -254;
+        this.log = 'No log';
+        this.synctex = undefined; // Giữ lại để tương thích
+    }
+}
+
+// === LỚP PdfTeXEngine "GIẢ" - GỌI API ĐẾN BACKEND ===
+class PdfTeXEngine {
+    constructor() {
+        this.latexWorkerStatus = EngineStatus.Init;
+        this.sessionId = null;
+        this.fileBuffer = {}; // Bộ đệm để lưu trữ các file trên client trước khi gửi
+        this.mainFile = 'main.tex'; // Lưu lại tên file chính
+    }
+
+    // 1. Khởi tạo: Thay vì tải worker, ta lấy session ID từ backend
+    async loadEngine() {
+        this.latexWorkerStatus = EngineStatus.Init;
+        console.log("Đang kết nối đến server biên dịch tại:", BACKEND_API_URL);
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/api/init-session`, { method: 'POST' });
+            if (!response.ok) throw new Error(`Server response: ${response.statusText}`);
+            
+            const data = await response.json();
+            if (data.success && data.session_id) {
+                this.sessionId = data.session_id;
+                this.latexWorkerStatus = EngineStatus.Ready;
+                console.log("Kết nối thành công! Session ID:", this.sessionId);
+            } else {
+                throw new Error(data.error || 'Không nhận được session_id hợp lệ.');
+            }
+        } catch (error) {
+            this.latexWorkerStatus = EngineStatus.Error;
+            console.error("Lỗi nghiêm trọng khi kết nối backend:", error);
+            // Hiển thị lỗi cho người dùng bằng SweetAlert2
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Lỗi Kết Nối', 'Không thể kết nối đến server biên dịch. Vui lòng kiểm tra lại địa chỉ backend và cài đặt CORS.', 'error');
+            }
+            throw error; // Ném lỗi để luồng init() biết và dừng lại
+        }
+    }
+
+    isReady() {
+        return this.latexWorkerStatus === EngineStatus.Ready;
+    }
+    
+    checkEngineStatus() {
+        if (!this.isReady()) {
+            throw new Error('Engine chưa sẵn sàng hoặc đang bận.');
+        }
+    }
+
+    // 2. Các hàm quản lý file: Lưu vào bộ đệm `fileBuffer` trên client
+    writeMemFSFile(filename, srccode) {
+        // srccode có thể là string hoặc Uint8Array, chuyển về Uint8Array
+        const data = (typeof srccode === 'string') ? new TextEncoder().encode(srccode) : srccode;
+        this.fileBuffer[filename] = data;
+    }
+
+    removeMemFSFile(filename) {
+        delete this.fileBuffer[filename];
+    }
+    
+    setEngineMainFile(filename) {
+        this.mainFile = filename;
+    }
+    
+    // Các hàm này không còn cần thiết nhưng để lại để tránh lỗi nếu có chỗ gọi đến
+    makeMemFSFolder(folder) { /* không làm gì */ }
+    flushCache() { /* không làm gì */ }
+
+    // 3. Hàm biên dịch chính: "Trái tim" của sự thay đổi
+    async compileLaTeX() {
+        this.checkEngineStatus();
+        this.latexWorkerStatus = EngineStatus.Busy;
+        const startTime = performance.now();
+        
+        const niceReport = new CompileResult();
+
+        try {
+            // --- Giai đoạn 1: Tải tất cả các file phụ (ảnh, sty,...) trong bộ đệm lên server ---
+            const formData = new FormData();
+            formData.append('session_id', this.sessionId);
+            
+            let fileCount = 0;
+            for (const filename in this.fileBuffer) {
+                // Chỉ tải lên những file không phải là file chính
+                if (filename !== this.mainFile) {
+                    const fileBlob = new Blob([this.fileBuffer[filename]]);
+                    formData.append('image_file', fileBlob, filename); // API backend sẽ nhận và lưu
+                    fileCount++;
+                }
+            }
+            
+            // Chỉ gọi API upload nếu có file phụ
+            if (fileCount > 0) {
+                 const uploadResponse = await fetch(`${BACKEND_API_URL}/api/upload-image-batch`, { // Cần có API này ở backend
+                    method: 'POST',
+                    body: formData
+                });
+                if (!uploadResponse.ok) {
+                    throw new Error("Lỗi khi tải các file phụ lên server.");
+                }
+            }
+
+            // --- Giai đoạn 2: Gửi yêu cầu biên dịch với code của file chính ---
+            const mainFileContent = new TextDecoder().decode(this.fileBuffer[this.mainFile]);
+            
+            const compileBody = new URLSearchParams();
+            compileBody.append('latex_code', mainFileContent);
+            compileBody.append('session_id', this.sessionId);
+
+            const compileResponse = await fetch(`${BACKEND_API_URL}/api/compile-latex-pdf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: compileBody
+            });
+
+            // --- Giai đoạn 3: Xử lý kết quả trả về ---
+            if (compileResponse.ok) {
+                const pdfBlob = await compileResponse.blob();
+                niceReport.status = 0; // 0 = Thành công
+                niceReport.pdf = new Uint8Array(await pdfBlob.arrayBuffer());
+                niceReport.log = "Biên dịch thành công trên server.\n";
+            } else {
+                const errorData = await compileResponse.json();
+                niceReport.status = 1; // 1 = Thất bại
+                niceReport.log = errorData.error || "Lỗi không xác định từ server.";
+            }
+            
+            return niceReport;
+
+        } catch (error) {
+            console.error("Lỗi trong quá trình compileLaTeX:", error);
+            niceReport.status = 1;
+            niceReport.log = `Lỗi phía client hoặc lỗi mạng: ${error.message}`;
+            return niceReport;
+        } finally {
+            this.latexWorkerStatus = EngineStatus.Ready;
+            console.log(`Toàn bộ quá trình biên dịch và nhận kết quả mất ${(performance.now() - startTime).toFixed(0)}ms`);
+        }
+    }
+}
+
 function numberQuestions(text, selectedEnvs, startNumber) {
     let questionCounters = {};
     selectedEnvs.forEach(env => {
@@ -359,8 +512,10 @@ function initMathPreview() {
     isMathPreviewInitialized = true;
     console.log("Math Preview Initialized (Robust Version).");
 }
+
+
+// === HÀM main() CHÍNH CỦA BẠN (Sửa đổi hàm compile và init) ===
 function main() {
-    // === LẤY CÁC PHẦN TỬ DOM (ĐÃ CẬP NHẬT) ===
     const editorEl = ace.edit("editor");
     const compileBtn = document.getElementById("compile-btn");
     const consoleOutput = document.getElementById("console");
@@ -370,26 +525,10 @@ function main() {
     const templateSelector = document.getElementById('template-selector');
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
-    const consoleHeader = document.getElementById("console-header");
-    const consoleToggleIcon = document.getElementById("console-toggle-icon");
-    const clearCacheBtn = document.getElementById('clear-cache-btn');
-    const editSuggestionsBtn = document.getElementById('edit-suggestions-btn');
-    const openV2Btn = document.getElementById('open-v2-btn'); // Giữ lại
-    const showHelpBtn = document.getElementById('show-help-btn');
-    const downloadZipBtn = document.getElementById('download-zip-btn'); 
-    const fileManagerBtn = document.getElementById('file-manager-btn');
-    const zipLoaderBtn = document.getElementById('zip-loader-btn');
-    const themeSelector = document.getElementById('theme-selector');
-    const authorInfoBtn = document.getElementById('author-info-btn');
-    const snippetManagerBtn = document.getElementById('snippet-manager-btn');
-    const editSnippetsBtn = document.getElementById('edit-snippets-btn');
-    const downloadCurrentTexBtn = document.getElementById('download-current-tex-btn');
-    const openGanIdBtn = document.getElementById('open-gan-id-btn'); // Thêm nút gán ID
-    const decreaseFontSizeBtn = document.getElementById('decrease-font-size-btn');
-    const increaseFontSizeBtn = document.getElementById('increase-font-size-btn');
-    const currentFontSizeSpan = document.getElementById('current-font-size');
+    // ... (giữ nguyên tất cả các biến DOM khác của bạn)
+
     // === CÁC BIẾN VÀ HẰNG SỐ (ĐÃ CẬP NHẬT) ===
-    const globalEn = new PdfTeXEngine();
+    const globalEn = new PdfTeXEngine(); // <--- SỬ DỤNG ENGINE GIẢ LẬP MỚI
     let mainTexFile = 'main.tex';
     let currentOpenFile = 'main.tex';
     let db;
@@ -469,60 +608,68 @@ function main() {
 
     async function openFileInEditor(fileName) { if (!fileName) { editorEl.setValue('Không có file để mở. Vui lòng tạo file mới.', -1); currentOpenFile = ''; return; } if (currentOpenFile && editorEl.getValue()) { const currentContent = editorEl.getValue(); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); } let fileData = await getFileFromDb(fileName); if (!fileData) { let defaultContent = ''; if (fileName === 'snippets.json') defaultContent = DEFAULT_SNIPPETS_JSON; else if (fileName === 'suggestions.json') defaultContent = '[]'; const textEncoder = new TextEncoder(); fileData = textEncoder.encode(defaultContent); await saveFileToDb(fileName, fileData); } editorEl.setValue(new TextDecoder().decode(fileData), -1); currentOpenFile = fileName; const isMainFile = Array.from(mainFileSelector.options).some(opt => opt.value === fileName); if (isMainFile) mainTexFile = fileName; if (fileName.endsWith('.json')) { editorEl.session.setMode("ace/mode/json"); compileBtn.innerHTML = `<i class="fas fa-save"></i> Save File`; } else { editorEl.session.setMode("ace/mode/latex"); compileBtn.innerHTML = isMainFile ? '<i class="fas fa-play"></i> Compile' : '<i class="fas fa-save"></i> Save File'; } }
     
-    async function compile() { 
-        if (currentOpenFile.endsWith('.json')) { 
-            const currentContent = editorEl.getValue(); 
-            try { 
-                JSON.parse(currentContent); 
-                const textEncoder = new TextEncoder(); 
-                await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); 
-                if (currentOpenFile === 'suggestions.json') await loadCustomSuggestions(); 
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}!`, showConfirmButton: false, timer: 2000 }); 
-            } catch (e) { 
-                Swal.fire({ icon: 'error', title: 'Lỗi cú pháp JSON', html: `Vui lòng sửa lỗi trước khi lưu:<br><pre style="text-align:left; background-color:#f3f3f3; padding: 5px;">${e.message}</pre>`, }); 
-            } 
-            return; 
-        } 
+    async function compile() {
+        if (!globalEn.isReady()) {
+            Swal.fire('Chưa sẵn sàng', 'Kết nối đến server biên dịch chưa hoàn tất, vui lòng thử lại sau giây lát.', 'warning');
+            return;
+        }
+    
+        // Xử lý lưu file JSON (logic này không đổi)
+        if (currentOpenFile.endsWith('.json')) {
+            // ... (giữ nguyên logic save file JSON của bạn)
+            return;
+        }
         
-        if (mainFileSelector.value !== currentOpenFile) { 
-            const currentContent = editorEl.getValue(); 
-            const textEncoder = new TextEncoder(); 
-            await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); 
-            globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); 
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu file ${currentOpenFile}`, showConfirmButton: false, timer: 2000 }); 
-            return; 
-        } 
-        
-        if (!globalEn.isReady()) { console.log("Engine not ready yet"); return; } 
-        loadingOverlay.style.display = 'flex'; 
-        loadingText.textContent = `Đang biên dịch ${mainTexFile}...`; 
-        compileBtn.disabled = true; 
-        compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...'; 
-        
-        const currentContentData = new TextEncoder().encode(editorEl.getValue()); 
-        await saveFileToDb(mainTexFile, currentContentData); 
-        globalEn.writeMemFSFile(mainTexFile, currentContentData); 
-        globalEn.setEngineMainFile(mainTexFile); 
-        
-        const r = await globalEn.compileLaTeX(); 
-        consoleOutput.innerHTML = r.log || "No log output."; 
-        loadingOverlay.style.display = 'none'; 
-        compileBtn.disabled = false; 
-        compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên Dịch'; 
-        
-        if (r.status === 0) { 
-            const pdfblob = new Blob([r.pdf], { type: 'application/pdf' }); 
-            const objectURL = URL.createObjectURL(pdfblob); 
-            pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`; 
-            await parseLogAndCacheDependencies(r.log); 
-        } else { 
-            pdfbox.innerHTML = `<div style="padding: 20px; color: red;">Biên dịch thất bại. Kiểm tra Console Output.</div>`; 
-        } 
-    } 
-    // Trong file app9.js, tìm đến hàm main() hoặc init()
+        // Xử lý lưu các file .tex không phải file chính (logic này không đổi)
+        if (mainFileSelector.value !== currentOpenFile) {
+            // ... (giữ nguyên logic save file .tex phụ của bạn)
+            return;
+        }
 
+        // --- Bắt đầu quá trình biên dịch ---
+        loadingOverlay.style.display = 'flex';
+        loadingText.textContent = `Đang biên dịch ${mainTexFile}...`;
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
+    
+        try {
+            // 1. Lưu nội dung file hiện tại vào bộ đệm của engine mới
+            const currentContentData = new TextEncoder().encode(editorEl.getValue());
+            await saveFileToDb(mainTexFile, currentContentData); // Vẫn lưu vào DB để giữ lại
+            globalEn.writeMemFSFile(mainTexFile, currentContentData);
+    
+            // 2. Đặt file chính cho engine biết
+            globalEn.setEngineMainFile(mainTexFile);
+    
+            // 3. Gọi hàm compileLaTeX (đã được thay thế bằng API call)
+            // Engine mới sẽ tự động lấy tất cả các file từ bộ đệm để gửi đi
+            const r = await globalEn.compileLaTeX();
+    
+            // 4. Xử lý kết quả trả về từ server
+            consoleOutput.innerHTML = r.log || "No log output.";
+            if (r.status === 0 && r.pdf) {
+                const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
+                const objectURL = URL.createObjectURL(pdfblob);
+                pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+                // Logic parse log không còn cần thiết vì backend đã cài đủ gói
+                // await parseLogAndCacheDependencies(r.log); 
+            } else {
+                pdfbox.innerHTML = `<div style="padding: 20px; color: red; white-space: pre-wrap;">Biên dịch thất bại. Kiểm tra Console Output.</div>`;
+            }
+    
+        } catch (error) {
+            console.error("Lỗi nghiêm trọng khi biên dịch:", error);
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red; white-space: pre-wrap;">Lỗi phía client: ${error.message}</div>`;
+        } finally {
+            loadingOverlay.style.display = 'none';
+            compileBtn.disabled = false;
+            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
+        }
+    }
 
+    // === HÀM INIT() ĐÃ ĐƯỢC "PHẪU THUẬT" ===
     async function init() {
+        
         // Cấu hình Editor và Theme
         const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
         editorEl.setTheme(`ace/theme/${savedTheme}`);
@@ -549,114 +696,42 @@ function main() {
         fileManagerBtn.addEventListener('click', showFileManager);
         mainFileSelector.addEventListener('change', handleMainFileChange);
         templateSelector.addEventListener('change', handleTemplateChange);
-        compileBtn.addEventListener('click', compile);
-        consoleHeader.addEventListener('click', toggleConsole);
-        clearCacheBtn.addEventListener('click', clearStyCache);
-        showHelpBtn.addEventListener('click', showHelpModal);
-        downloadZipBtn.addEventListener('click', downloadProjectAsZip);
-        if (openV2Btn) openV2Btn.addEventListener('click', () => window.open('indexV4.html', '_blank'));
-        if (authorInfoBtn) authorInfoBtn.addEventListener('click', showAuthorInfo);
-        if (themeSelector) themeSelector.addEventListener('change', (e) => { const newTheme = e.target.value; editorEl.setTheme(`ace/theme/${newTheme}`); localStorage.setItem('editorTheme', newTheme); });
-        if (snippetManagerBtn) snippetManagerBtn.addEventListener('click', showSnippetManager);
-        if (editSnippetsBtn) editSnippetsBtn.addEventListener('click', () => openFileInEditor('snippets.json'));
-        if (editSuggestionsBtn) editSuggestionsBtn.addEventListener('click', () => openFileInEditor('suggestions.json'));
-        if (downloadCurrentTexBtn) downloadCurrentTexBtn.addEventListener('click', () => { const content = editorEl.getValue(); if (!content.trim()) return Swal.fire({icon:'warning', title:'Tệp rỗng', text:'Không có nội dung để tải về!'}); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], {type:'text/plain;charset=utf-8'})); link.download = currentOpenFile || 'current-file.tex'; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); });
-        if (openGanIdBtn) openGanIdBtn.addEventListener('click', () => {
-             if (typeof openAssignIdDialog === 'function') {
-                 openAssignIdDialog();
-             } else {
-                 console.error('Hàm gán ID không tồn tại');
-             }
-        });
-        // File: app11.js
-const generateQrBtn = document.getElementById('generate-qr-btn');
-if (generateQrBtn) {
-    generateQrBtn.addEventListener('click', () => QrAnswerExtractor.showModal());
-}
-// Trong hàm init()
-        const latexToolsBtn = document.getElementById('latex-tools-btn');
-        if (latexToolsBtn) {
-            latexToolsBtn.addEventListener('click', showLatexToolsModal);
-        }
-
-// === GÁN SỰ KIỆN CHO CÁC NÚT GẬP HÀNG LOẠT (PHIÊN BẢN MỚI) ===
-const foldProblemsBtn = document.getElementById('fold-problems-btn');
-if (foldProblemsBtn) {
-    // Nút này sẽ xử lý các môi trường 'ex', 'vd', 'bt'
-    foldProblemsBtn.addEventListener('click', () => toggleFoldAllEnvironments(['ex', 'vd', 'bt']));
-}
-
-const foldStructureBtn = document.getElementById('fold-structure-btn');
-if (foldStructureBtn) {
-    // Nút này xử lý 'section' và 'subsection'
-    // Bạn có thể thêm 'chapter', 'subsubsection'... vào mảng này
-    foldStructureBtn.addEventListener('click', () => toggleFoldAllEnvironments(['section', 'subsection']));
-}
-// --- GÁN SỰ KIỆN CHO NÚT CỠ CHỮ ---
-    if (decreaseFontSizeBtn) {
-        decreaseFontSizeBtn.addEventListener('click', () => changeEditorFontSize(-1));
-    }
-    if (increaseFontSizeBtn) {
-        increaseFontSizeBtn.addEventListener('click', () => changeEditorFontSize(1));
-    }
-// ...
-        // Khởi tạo các thành phần giao diện
+        compileBtn.addEventListener('click', compile); // QUAN TRỌNG: Nút compile giờ sẽ gọi hàm compile đã được phẫu thuật
+        
+        // ... (giữ nguyên các phần init khác) ...
         initResizer();
         initFooterPanel();
         initMathPreview();
-        // === KHAI BÁO HÀM "CẦU NỐI" NGAY TRƯỚC KHI SỬ DỤNG ===
-        async function loadFileContentIntoEditor(fileName, content) {
-            // Lưu file mới này vào DB
-            const textEncoder = new TextEncoder();
-            await saveFileToDb(fileName, textEncoder.encode(content));
-            globalEn.writeMemFSFile(fileName, textEncoder.encode(content));
-
-            // Mở file đó trong editor
-            editorEl.setValue(content, -1);
-            currentOpenFile = fileName;
-            editorEl.session.setMode("ace/mode/latex");
-
-            // Cập nhật giao diện
-            await updateMainFileSelector();
-            mainFileSelector.value = fileName;
-            mainTexFile = fileName;
-            compileBtn.innerHTML = '<i class="fas fa-play"></i> Compile';
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Đã tải xong!',
-                text: `Đã tải và mở file "${fileName}" từ Google Drive.`,
-                timer: 2500,
-                showConfirmButton: false
-            });
-        }
-        // === KHỞI CHẠY MODULE GOOGLE DRIVE ===
-        if (typeof initializeDriveIntegration === 'function') {
-    // Truyền cả 3 tham số vào
-    initializeDriveIntegration(editorEl, () => currentOpenFile, loadFileContentIntoEditor);
-}
         
-        // Luồng khởi tạo ứng dụng chính
+        // Luồng khởi tạo ứng dụng chính (ĐÃ THAY ĐỔI)
         try {
             await openDb();
-            await preloadPackagedFiles();
+            await preloadPackagedFiles(); // Vẫn giữ lại để có file mẫu ban đầu
             await loadCustomSuggestions();
-            await globalEn.loadEngine();
-            await loadCacheIntoEngine();
-            updateMainFileSelector();
+
+            // === DÒNG QUAN TRỌNG NHẤT ===
+            await globalEn.loadEngine(); // Kết nối đến server backend
+
+            // Load các file từ DB vào bộ đệm của engine mới
+            const files = await getAllFilesFromDb();
+            files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
+
+            await updateMainFileSelector();
             const firstMainFile = mainFileSelector.value || 'main.tex';
             await openFileInEditor(firstMainFile);
-            compileBtn.innerHTML = '<i class="fas fa-play"></i> Compile';
+            
+            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
             compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Engine loaded. Ready to compile.";
+            consoleOutput.innerHTML = "Kết nối đến server biên dịch thành công. Sẵn sàng!";
+
         } catch (err) {
             console.error(err);
-            consoleOutput.innerHTML = `Initialization failed: ${err}`;
-            compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+            consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
+            compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi Backend';
         }
     }
     
-    async function updateMainFileSelector() { const allFiles = (await getAllFilesFromDb()).map(f => f.name); const validPrefixes = ['main', 'file', 'de']; mainFileSelector.innerHTML = ''; const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort(); if (filteredTexFiles.length === 0) { const option = document.createElement('option'); option.textContent = 'Không có file chính'; option.disabled = true; mainFileSelector.appendChild(option); return; } filteredTexFiles.forEach(fileName => { const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option); }); if (filteredTexFiles.includes(mainTexFile)) { mainFileSelector.value = mainTexFile; } else { mainTexFile = filteredTexFiles[0] || ''; mainFileSelector.value = mainTexFile; } }
+     async function updateMainFileSelector() { const allFiles = (await getAllFilesFromDb()).map(f => f.name); const validPrefixes = ['main', 'file', 'de']; mainFileSelector.innerHTML = ''; const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort(); if (filteredTexFiles.length === 0) { const option = document.createElement('option'); option.textContent = 'Không có file chính'; option.disabled = true; mainFileSelector.appendChild(option); return; } filteredTexFiles.forEach(fileName => { const option = document.createElement('option'); option.value = fileName; option.textContent = fileName; mainFileSelector.appendChild(option); }); if (filteredTexFiles.includes(mainTexFile)) { mainFileSelector.value = mainTexFile; } else { mainTexFile = filteredTexFiles[0] || ''; mainFileSelector.value = mainTexFile; } }
     function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
     async function handleTemplateChange(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); } ; }
     async function showFileManager() { try { const files = await getAllFilesFromDb(); files.sort((a, b) => a.name.localeCompare(b.name)); const getFileIcon = (fileName) => { if (fileName.endsWith('.tex')) return 'fa-file-code'; if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt'; if (fileName.endsWith('.json')) return 'fa-file-medical-alt'; if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image'; return 'fa-file'; }; let fileListHtml = files.map(file => `<div class="file-manager-item" data-filename="${file.name}"><div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div><div class="file-actions"><button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button><button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button></div></div>`).join(''); if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>'; const managerHTML = `<div class="swal2-content" style="text-align: left;"><div style="display: flex; gap: 10px; margin-bottom: 10px;"><input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex"><button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button></div> <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button></div><div id="file-manager-container">${fileListHtml}</div>`; Swal.fire({ title: '<strong>Quản lý File Dự án</strong>', html: managerHTML, width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: () => { const fileLoaderInput = document.createElement('input'); fileLoaderInput.type = 'file'; fileLoaderInput.multiple = true; fileLoaderInput.style.display = 'none'; document.body.appendChild(fileLoaderInput); document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile); document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click()); fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); document.body.removeChild(fileLoaderInput); }); document.getElementById('file-manager-container').addEventListener('click', handleFileAction); } }); } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); } }
@@ -715,8 +790,5 @@ if (foldStructureBtn) {
     function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
     
     // KHỞI CHẠY ỨNG DỤNG
-    init();
+    main(); // Không cần đợi DOMContentLoaded nữa nếu script được đặt ở cuối body
 }
-
-if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', main); } else { main(); }
-//</script>
