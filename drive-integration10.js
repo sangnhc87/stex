@@ -1,11 +1,3 @@
-/**
- * ====================================================================
- *  DRIVE INTEGRATION MODULE - PHIÊN BẢN 7.1 (Footer Buttons)
- * ====================================================================
- * - Hỗ trợ nút Lưu và Tải từ Drive nằm trong footer.
- * - Yêu cầu BẮT BUỘC: Bật Picker API và cấu hình header COOP.
- */
-
 // --- KHAI BÁO BIẾN & CẤU HÌNH TOÀN CỤC ---
 const GOOGLE_CLIENT_ID = '445721099356-4l2r9pg4jp1n4rn82jafofjnc74p708e.apps.googleusercontent.com';
 const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
@@ -20,7 +12,7 @@ let pickerApiLoaded = false;
 let tokenClient;
 let editorInstanceRef; 
 let getCurrentFileNameRef;
-let loadFileContentRef; // "Cầu nối" để gọi hàm trong app6.js
+let loadFileContentRef; 
 
 // --- CÁC HÀM UI ---
 function updateUIOnLogin(userProfile) {
@@ -330,9 +322,9 @@ function initializeDriveIntegration(editor, getCurrentFileName, loadFileFunc) {
     loadFileContentRef = loadFileFunc;
 
     // Gắn sự kiện cho các nút
-    document.getElementById('google-signout-btn')?.addEventListener('click', handleSignOut);
-    document.getElementById('save-to-drive-btn')?.addEventListener('click', handleSaveClick);
-    document.getElementById('load-from-drive-btn')?.addEventListener('click', handleLoadClick); // Nút mới
+    // document.getElementById('google-signout-btn')?.addEventListener('click', handleSignOut);
+    // document.getElementById('save-to-drive-btn')?.addEventListener('click', handleSaveClick);
+    // document.getElementById('load-from-drive-btn')?.addEventListener('click', handleLoadClick); // Nút mới
 
     // Vô hiệu hóa các nút lúc đầu
     updateUIOnLogout();

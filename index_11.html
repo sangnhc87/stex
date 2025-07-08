@@ -52,20 +52,7 @@
             </select>
             <!-- <div class="toolbar-separator"></div> -->
 
-            <!-- KHU VỰC ĐĂNG NHẬP GOOGLE -->
-            <div id="google-auth-container" style="display: flex; align-items: center;">
-                <!-- Nút của Google sẽ được render vào đây -->
-                <div id="google-signin-btn"></div>
-                
-                <!-- Thông tin người dùng sau khi đăng nhập (ban đầu bị ẩn) -->
-                <div id="user-profile" style="display: none; align-items: center; gap: 8px;">
-                    <img id="user-avatar" src="" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">
-                    <span id="user-name" style="font-weight: bold; font-size: 0.9em;"></span>
-                    <button id="google-signout-btn" title="Đăng xuất" class="toolbar-btn" style="padding: 5px 8px; font-size: 1.1em;">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-            </div>
+          
             
             <!-- <div class="toolbar-separator"></div> -->
             <button id="author-info-btn" title="Thông tin tác giả"><i class="fas fa-user-circle"></i></button>
@@ -96,17 +83,7 @@
     <!-- Nút tải file .tex hiện tại -->
     <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i class="fas fa-file-download"></i></button>
     
-    <!-- Cụm nút Google Drive -->
-    <div class="drive-buttons-group">
-        <button id="save-to-drive-btn" title="Lưu file .tex lên Google Drive">
-            <i class="fab fa-google-drive"></i>
-            <i class="fas fa-save" style="font-size: 0.7em; margin-left: 2px;"></i>
-        </button>
-        <button id="load-from-drive-btn" title="Tải file .tex từ Google Drive">
-            <i class="fab fa-google-drive"></i>
-            <i class="fas fa-cloud-download-alt" style="font-size: 0.7em; margin-left: 2px;"></i>
-        </button>
-    </div>
+
     
       <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
 <button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
@@ -214,7 +191,5 @@
     <script src="drive-integration10.js"></script>
     <script src="app_v1.js"></script>
 
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="onGoogleScriptLoad()"></script>
 </body>
 </html>
