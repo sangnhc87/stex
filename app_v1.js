@@ -512,8 +512,65 @@ function main() {
     function buildTreeHtml(nodes) { let html = '<ul class="snippet-tree">'; for (const node of nodes) { if (node.type === 'folder') { html += `<li class="snippet-folder"><div class="snippet-folder-header"><i class="fas fa-caret-right folder-toggle"></i><i class="fas fa-folder"></i><span>${node.name}</span></div>${buildTreeHtml(node.children || [])}</li>`; } else if (node.type === 'snippet') { html += `<li class="snippet-item" data-content="${encodeURIComponent(node.content)}"><i class="fas fa-file-alt"></i><span>${node.name}</span></li>`; } } html += '</ul>'; return html; }
     async function showSnippetManager() { let snippetsData; try { let fileData = await getFileFromDb('snippets.json'); if (!fileData) { const textEncoder = new TextEncoder(); fileData = textEncoder.encode(DEFAULT_SNIPPETS_JSON); await saveFileToDb('snippets.json', fileData); } snippetsData = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { Swal.fire('Lỗi', 'File snippets.json bị lỗi cú pháp. Vui lòng nhấn nút "Sửa Snippet" để sửa lại.', 'error'); console.error("Lỗi parse snippets.json: ", e); return; } const treeHtml = buildTreeHtml(snippetsData); const managerHtml = `<div id="snippet-tree-container">${treeHtml}</div>`; Swal.fire({ title: '<strong>Kho Snippet</strong>', html: managerHtml, width: '600px', showCloseButton: true, showConfirmButton: false, didOpen: () => { const container = document.getElementById('snippet-tree-container'); container.addEventListener('click', (e) => { const folderHeader = e.target.closest('.snippet-folder-header'); const snippetItem = e.target.closest('.snippet-item'); if (folderHeader) { folderHeader.parentElement.classList.toggle('is-open'); } else if (snippetItem) { const content = decodeURIComponent(snippetItem.dataset.content); editorEl.insert(content.replace(/\\n/g, '\n').replace(/\\t/g, '\t')); editorEl.focus(); Swal.close(); } }); } }); }
 
-    async function openFileInEditor(fileName) { if (!fileName) { editorEl.setValue('Không có file để mở. Vui lòng tạo file mới.', -1); currentOpenFile = ''; return; } if (currentOpenFile && editorEl.getValue()) { const currentContent = editorEl.getValue(); const textEncoder = new TextEncoder(); await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent)); globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent)); } let fileData = await getFileFromDb(fileName); if (!fileData) { let defaultContent = ''; if (fileName === 'snippets.json') defaultContent = DEFAULT_SNIPPETS_JSON; else if (fileName === 'suggestions.json') defaultContent = '[]'; const textEncoder = new TextEncoder(); fileData = textEncoder.encode(defaultContent); await saveFileToDb(fileName, fileData); } editorEl.setValue(new TextDecoder().decode(fileData), -1); currentOpenFile = fileName; const isMainFile = Array.from(mainFileSelector.options).some(opt => opt.value === fileName); if (isMainFile) mainTexFile = fileName; if (fileName.endsWith('.json')) { editorEl.session.setMode("ace/mode/json"); compileBtn.innerHTML = `<i class="fas fa-save"></i> Save File`; } else { editorEl.session.setMode("ace/mode/latex"); compileBtn.innerHTML = isMainFile ? '<i class="fas fa-play"></i> Compile' : '<i class="fas fa-save"></i> Save File'; } }
-   
+    /**
+ * Mở một file trong trình soạn thảo Ace, lưu file cũ, và cập nhật giao diện.
+ * PHIÊN BẢN NÂNG CẤP: Đã loại bỏ sự phụ thuộc vào element 'main-file-selector'.
+ * @param {string} fileName - Tên của file cần mở.
+ */
+async function openFileInEditor(fileName) {
+    if (!fileName) {
+        editorEl.setValue('Lỗi: Không có tên file để mở.', -1);
+        currentOpenFile = '';
+        return;
+    }
+
+    // 1. Lưu nội dung của file đang mở hiện tại (nếu có) trước khi chuyển file
+    if (currentOpenFile && editorEl.getValue()) {
+        const currentContent = editorEl.getValue();
+        const textEncoder = new TextEncoder();
+        await saveFileToDb(currentOpenFile, textEncoder.encode(currentContent));
+        globalEn.writeMemFSFile(currentOpenFile, textEncoder.encode(currentContent));
+    }
+
+    // 2. Tải nội dung của file mới từ IndexedDB
+    let fileData = await getFileFromDb(fileName);
+    if (!fileData) {
+        // Nếu file không có trong DB (ví dụ: file mới vừa được tạo), tạo nội dung mặc định
+        let defaultContent = '';
+        if (fileName === 'snippets.json') {
+            defaultContent = DEFAULT_SNIPPETS_JSON;
+        } else if (fileName === 'suggestions.json') {
+            defaultContent = '[]';
+        }
+        
+        const textEncoder = new TextEncoder();
+        fileData = textEncoder.encode(defaultContent);
+        // Lưu file mới này vào DB để lần sau có thể mở
+        await saveFileToDb(fileName, fileData); 
+    }
+
+    // 3. Hiển thị nội dung trong editor và cập nhật trạng thái
+    editorEl.setValue(new TextDecoder().decode(fileData), -1);
+    currentOpenFile = fileName; // Cập nhật file đang mở hiện tại
+
+    // === PHẦN SỬA LỖI QUAN TRỌNG NHẤT ===
+    // Bỏ qua việc dùng 'mainFileSelector' và so sánh trực tiếp với biến toàn cục 'mainTexFile'
+    
+    // 4. Cập nhật chế độ của editor và giao diện nút bấm
+    if (fileName.endsWith('.json')) {
+        editorEl.session.setMode("ace/mode/json");
+        // File JSON chỉ có thể Lưu, không thể Biên dịch
+        compileBtn.innerHTML = `<i class="fas fa-save"></i> Lưu File`; 
+    } else {
+        editorEl.session.setMode("ace/mode/latex");
+        // Nếu file đang mở là file chính thì hiện nút "Compile", ngược lại hiện nút "Save".
+        if (fileName === mainTexFile) {
+            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
+        } else {
+            compileBtn.innerHTML = '<i class="fas fa-save"></i> Lưu File';
+        }
+    }
+}
 
     // === HÀM COMPILE() ĐÃ ĐƯỢC NÂNG CẤP ===
     async function compile() {
