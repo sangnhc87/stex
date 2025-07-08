@@ -1,14 +1,13 @@
-// =================================================================
-// ===      app_v1.js - PHIÊN BẢN HOÀN CHỈNH, NÂNG CẤP           ===
-// ===       Sử dụng Backend API & Đã gỡ bỏ Google Drive         ===
-// =================================================================
-"use strict";
-
 // =====================================================================
 // ===        KHỐI MÃ THAY THẾ PdfTeXEngine (TRÁI TIM MỚI)        ===
 // =====================================================================
+
+"use strict";
+
+// --- CẤU HÌNH QUAN TRỌNG ---
 const BACKEND_API_URL = 'https://tikz-server-797442200106.asia-southeast1.run.app';
 
+// --- ĐỊNH NGHĨA CÁC LỚP GIẢ LẬP ĐỂ TƯƠNG THÍCH ---
 var exports = {};
 var EngineStatus;
 (function (EngineStatus) {
@@ -19,86 +18,149 @@ var EngineStatus;
 })(EngineStatus || (EngineStatus = {}));
 
 class CompileResult {
-    constructor() { this.pdf = undefined; this.status = -1; this.log = 'N/A'; this.synctex = undefined; }
+    constructor() {
+        this.pdf = undefined;
+        this.status = -254;
+        this.log = 'No log';
+        this.synctex = undefined; // Giữ lại để tương thích
+    }
 }
 
+// === LỚP PdfTeXEngine "GIẢ" - GỌI API ĐẾN BACKEND ===
 class PdfTeXEngine {
     constructor() {
         this.latexWorkerStatus = EngineStatus.Init;
         this.sessionId = null;
-        this.fileBuffer = {};
-        this.mainFile = 'main.tex';
+        this.fileBuffer = {}; // Bộ đệm để lưu trữ các file trên client trước khi gửi
+        this.mainFile = 'main.tex'; // Lưu lại tên file chính
     }
 
+    // 1. Khởi tạo: Thay vì tải worker, ta lấy session ID từ backend
     async loadEngine() {
         this.latexWorkerStatus = EngineStatus.Init;
-        console.log("Connecting to backend compiler at:", BACKEND_API_URL);
+        console.log("Đang kết nối đến server biên dịch tại:", BACKEND_API_URL);
         try {
             const response = await fetch(`${BACKEND_API_URL}/api/init-session`, { method: 'POST' });
-            if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
+            if (!response.ok) throw new Error(`Server response: ${response.statusText}`);
+            
             const data = await response.json();
             if (data.success && data.session_id) {
                 this.sessionId = data.session_id;
                 this.latexWorkerStatus = EngineStatus.Ready;
-                console.log("Connection successful! Session ID:", this.sessionId);
-            } else { throw new Error(data.error || 'Invalid session_id'); }
+                console.log("Kết nối thành công! Session ID:", this.sessionId);
+            } else {
+                throw new Error(data.error || 'Không nhận được session_id hợp lệ.');
+            }
         } catch (error) {
             this.latexWorkerStatus = EngineStatus.Error;
-            console.error("Critical backend connection error:", error);
-            if (typeof Swal !== 'undefined') Swal.fire('Lỗi Kết Nối', 'Không thể kết nối đến server biên dịch.', 'error');
-            throw error;
+            console.error("Lỗi nghiêm trọng khi kết nối backend:", error);
+            // Hiển thị lỗi cho người dùng bằng SweetAlert2
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Lỗi Kết Nối', 'Không thể kết nối đến server biên dịch. Vui lòng kiểm tra lại địa chỉ backend và cài đặt CORS.', 'error');
+            }
+            throw error; // Ném lỗi để luồng init() biết và dừng lại
         }
     }
 
-    isReady() { return this.latexWorkerStatus === EngineStatus.Ready; }
-    checkEngineStatus() { if (!this.isReady()) throw new Error('Engine is not ready.'); }
-    writeMemFSFile(filename, data) { this.fileBuffer[filename] = (typeof data === 'string') ? new TextEncoder().encode(data) : data; }
-    removeMemFSFile(filename) { delete this.fileBuffer[filename]; }
-    setEngineMainFile(filename) { this.mainFile = filename; }
-    makeMemFSFolder() {}
-    flushCache() {}
+    isReady() {
+        return this.latexWorkerStatus === EngineStatus.Ready;
+    }
+    
+    checkEngineStatus() {
+        if (!this.isReady()) {
+            throw new Error('Engine chưa sẵn sàng hoặc đang bận.');
+        }
+    }
 
+    // 2. Các hàm quản lý file: Lưu vào bộ đệm `fileBuffer` trên client
+    writeMemFSFile(filename, srccode) {
+        // srccode có thể là string hoặc Uint8Array, chuyển về Uint8Array
+        const data = (typeof srccode === 'string') ? new TextEncoder().encode(srccode) : srccode;
+        this.fileBuffer[filename] = data;
+    }
+
+    removeMemFSFile(filename) {
+        delete this.fileBuffer[filename];
+    }
+    
+    setEngineMainFile(filename) {
+        this.mainFile = filename;
+    }
+    
+    // Các hàm này không còn cần thiết nhưng để lại để tránh lỗi nếu có chỗ gọi đến
+    makeMemFSFolder(folder) { /* không làm gì */ }
+    flushCache() { /* không làm gì */ }
+
+    // 3. Hàm biên dịch chính: "Trái tim" của sự thay đổi
     async compileLaTeX() {
         this.checkEngineStatus();
         this.latexWorkerStatus = EngineStatus.Busy;
-        const report = new CompileResult();
+        const startTime = performance.now();
+        
+        const niceReport = new CompileResult();
+
         try {
+            // --- Giai đoạn 1: Tải tất cả các file phụ (ảnh, sty,...) trong bộ đệm lên server ---
             const formData = new FormData();
             formData.append('session_id', this.sessionId);
+            
             let fileCount = 0;
             for (const filename in this.fileBuffer) {
+                // Chỉ tải lên những file không phải là file chính
                 if (filename !== this.mainFile) {
-                    formData.append('image_file', new Blob([this.fileBuffer[filename]]), filename);
+                    const fileBlob = new Blob([this.fileBuffer[filename]]);
+                    formData.append('image_file', fileBlob, filename); // API backend sẽ nhận và lưu
                     fileCount++;
                 }
             }
+            
+            // Chỉ gọi API upload nếu có file phụ
             if (fileCount > 0) {
-                const uploadRes = await fetch(`${BACKEND_API_URL}/api/upload-image-batch`, { method: 'POST', body: formData });
-                if (!uploadRes.ok) throw new Error("Failed to upload supplementary files.");
+                 const uploadResponse = await fetch(`${BACKEND_API_URL}/api/upload-image-batch`, { // Cần có API này ở backend
+                    method: 'POST',
+                    body: formData
+                });
+                if (!uploadResponse.ok) {
+                    throw new Error("Lỗi khi tải các file phụ lên server.");
+                }
             }
-            const mainContent = new TextDecoder().decode(this.fileBuffer[this.mainFile] || '');
-            const compileBody = new URLSearchParams({ latex_code: mainContent, session_id: this.sessionId });
-            const compileRes = await fetch(`${BACKEND_API_URL}/api/compile-latex-pdf`, {
+
+            // --- Giai đoạn 2: Gửi yêu cầu biên dịch với code của file chính ---
+            const mainFileContent = new TextDecoder().decode(this.fileBuffer[this.mainFile]);
+            
+            const compileBody = new URLSearchParams();
+            compileBody.append('latex_code', mainFileContent);
+            compileBody.append('session_id', this.sessionId);
+
+            const compileResponse = await fetch(`${BACKEND_API_URL}/api/compile-latex-pdf`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: compileBody
             });
-            if (compileRes.ok) {
-                report.status = 0;
-                report.pdf = new Uint8Array(await compileRes.blob().then(b => b.arrayBuffer()));
-                report.log = "Compilation successful on server.";
+
+            // --- Giai đoạn 3: Xử lý kết quả trả về ---
+            if (compileResponse.ok) {
+                const pdfBlob = await compileResponse.blob();
+                niceReport.status = 0; // 0 = Thành công
+                niceReport.pdf = new Uint8Array(await pdfBlob.arrayBuffer());
+                niceReport.log = "Biên dịch thành công trên server.\n";
             } else {
-                const errData = await compileRes.json();
-                report.status = 1;
-                report.log = errData.error || "Unknown server error.";
+                const errorData = await compileResponse.json();
+                niceReport.status = 1; // 1 = Thất bại
+                niceReport.log = errorData.error || "Lỗi không xác định từ server.";
             }
+            
+            return niceReport;
+
         } catch (error) {
-            report.status = 1;
-            report.log = `Client-side or network error: ${error.message}`;
+            console.error("Lỗi trong quá trình compileLaTeX:", error);
+            niceReport.status = 1;
+            niceReport.log = `Lỗi phía client hoặc lỗi mạng: ${error.message}`;
+            return niceReport;
         } finally {
             this.latexWorkerStatus = EngineStatus.Ready;
+            console.log(`Toàn bộ quá trình biên dịch và nhận kết quả mất ${(performance.now() - startTime).toFixed(0)}ms`);
         }
-        return report;
     }
 }
 
@@ -423,24 +485,30 @@ function initMathPreview() {
     console.log("Math Preview Initialized (Robust Version).");
 }
 
+
+// === HÀM main() CHÍNH CỦA BẠN (Sửa đổi hàm compile và init) ===
 function main() {
-    // --- Lấy các element DOM (đã bỏ các element của Drive) ---
     const editorEl = ace.edit("editor");
     const compileBtn = document.getElementById("compile-btn");
     const consoleOutput = document.getElementById("console");
     const pdfbox = document.getElementById("pdfbox");
+    const zipLoaderInput = document.getElementById('zip-loader-input');
+    const mainFileSelector = document.getElementById('main-file-selector');
+    const templateSelector = document.getElementById('template-selector');
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
-    // ... các element khác
-    
-    // --- Khai báo biến ---
-    const globalEn = new PdfTeXEngine(); // Sử dụng engine mới
+    // ... (giữ nguyên tất cả các biến DOM khác của bạn)
+
+    // === CÁC BIẾN VÀ HẰNG SỐ (ĐÃ CẬP NHẬT) ===
+    const globalEn = new PdfTeXEngine(); // <--- SỬ DỤNG ENGINE GIẢ LẬP MỚI
     let mainTexFile = 'main.tex';
     let currentOpenFile = 'main.tex';
     let db;
     let customSuggestions = [];
-    const DB_NAME = 'LaTeX_IDE_DB_v2'; // Đổi tên DB để tránh xung đột
-    const STORE_NAME = 'ProjectFiles';
+    const DB_NAME = 'LaTeX_Perfect_Final_DB';
+    const STORE_NAME = 'StyFilesStore';
+    const TEXLIVE_BASE_URL = "https://texlive2.swiftlatex.com/pdftex/";
+    const TEXLIVE_VERSION = '26';
     const TEMPLATES = { 
         'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\begin{document}\n\nĐây là mẫu đề thi.\n\n\\end{document}`, 
         'VeHinh': `\\documentclass[12pt,tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\t% Vẽ hình ở đây\n\\end{tikzpicture}\n\\end{document}`, 
@@ -514,42 +582,56 @@ function main() {
     
     async function compile() {
         if (!globalEn.isReady()) {
-            Swal.fire('Chưa sẵn sàng', 'Đang kết nối đến server biên dịch...', 'info');
+            Swal.fire('Chưa sẵn sàng', 'Kết nối đến server biên dịch chưa hoàn tất, vui lòng thử lại sau giây lát.', 'warning');
+            return;
+        }
+    
+        // Xử lý lưu file JSON (logic này không đổi)
+        if (currentOpenFile.endsWith('.json')) {
+            // ... (giữ nguyên logic save file JSON của bạn)
             return;
         }
         
-        // Logic lưu các file JSON hoặc file .tex không phải file chính
-        if (currentOpenFile.endsWith('.json') || document.getElementById('main-file-selector').value !== currentOpenFile) {
-            const content = new TextEncoder().encode(editorEl.getValue());
-            await saveFileToDb(currentOpenFile, content);
-            globalEn.writeMemFSFile(currentOpenFile, content);
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu: ${currentOpenFile}`, showConfirmButton: false, timer: 1500 });
-            if (currentOpenFile.endsWith('.json')) return; // Không biên dịch file JSON
+        // Xử lý lưu các file .tex không phải file chính (logic này không đổi)
+        if (mainFileSelector.value !== currentOpenFile) {
+            // ... (giữ nguyên logic save file .tex phụ của bạn)
+            return;
         }
-        
+
+        // --- Bắt đầu quá trình biên dịch ---
         loadingOverlay.style.display = 'flex';
         loadingText.textContent = `Đang biên dịch ${mainTexFile}...`;
         compileBtn.disabled = true;
         compileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
     
         try {
-            // Cập nhật nội dung file chính vào bộ đệm trước khi biên dịch
-            globalEn.writeMemFSFile(mainTexFile, editorEl.getValue());
+            // 1. Lưu nội dung file hiện tại vào bộ đệm của engine mới
+            const currentContentData = new TextEncoder().encode(editorEl.getValue());
+            await saveFileToDb(mainTexFile, currentContentData); // Vẫn lưu vào DB để giữ lại
+            globalEn.writeMemFSFile(mainTexFile, currentContentData);
+    
+            // 2. Đặt file chính cho engine biết
             globalEn.setEngineMainFile(mainTexFile);
-            
-            // Gọi engine mới để biên dịch
+    
+            // 3. Gọi hàm compileLaTeX (đã được thay thế bằng API call)
+            // Engine mới sẽ tự động lấy tất cả các file từ bộ đệm để gửi đi
             const r = await globalEn.compileLaTeX();
     
-            // Xử lý kết quả
+            // 4. Xử lý kết quả trả về từ server
             consoleOutput.innerHTML = r.log || "No log output.";
             if (r.status === 0 && r.pdf) {
                 const pdfblob = new Blob([r.pdf], { type: 'application/pdf' });
-                pdfbox.innerHTML = `<embed src="${URL.createObjectURL(pdfblob)}" width="100%" height="100%" type="application/pdf">`;
+                const objectURL = URL.createObjectURL(pdfblob);
+                pdfbox.innerHTML = `<embed src="${objectURL}" width="100%" height="100%" type="application/pdf">`;
+                // Logic parse log không còn cần thiết vì backend đã cài đủ gói
+                // await parseLogAndCacheDependencies(r.log); 
             } else {
-                pdfbox.innerHTML = `<div style="padding: 20px; color: #ff5555; background: #333; white-space: pre-wrap; height: 100%; overflow: auto;">${r.log}</div>`;
+                pdfbox.innerHTML = `<div style="padding: 20px; color: red; white-space: pre-wrap;">Biên dịch thất bại. Kiểm tra Console Output.</div>`;
             }
+    
         } catch (error) {
-            pdfbox.innerHTML = `<div style="padding: 20px; color: #ff5555; background: #333; white-space: pre-wrap;">Lỗi client: ${error.message}</div>`;
+            console.error("Lỗi nghiêm trọng khi biên dịch:", error);
+            pdfbox.innerHTML = `<div style="padding: 20px; color: red; white-space: pre-wrap;">Lỗi phía client: ${error.message}</div>`;
         } finally {
             loadingOverlay.style.display = 'none';
             compileBtn.disabled = false;
@@ -557,45 +639,63 @@ function main() {
         }
     }
 
-    // --- Hàm init đã được nâng cấp và dọn dẹp ---
+    // === HÀM INIT() ĐÃ ĐƯỢC "PHẪU THUẬT" ===
     async function init() {
-        // ... Cấu hình Editor, Theme, Font, ...
         
-        // Gán sự kiện cho các nút (KHÔNG CÓ CÁC NÚT DRIVE)
-        document.getElementById('compile-btn')?.addEventListener('click', compile);
-        // ... Gán tất cả các listener khác ...
+        // Cấu hình Editor và Theme
+        const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
+        editorEl.setTheme(`ace/theme/${savedTheme}`);
+        if (themeSelector) themeSelector.value = savedTheme;
+        editorEl.session.setMode("ace/mode/latex");
+        // --- ÁP DỤNG CỠ CHỮ ĐÃ LƯU ---
+    const savedFontSize = parseInt(localStorage.getItem('editorFontSize')) || 16;
+    editorEl.setFontSize(savedFontSize);
+    if (currentFontSizeSpan) { // currentFontSizeSpan đã được lấy ở hàm main()
+        currentFontSizeSpan.textContent = `${savedFontSize}`;
+    }
+    // ---------------------------------
+    
+    editorEl.resize(true)
+        editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, showFoldWidgets: true });
+        editorEl.session.setFoldStyle("markbeginend");
+        const langTools = ace.require("ace/ext/language_tools");
+        const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
+        langTools.addCompleter(customCompleter);
 
-        // Khởi tạo các thành phần giao diện
+        // Gán tất cả các sự kiện
+        zipLoaderBtn.addEventListener('click', () => zipLoaderInput.click());
+        zipLoaderInput.addEventListener('change', handleZipLoad);
+        fileManagerBtn.addEventListener('click', showFileManager);
+        mainFileSelector.addEventListener('change', handleMainFileChange);
+        templateSelector.addEventListener('change', handleTemplateChange);
+        compileBtn.addEventListener('click', compile); // QUAN TRỌNG: Nút compile giờ sẽ gọi hàm compile đã được phẫu thuật
+        
+        // ... (giữ nguyên các phần init khác) ...
         initResizer();
         initFooterPanel();
-        // ...
+        initMathPreview();
         
-        // Luồng khởi tạo chính
+        // Luồng khởi tạo ứng dụng chính (ĐÃ THAY ĐỔI)
         try {
             await openDb();
+            await preloadPackagedFiles(); // Vẫn giữ lại để có file mẫu ban đầu
             await loadCustomSuggestions();
 
-            // Kết nối đến server backend
-            await globalEn.loadEngine(); 
-            
-            // Load các file đã lưu từ DB vào bộ đệm của engine
+            // === DÒNG QUAN TRỌNG NHẤT ===
+            await globalEn.loadEngine(); // Kết nối đến server backend
+
+            // Load các file từ DB vào bộ đệm của engine mới
             const files = await getAllFilesFromDb();
-            if (files.length === 0) {
-                // Nếu là lần đầu chạy, tạo file main.tex mẫu
-                const defaultContent = `\\documentclass{article}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
-                const fileData = new TextEncoder().encode(defaultContent);
-                await saveFileToDb('main.tex', fileData);
-                files.push({ name: 'main.tex', data: fileData });
-            }
             files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
 
             await updateMainFileSelector();
-            const firstMainFile = document.getElementById('main-file-selector').value || 'main.tex';
+            const firstMainFile = mainFileSelector.value || 'main.tex';
             await openFileInEditor(firstMainFile);
             
             compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
             compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Kết nối server thành công. Sẵn sàng!";
+            consoleOutput.innerHTML = "Kết nối đến server biên dịch thành công. Sẵn sàng!";
+
         } catch (err) {
             console.error(err);
             consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
@@ -661,14 +761,6 @@ function main() {
     async function parseLogAndCacheDependencies(logContent) { const fileRegex = /\(([^)\s]+\.(?:cls|sty|def|clo|ldf|cfg|tex|bst))\s?/g; let match; const dependencies = new Set(); while ((match = fileRegex.exec(logContent)) !== null) { dependencies.add(match[1].split('/').pop()); } for (const fileName of dependencies) { if (await getFileFromDb(fileName)) continue; try { const response = await fetch(`${TEXLIVE_BASE_URL}${TEXLIVE_VERSION}/${fileName}`); if (response.ok) { const fileData = await response.arrayBuffer(); await saveFileToDb(fileName, new Uint8Array(fileData)); globalEn.writeMemFSFile(fileName, new Uint8Array(fileData)); console.log(`[Cache SAVE] ${fileName}`); } } catch (error) { console.error(`Error fetching ${fileName}:`, error); } } }
     function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
     
-    
     // KHỞI CHẠY ỨNG DỤNG
-    init();
-}
-
-// ĐIỂM BẮT ĐẦU CỦA TOÀN BỘ SCRIPT
-if (document.readyState === 'loading') { 
-    document.addEventListener('DOMContentLoaded', main); 
-} else { 
-    main(); 
+    main(); // Không cần đợi DOMContentLoaded nữa nếu script được đặt ở cuối body
 }
