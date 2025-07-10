@@ -416,7 +416,38 @@ function initMathPreview() {
     isMathPreviewInitialized = true;
     console.log("Math Preview Initialized (Robust Version).");
 }
+/**
+ * Tải file templates.json, phân tích và điền các lựa chọn vào dropdown.
+ */
+async function initializeTemplatesFromJSON() {
+    const templateSelector = document.getElementById('template-selector');
+    if (!templateSelector) return;
 
+    try {
+        // Tải file chỉ mục JSON từ thư mục gốc
+        const response = await fetch('templates.json');
+        if (!response.ok) throw new Error('Không thể tải templates.json');
+        
+        const templatesConfig = await response.json();
+
+        // Lưu trữ cấu hình để tra cứu sau này
+        availableTemplates = templatesConfig;
+
+        // Điền các lựa chọn vào dropdown
+        templateSelector.innerHTML = '<option value="">-- Chọn mẫu nhanh --</option>';
+        availableTemplates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id; // Dùng id làm value
+            option.textContent = template.name; // Dùng name để hiển thị
+            templateSelector.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi khởi tạo mẫu:", error);
+        templateSelector.disabled = true;
+        templateSelector.innerHTML = '<option value="">Lỗi tải mẫu</option>';
+    }
+}
 function main() {
     // === LẤY CÁC PHẦN TỬ DOM ===
     const editorEl = ace.edit("editor");
@@ -428,7 +459,7 @@ function main() {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
     // Các element khác bạn có thể lấy ở đây
-
+    let availableTemplates = [];
     // === CÁC BIẾN VÀ HẰNG SỐ ===
     const globalEn = new PdfTeXEngine();
     let mainTexFile = 'main.tex';
@@ -437,7 +468,7 @@ function main() {
     let customSuggestions = [];
     const DB_NAME = 'LaTeX_IDE_DB_v3'; // Đổi tên để có cache sạch
     const STORE_NAME = 'ProjectFiles';
-    const TEMPLATES = { 
+    const TEMPLATESG = { 
         'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\begin{document}\n\nĐây là mẫu đề thi.\n\n\\end{document}`, 
         'VeHinh': `\\documentclass[12pt,tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\t% Vẽ hình ở đây\n\\end{tikzpicture}\n\\end{document}`, 
         'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`, 
@@ -682,7 +713,7 @@ async function init() {
     initResizer();
     initFooterPanel();
     initMathPreview();
-    
+    await initializeTemplatesFromJSON();
     // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
     try {
         await openDb();
@@ -761,7 +792,50 @@ async function init() {
     }
 }
     function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
-    async function handleTemplateChange(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); } ; }
+    async function handleTemplateChangegg(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); } ; }
+    async function handleTemplateChange(event) {
+    const templateId = event.target.value;
+    if (!templateId) return;
+
+    try {
+        // 1. Tìm thông tin mẫu dựa trên ID đã chọn
+        const selectedTemplate = availableTemplates.find(t => t.id === templateId);
+        if (!selectedTemplate) throw new Error(`Không tìm thấy mẫu với ID: ${templateId}`);
+
+        // 2. Tải nội dung của file .tex tương ứng
+        const templateFileName = selectedTemplate.file;
+        const response = await fetch(templateFileName);
+        if (!response.ok) throw new Error(`Không thể tải file mẫu: ${templateFileName}`);
+        const templateContent = await response.text();
+
+        // 3. Logic tạo file mới cho người dùng (giữ nguyên như cũ)
+        const newFileName = `main-${templateId.toLowerCase()}.tex`;
+        const existingFile = await getFileFromDb(newFileName);
+        
+        if (existingFile) {
+            mainTexFile = newFileName;
+            await openFileInEditor(newFileName);
+            await updateMainFileSelector();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 });
+        } else {
+            const textEncoder = new TextEncoder();
+            const templateData = textEncoder.encode(templateContent);
+            await saveFileToDb(newFileName, templateData);
+            globalEn.writeMemFSFile(newFileName, templateData);
+            mainTexFile = newFileName;
+            await openFileInEditor(newFileName);
+            await updateMainFileSelector();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 });
+        }
+
+    } catch (error) {
+        console.error("Lỗi khi xử lý mẫu:", error);
+        Swal.fire('Lỗi', `Không thể tải nội dung file mẫu. Chi tiết: ${error.message}`, 'error');
+    } finally {
+        // Reset lại selector để người dùng có thể chọn lại
+        event.target.value = '';
+    }
+}
     async function showFileManager() { try { const files = await getAllFilesFromDb(); files.sort((a, b) => a.name.localeCompare(b.name)); const getFileIcon = (fileName) => { if (fileName.endsWith('.tex')) return 'fa-file-code'; if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt'; if (fileName.endsWith('.json')) return 'fa-file-medical-alt'; if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image'; return 'fa-file'; }; let fileListHtml = files.map(file => `<div class="file-manager-item" data-filename="${file.name}"><div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div><div class="file-actions"><button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button><button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button></div></div>`).join(''); if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>'; const managerHTML = `<div class="swal2-content" style="text-align: left;"><div style="display: flex; gap: 10px; margin-bottom: 10px;"><input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex"><button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button></div> <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button></div><div id="file-manager-container">${fileListHtml}</div>`; Swal.fire({ title: '<strong>Quản lý File Dự án</strong>', html: managerHTML, width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: () => { const fileLoaderInput = document.createElement('input'); fileLoaderInput.type = 'file'; fileLoaderInput.multiple = true; fileLoaderInput.style.display = 'none'; document.body.appendChild(fileLoaderInput); document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile); document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click()); fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); document.body.removeChild(fileLoaderInput); }); document.getElementById('file-manager-container').addEventListener('click', handleFileAction); } }); } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); } }
     async function handleAddNewFile() { const input = document.getElementById('new-filename-input'); const newFileName = input.value.trim(); if (!newFileName || !newFileName.includes('.')) { Swal.showValidationMessage('Tên file không hợp lệ.'); return; } if (await getFileFromDb(newFileName)) { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'File đã tồn tại!', showConfirmButton: false, timer: 2000 }); return; } await saveFileToDb(newFileName, new Uint8Array()); globalEn.writeMemFSFile(newFileName, new Uint8Array()); Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã thêm file ${newFileName}`, showConfirmButton: false, timer: 2000 }); }
     async function handleFileAction(event) { const target = event.target; const fileItem = target.closest('.file-manager-item'); if (!fileItem) return; const fileName = fileItem.dataset.filename; if (target.classList.contains('file-open-btn')) { await openFileInEditor(fileName); Swal.close(); } else if (target.classList.contains('file-delete-btn')) { Swal.fire({ title: `Xóa file "${fileName}"?`, text: "Hành động này không thể hoàn tác!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Vâng, xóa nó!', cancelButtonText: 'Hủy' }).then(async (result) => { if (result.isConfirmed) { await deleteFileFromDb(fileName); if (typeof globalEn.removeMemFSFile === 'function') { globalEn.removeMemFSFile(fileName); } if (currentOpenFile === fileName) { await openFileInEditor(mainTexFile || 'main.tex'); } Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã xóa file!', showConfirmButton: false, timer: 2000 }); } }); } }

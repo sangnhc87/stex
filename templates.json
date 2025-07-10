@@ -1,0 +1,22 @@
+[
+    {
+        "id": "DeThi",
+        "name": "Mẫu Đề Thi",
+        "file": "main_dethi.tex"
+    },
+    {
+        "id": "VeHinh",
+        "name": "Mẫu Vẽ Hình (TikZ)",
+        "file": "vehinh.tex"
+    },
+    {
+        "id": "Beamer",
+        "name": "Mẫu Trình chiếu (Beamer)",
+        "file": "beamer.tex"
+    },
+    {
+        "id": "Book",
+        "name": "Mẫu Sách (Book)",
+        "file": "book.tex"
+    }
+]
