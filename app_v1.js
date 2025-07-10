@@ -621,11 +621,6 @@ async function openFileInEditor(fileName) {
         }
     }
 
-    /**
- * Hàm khởi tạo chính của toàn bộ ứng dụng.
- * PHIÊN BẢN NÂNG CẤP: Đã dọn dẹp, loại bỏ các thành phần không còn dùng
- * và sửa lỗi liên quan đến việc không tìm thấy `main-file-selector`.
- */
 async function init() {
     
     // --- BƯỚC 1: Cấu hình Editor và Theme ---
@@ -739,7 +734,7 @@ async function init() {
 
     // Đoạn code còn lại chỉ chạy nếu element tồn tại
     const allFiles = (await getAllFilesFromDb()).map(f => f.name);
-    const validPrefixes = ['main', 'file', 'de'];
+    const validPrefixes = ['main', 'file', 'de','khaibao'];
     mainFileSelector.innerHTML = '';
     const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort();
     

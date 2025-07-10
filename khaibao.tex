@@ -1,0 +1,112 @@
+\usepackage{environ} 
+\usepackage{lastpage} 
+\usepackage{fancyhdr} 
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\def\vec{\overrightarrow}
+\newcommand{\hoac}[1]{\left[\begin{aligned}#1\end{aligned}\right.}
+\newcommand{\heva}[1]{\left\{\begin{aligned}#1\end{aligned}\right.}
+\newcommand{\hetde}{\centerline{\rule[0.5ex]{2cm}{1pt} HẾT \rule[0.5ex]{2cm}{1pt}}}
+
+\newcommand{\tentruong}{THPT Nguyễn Hữu Cảnh}
+\newcommand{\tengv}{GV Nguyễn Văn Sang}
+\newcommand{\tenkythi}{Ôn Kiểm Tra GHKII 2025}
+\newcommand{\tenmonthi}{Môn: Toán - Khối 12}
+\newcommand{\thoigian}{90}
+\newcommand{\made}{101}
+
+\newcommand{\tieude}[3]{
+	\noindent
+	% Trái
+	\begin{minipage}[b]{7cm}
+		\centerline{\textbf{\fontsize{13}{0}\selectfont \tentruong}}
+		\centerline{\textbf{\fontsize{13}{0}\selectfont \tengv}}
+		\centerline{(\textit{Đề thi có #1\ trang})}
+		\centerline{\textit{ }}
+	\end{minipage}\hspace{1.5cm}
+	% Phải
+	\begin{minipage}[b]{9cm}
+		\centerline{\textbf{\fontsize{13}{0}\selectfont \tenkythi}}
+		\centerline{\textbf{\fontsize{13}{0}\selectfont \tenmonthi}}
+		\centerline{\textit{\fontsize{12}{0}\selectfont Thời gian làm bài \thoigian \ phút }}
+		% Đã sửa lỗi Overfull \hbox bằng cách ngắt dòng
+		\centerline{\textit{\fontsize{12}{0}\selectfont (Đề có 11 câu trắc nghiệm, 5 câu đúng sai, 6 câu điền đáp án)}}
+	\end{minipage}
+\vspace{0.5em}
+
+	\begin{minipage}[b]{13cm}
+		\vspace*{.75cm}
+		\textbf{Họ và tên thí sinh: }{\tiny\dotfill}\\
+		\textbf{Số Báo Danh: }{\tiny\dotfill}
+	\end{minipage}
+	\begin{minipage}[b]{8cm}
+		\hspace*{1cm}\fbox{\bf Mã đề thi #3}
+	\end{minipage}
+}
+% Định nghĩa lại chantrang để thiết lập footer cho fancyhdr
+\newcommand{\chantrang}[2]{
+    \fancyhf{} % Xóa tất cả các header và footer mặc định
+    \rfoot{Trang \thepage/#1 $-$ Mã đề #2} % Đặt nội dung vào chân trang bên phải
+    \lfoot{} % Để trống chân trang bên trái
+    \cfoot{} % Để trống chân trang ở giữa
+}
+\renewcommand{\headrulewidth}{0pt}
+% --- Các định nghĩa ---
+\newcommand{\caulc}{
+	\begin{flushleft}
+{\color{red}\sffamily\bfseries Phần I. Câu hỏi trắc nghiệm nhiều phương án lựa chọn}\\
+\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+	\end{flushleft}
+\setcounter{ex}{0}
+
+
+	\setcounter{ex}{0}
+}
+\newcommand{\cauds}{
+	\begin{flushleft}
+{\color{red}\sffamily\bfseries Phần II. Câu hỏi trắc nghiệm đúng sai}\\
+\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu thí sinh chọn đúng hoặc sai.} 
+	\end{flushleft}
+	\setcounter{ex}{0}
+}
+\newcommand{\caukq}{
+	\begin{flushleft}
+{\color{red}\sffamily\bfseries Phần III. Câu hỏi trắc nghiệm trả lời ngắn}\\
+\textit{Thí sinh trả lời từ câu 1 đến câu 6.} 	\end{flushleft}
+	\setcounter{ex}{0}
+} 
+
+% === CƠ CHẾ ẨN/HIỆN LỜI GIẢI ===
+\newif\ifhienloigiai
+
+\newcommand{\hienloigiai}{
+    \hienloigiaitrue
+    \makeatletter
+    \def\colorEX{\color{red}}
+    \renewcommand{\TrueEX}{\stepcounter{dapan}\squareEX{\bf\Alph{dapan}}\ignorespaces}
+    \makeatother
+    \typeout{>>> CHE DO DAP AN DA DUOC KICH HOAT.}
+}
+
+\newcommand{\anloigiai}{
+    \hienloigiaifalse
+    \makeatletter
+    \def\colorEX{}
+    \renewcommand{\TrueEX}{\FalseEX}
+    \makeatother
+    \typeout{>>> CHE DO DE THI DA DUOC KICH HOAT.}
+}
+
+\RenewEnviron{loigiai}{%
+    \ifhienloigiai
+        \par\noindent\textbf{\loigiaiEX}
+        \BODY
+    \fi
+    \makeatletter
+    \xdef\keyEX{}%
+    \setcounter{numTrueSol}{0}%
+    \makeatother
+}

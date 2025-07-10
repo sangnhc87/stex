@@ -1,0 +1,475 @@
+% === FILE: ex_test_cleaned.sty ===
+% Phiên bản đã được dọn dẹp và tích hợp sẵn cơ chế ẩn/hiện lời giải.
+% Tác giả gốc: Tran Anh Tuan and Duong Phuoc Sang
+% Chỉnh sửa bởi AI để giải quyết vấn đề ẩn/hiện.
+
+\ProvidesPackage{ex_test_cleaned}[2024/05/22 Cleaned version for stable solution toggle]
+\RequirePackage[utf8]{vietnam}
+\RequirePackage{ifthen}
+\RequirePackage{ntheorem}
+\RequirePackage{longtable,xtab}
+\RequirePackage{array}
+\RequirePackage{multicol}
+\RequirePackage{multirow}
+\RequirePackage{enumerate}
+\RequirePackage{fancyhdr}
+\RequirePackage{answers}
+\RequirePackage{tikz}
+\RequirePackage{calc}
+\usetikzlibrary{backgrounds}
+\RequirePackage{etoolbox}
+\RequirePackage{probsoln}
+\RequirePackage{picinpar}
+\RequirePackage{varwidth,mathrsfs}
+\RequirePackage{filecontents,xstring}
+\RequirePackage{expl3,xparse,epic,cntformats,xtemplate,environ}
+\RequirePackage[shortlabels]{enumitem}
+
+% ===================================================================
+% === CO CHE AN/HIEN LOI GIAI TICH HOP SAN ===
+% ===================================================================
+\newif\ifshowsolutions
+\DeclareOption{anloigiai}{\showsolutionsfalse}
+\DeclareOption{hienloigiai}{\showsolutionstrue}
+
+% Mac dinh la AN
+\ExecuteOptions{anloigiai}
+\ProcessOptions\relax
+% ===================================================================
+
+%Fix immini
+\def\thindent{}
+%Fix in đáp án trắc nghiệm cho các môi trường vd, bt,...
+\def\saveFileAns{}\def\keyEX{}\def\chType{0}
+\newcommand{\fixshowans}[1]{%
+	\foreach \env in {#1} {%
+		\AtBeginEnvironment{\env}{%
+			\gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}%
+			\setcounter{dapan}{0}%
+			\def\dotEX{.}%
+			\setcounter{numTrueSol}{0}%
+		}
+		\AtEndEnvironment{\env}{%
+			\ifthenelse{\equal{\saveFileAns}{}}{}{
+				\Writetofile{ans}{\string\begin{Solution}{\Currentlabel}}%
+				\Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
+			}
+			\setcounter{numTrueSol}{0}%
+			\setcounter{numTrue}{0}%
+			\gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}%
+			\labelex%
+		}
+	}
+}
+\fixshowans{ex,bt,vd}
+%Ghi đáp số bên phải  câu hỏi
+\newcommand{\dapso}[1]{\hspace{\fill}\mbox{}\linebreak[0]\hspace*{\fill}\textbf{ĐS:} #1}
+\newcommand{\exitdapso}{\renewcommand{\dapso}[1]{\leavevmode\unskip}}%
+%Gán tên và đánh số hình vẽ trong môi trường \immini
+\def\IMname{}
+\def\IMlabel{}
+\newcommand{\imlabel}[2]{%
+	\def\IMname{\refstepcounter{figure}\label{#2}}%
+	\def\IMlabel{Hình \thefigure: #1}%
+}
+%hide choice
+\makeatletter
+\newcommand{\hidechoice}[1]{%
+	\AtBeginEnvironment{#1}{\renewcommand{\choice}[5][]{}}%
+}
+%hide choice From To
+\newcommand{\hidechoiceFT}[3][ex]{%
+	\AtBeginEnvironment{#1}{%
+		\ifthenelse{\value{#1}>\the\numexpr #2-2\relax \AND \value{#1}<\the\numexpr #3\relax}%
+		{\renewcommand{\choice}[5][]{}}{}%
+	}
+}
+%hideenviron
+\newcommand{\hideenviron}[1]{\RenewEnviron{#1}{}}
+%dotlineEX equal number line
+\newdimen\linepar
+\newlength{\paroutindent}
+\newlength{\lineheight}
+\setlength{\lineheight}{\heightof{A}}
+\NewDocumentCommand{\Ifint}{mmm}{\IfInteger{#1}{#2}{#3}}
+\newcommand{\ifint}[3]{\Ifint{#1}{#2}{#3}}
+\newif\ifInTcolorbox
+\newcounter{iftcbcounter}
+\BeforeBeginEnvironment{tcolorbox}{%
+    \stepcounter{iftcbcounter}%
+    \InTcolorboxtrue%
+}
+\AfterEndEnvironment{tcolorbox}{%
+    \addtocounter{iftcbcounter}{-1}%
+    \ifnum\value{iftcbcounter}=0
+        \InTcolorboxfalse%
+    \fi%
+}
+\makeatletter
+\newcommand{\writeansbook}[1]{}
+\newcommand{\chooseNSA}{\def\kindSA{}}
+\newcommand{\dotlinefull}[2][]{%
+	\renewcommand{\chooseNSA}{\def\kindSA{}}
+	\AtBeginEnvironment{#2}{%
+		\def\colorEX{}%
+		\chooseNSA
+		\renewcommand{\TrueTF}{\FalseTF}
+		\renewcommand{\TrueEX}{\FalseEX}
+		\renewcommand{\writekeyTFone}{}
+		\renewcommand{\writekeyTF}{&&}
+		\renewcommand{\loigiai}[1]{%
+			\ifInTcolorbox
+				\ifdef{\endboxex}{\endboxex\def\endboxex{}}{}%
+			\fi
+			\setlength{\paroutindent}{\expandafter\parindent}
+			\setbox0=\vbox{\hbox{
+				\noindent\begin{minipage}{\linewidth}%
+				\setlength{\parindent}{\paroutindent}##1\end{minipage}
+			}}
+			\linepar=\ht0
+			\pgfmathparse{round((\linepar-\fboxsep)/(\lineheight))}
+			\par\noindent\textbf{\loigiaiEX}%
+			\dotlineEX{\pgfmathresult}%
+			\ifthenelse{\equal{#1}{ansbook}}{\writeansbook{##1}}{}%
+		}
+	}
+}
+%Ẩn hiện công thức tự động
+\newlength\wsh
+\newlength\hsh
+\newlength\dsh
+\def\dotfillans#1{\cleaders\hbox to #1{.}\hfill}
+\newcommand\dotlinesh[2][.5em]{\leavevmode\hbox to #2{\dotfillans{#1}\hfil}}
+\newcommand{\sh}[1]{%
+	\settowidth\wsh{#1}%
+	\settoheight\hsh{#1}%
+	\settodepth\dsh{#1}%
+	\ifdim\wsh<20pt\relax\setlength{\wsh}{20pt}\fi%
+	\raisebox{0pt}[\hsh][\dsh]{%
+		\dotlinesh{\wsh}%
+	}
+}
+\newcommand{\TF}[1]{\EXboxTF{\textbf{\colorEX#1}}}
+\newcommand{\boxEX}[2][9pt]{%
+	\def\sizeboxEX{#1}%
+	\setbox1=\hbox{#2}%
+	\ \EXbox{#2}\ %
+}
+%Lệnh tagEX gán nhãn công thức thủ công
+\newcommand{\tagEX}[1]{%
+	\hfill{\rm (#1)}%
+	\par
+	\@ifnextchar\begin%
+	{\vspace{-\baselineskip}}
+	{}
+}
+%Đánh dấu phương án đúng
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=0.5pt] (char) {#1};}}
+\newcommand{\circT}[2][red,fill=yellow!50]{\tikz[baseline=(char.base)]{\draw[#1,scale=\f@size/11.5] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{red}#2};\node (char)[right=6pt,scale=0.95]{\color{black}\parbox[t]{2.6mm}{\centering Đ}};}\vspace{0.1mm}}
+\newcommand{\circF}[2][red,fill=yellow!50]{\tikz[baseline=(char.base)]{\draw[#1,scale=\f@size/11.5] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{red}#2};\node (char)[right=6pt,scale=0.95]{\color{black}\parbox[t]{2.6mm}{\centering S}};}\vspace{0.1mm}}
+\newcommand{\circX}[2][red,fill=yellow!50]{\tikz[baseline=(char.base)]{\draw[#1,scale=\f@size/11.5] (0,0) circle(7pt);\node (char)[above=-1.3ex]{\color{red}#2};}\vspace{0.1mm}}
+\newcommand{\Onlycirc}{
+	\renewcommand{\circT}[2][draw=black,fill=blue]{\tikz[baseline=(char.base)]{\node[shape=circle,inner sep=0.4pt,##1] (char) {\phantom{H}};\node (0,0) {\bf\color{white}##2};}\,}
+	\renewcommand{\circF}[2][draw=black,fill=white]{\tikz[baseline=(char.base)]{\node[shape=circle,inner sep=0.4pt,##1] (char) {\phantom{H}};\node (0,0) {\bf\color{black}##2};}\,}
+}
+\newcommand{\Fullcirc}{
+	\renewcommand{\circT}[2][red,fill=yellow!40]{\tikz[baseline=(char.base)]{\draw[##1] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{black}##2};\node (char)[right=6pt,scale=0.95]{\color{black}Đúng};}}
+	\renewcommand{\circF}[2][red,fill=yellow!40]{\tikz[baseline=(char.base)]{\draw[##1] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{black}##2};\node (char)[right=6pt,scale=0.95]{\phantom{Đúng}};\node (char)[right=12pt,scale=0.95]{\color{black}Sai};}}
+}
+\newcommand{\Returncirc}{
+	\renewcommand{\circT}[2][red,fill=yellow!50]{\tikz[baseline=(char.base)]{\draw[##1,scale=\f@size/11.5] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{red}##2};\node (char)[right=6pt,scale=0.95]{\color{black}\parbox[t]{2.6mm}{\centering Đ}};}\vspace{0.1mm}}
+	\renewcommand{\circF}[2][red,fill=yellow!50]{\tikz[baseline=(char.base)]{\draw[##1,scale=\f@size/11.5] (0,0) circle(7pt);\node (char)[above=-1.4ex]{\color{red}##2};\node (char)[right=6pt,scale=0.95]{\color{black}\parbox[t]{2.6mm}{\centering S}};}\vspace{0.1mm}}
+}
+\newcommand{\circEX}[2][fill=yellow!50,draw=red]{%
+	\tikz[baseline=(char.base)]{\node[shape=circle,inner sep=1pt,#1] (char) {\color{red}#2};}
+}
+\newcommand{\squareEX}[2][fill=yellow!50,draw=red]{%
+	\tikz[baseline=(char.base)]{\node[shape=rectangle,inner sep=2.5pt,#1] (char) {\color{red}#2};}
+}
+\newcommand{\squareTF}[2][fill=yellow!50,draw=red]{%
+	\tikz[baseline=(char.base)]{\node[shape=rectangle,inner sep=0.5pt,#1] (char) {~#2\phantom{~}};}
+}
+
+%%==============================
+%Hiện Chọn đáp án trong lời giải chi tiết
+\def\multichoice{0}% Có được chọn nhiều hơn 1 PA hay không.
+\def\selectchoice{Chọn đáp án}	\def\keyCh{\circEX[fill=yellow!50,draw=red]{\color{red}\keyEX}}
+\def\selectchoiceTF{Chọn đáp án}\def\keyTF{\squareTF[fill=yellow!5,draw=black]{\color{black}\keyEX}}
+\def\selectshortans{Đáp án:}	\def\keySA{\squareEX[fill=yellow!40,draw=red]{\color{red}\keyEX}}
+\newcommand{\textchoice}{%
+	\ifnum\multichoice>0 \def\keyCh{\squareTF[fill=yellow!50,draw=red]{\color{red}\keyEX}}\fi
+	\par\noindent
+	\ifnum\chType=0 \selectchoice\ \keyCh\fi
+	\ifnum\chType=1 \selectchoiceTF\ \keyTF\fi
+	\ifnum\chType=-1\selectshortans\ \keySA\fi
+	\ifthenelse{\equal{\qedEX}{}}{}{\dotfill\qedEX\par}%
+}
+
+%Lời giải
+\def\loigiaiEX{\noindent\parbox[c]{\linewidth-1mm}{\centering\color{blue}Lời giải.}}
+
+%Định nghĩa QED kết thúc chứng minh
+\def\qedEX{\ensuremath{\square}}
+%Trích dẫn nguồn
+\def\labelex{}
+
+\newcommand{\nameex}{\color{violet}Câu}
+\newcommand{\namebt}{\color{blue}Bài}
+\newcommand{\namevd}{\color{red}Ví dụ}
+
+%Tương thích gói picinpar
+\def\picinpar{\setlength{\linewidth}{\linewidth}}
+\AtBeginEnvironment{window}{\def\picinpar{\setlength{\linewidth}{\linewidth-\picwd-\lwindowsep-2\fboxsep}}}
+
+\newcounter{debai}
+\newcounter{dapan}
+\newcounter{numTrue}
+\newcounter{numTrueSol}
+\def\colorEX{}	% Màu cho phương án đúng
+\def\dotEX{.}	% Dấu câu sau mỗi phương án
+\newcommand{\DapAnTF}{\alph{dapan}}
+\newcommand{\DapAnSA}{\alph{dapan}}
+\newcommand{\FalseTF}{\stepcounter{dapan}\textbf{\DapAnTF\sepTF}\ignorespaces}
+\newcommand{\TrueTF}{\FalseTF}
+\newcommand{\FalseEX}{\stepcounter{dapan}\textbf{\Alph{dapan}.}\ignorespaces}
+\newcommand{\TrueEX}{\FalseEX}
+\newcommand{\True}{\ifnum\chType=0\setcounter{numTrueSol}{\thedapan}\setcounter{numTrue}{\thedapan}\fi}
+\newlength\widthalpha
+\newlength\widthalphaT
+\newlength\widthalphaF
+\ifnum\chType=0\settowidth\widthalphaT{\TrueEX}\else\settowidth\widthalphaT{\TrueTF}\fi
+\ifnum\chType=0\settowidth\widthalphaF{\FalseEX}\else\settowidth\widthalphaF{\FalseTF}\fi
+\ifdim\widthalpha<\widthalphaT\relax\setlength{\widthalpha}{\widthalphaT}\fi%
+\ifdim\widthalpha<\widthalphaF\relax\setlength{\widthalpha}{\widthalphaF}\fi%
+\makeatletter
+\newcommand{\begindapan}{%
+	\@ifnextchar\True
+	{
+	\begin{minipage}[t]{\widthalpha}
+	\ifnum\chType=0\TrueEX\else\TrueTF\fi
+	\end{minipage}
+	\begin{minipage}[t]{\dorong}
+	\ifnum\chType=1
+		\xdef\saveFileAns{\saveFileAns\string\circT{\DapAnTF}}%
+		\ifnum\thedapan=1 \xdef\keyEX{\DapAnTF\ đúng}
+		\else \xdef\keyEX{\keyEX\ \big| \DapAnTF\ đúng} \fi%
+	\else
+		\ifnum\multichoice=0
+			\xdef\saveFileAns{\Alph{dapan}}%
+			\xdef\keyEX{\Alph{dapan}}%
+		\else
+			\xdef\saveFileAns{\saveFileAns\Alph{dapan}}%
+			\ifthenelse{\equal{\keyEX}{}}
+			{\xdef\keyEX{\Alph{dapan}}}
+			{\xdef\keyEX{\keyEX\ \big| \Alph{dapan}}}
+		\fi
+	\fi%
+	}
+	{
+	\begin{minipage}[t]{\widthalpha}
+	\ifnum\chType=0\FalseEX\else\FalseTF\fi
+	\end{minipage}
+	\begin{minipage}[t]{\dorong}
+	\ifnum\chType=1
+		\xdef\saveFileAns{\saveFileAns\string\circF{\DapAnTF}}%
+		\ifnum\thedapan=1 \xdef\keyEX{\keyEX\DapAnTF\ sai}
+		\else \xdef\keyEX{\keyEX\ \big| \DapAnTF\ sai} \fi%
+	\fi%
+	}
+}
+\newcommand{\boncot}[4]{%
+	\picinpar
+	\setlength{\dorong}{0.25\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\par\setcounter{dapan}{0}%
+	\ifnum\chType<1
+		\setcounter{numTrue}{0}%
+		\setcounter{numTrueSol}{0}%
+	\fi%
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#1\dotEX\strut\ignorespaces
+	\end{minipage}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#2\dotEX\strut\ignorespaces
+	\end{minipage}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#3\dotEX\strut\ignorespaces
+	\end{minipage}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#4\dotEX\strut\ignorespaces
+	\end{minipage}
+
+}
+%%%%
+\def\parskipchoice{0cm}
+\newcommand{\haicot}[4]{%
+	\picinpar
+	\setlength{\dorong}{0.5\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\par\setcounter{dapan}{0}%
+	\ifnum\chType<1
+		\setcounter{numTrue}{0}%
+		\setcounter{numTrueSol}{0}%
+	\fi%
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#1\dotEX\strut\ignorespaces
+	\end{minipage}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#2\dotEX\strut\ignorespaces
+	\end{minipage}
+	\par\setlength{\parskip}{\parskipchoice}\noindent\hspace{0.02\dorongfix}\begindapan
+	#3\dotEX\strut\ignorespaces
+	\end{minipage}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#4\dotEX\strut\ignorespaces
+	\end{minipage}
+
+}
+\newcommand{\motcot}[4]{%
+	\picinpar
+	\setlength{\dorong}{\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\par
+	\setcounter{dapan}{0}%
+	\ifnum\chType<1
+		\setcounter{numTrue}{0}%
+		\setcounter{numTrueSol}{0}%
+	\fi%
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#1\dotEX\strut\ignorespaces
+	\end{minipage}
+	\par\setlength{\parskip}{\parskipchoice}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#2\dotEX\strut\ignorespaces
+	\end{minipage}
+	\par\setlength{\parskip}{\parskipchoice}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#3\dotEX\strut\ignorespaces
+	\end{minipage}
+	\par\setlength{\parskip}{\parskipchoice}
+	\noindent\hspace{0.02\dorongfix}\begindapan
+	#4\dotEX\strut\ignorespaces
+	\end{minipage}
+}
+%%%%%%%Tự động chọn \motcot, \haicot, \boncot
+\newlength\widthcha
+\newlength\widthchb
+\newlength\widthchc
+\newlength\widthchd
+\newlength\widthch
+\newlength\tabmaxwidth
+\newlength\fourthtabwidth
+\newlength\halftabwidth
+\newcommand{\choice}[5][0]{%
+	\gdef\chType{0}\setcounter{dapan}{0}%
+	\setlength\tabmaxwidth{\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\fourthtabwidth{0.25\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\setlength\halftabwidth{0.5\linewidth-0.02\dorongfix-\widthalpha-3\fboxsep}
+	\settowidth\widthcha{#2}
+	\ifdim\widthch<\widthcha\relax\setlength{\widthch}{\widthcha}\fi%
+	\settowidth\widthchb{#3}%
+	\ifdim\widthch<\widthchb\relax\setlength{\widthch}{\widthchb}\fi%
+	\settowidth\widthchc{#4}%
+	\ifdim\widthch<\widthchc\relax\setlength{\widthch}{\widthchc}\fi%
+	\settowidth\widthchd{#5}%
+	\ifdim\widthch<\widthchd\relax\setlength{\widthch}{\widthchd}\fi%
+	\ifthenelse{\equal{#1}{0}}
+	{
+	\ifdim\widthch<\fourthtabwidth
+			\boncot{#2}{#3}{#4}{#5}
+		  \else\ifdim\widthch<\halftabwidth
+			  \haicot{#2}{#3}{#4}{#5}
+			\else
+			  \motcot{#2}{#3}{#4}{#5}
+		  \fi\fi
+	}
+	{
+	\ifthenelse{\equal{#1}{1}}
+	{\motcot{#2}{#3}{#4}{#5}}
+	{\ifthenelse{\equal{#1}{2}}
+	{\haicot{#2}{#3}{#4}{#5}}
+	{\ifthenelse{\equal{#1}{4}}
+	{\boncot{#2}{#3}{#4}{#5}}
+	{
+	\ifdim\widthch<\fourthtabwidth
+			\boncot{#2}{#3}{#4}{#5}
+		  \else\ifdim\widthch<\halftabwidth
+			  \haicot{#2}{#3}{#4}{#5}
+			\else
+			  \motcot{#2}{#3}{#4}{#5}
+		  \fi\fi
+	}}}}
+}
+
+%%============= CÁC LỆNH MỚI =============
+\def\tickT{X}	% Chỗ này dùng để định nghĩa dấu tick đúng hoặc sai
+\def\tickF{X}
+\gdef\TrueX{}\gdef\FalseX{\tickF}
+\newlength{\tabcolsep}
+\setlength{\tabcolsep}{1.5mm}
+
+\define@key{optn}{dapanTF}{\def\dapanTF{#1}}
+\define@key{optn}{sepTF}{\def\sepTF{#1}}
+\newcommand{\TFOPTN}[1]{%
+	\setkeys{optn}{#1}%
+	\ifthenelse{\equal{\dapanTF}{A}}
+	{\renewcommand{\DapAnTF}{\Alph{dapan}}\def\sepTF{.}}
+	{\ifthenelse{\equal{\dapanTF}{1}}
+	{\renewcommand{\DapAnTF}{\arabic{dapan}}\def\sepTF{)}}
+	{\renewcommand{\DapAnTF}{\alph{dapan}}\def\sepTF{)}}}%
+}
+\TFOPTN{dapanTF=a}
+
+\AtBeginEnvironment{ex}{
+    \ifshowsolutions
+        \def\colorEX{\color{red}}
+        \renewcommand{\TrueEX}{\stepcounter{dapan}\squareEX{\bf\Alph{dapan}}\ignorespaces}
+        \renewcommand{\TrueTF}{\stepcounter{dapan}\squareEX{\bf\DapAnTF}\ignorespaces}
+        \renewcommand{\True}{%
+            \ifnum\chType=0\setcounter{numTrue}{\thedapan}\setcounter{numTrueSol}{\thedapan}%
+            \else \gdef\TrueX{\circEX{\tickT}}\gdef\FalseX{} \fi%
+            \leavevmode\colorEX%
+        }
+    \else
+        \def\colorEX{}
+        \renewcommand{\TrueEX}{\stepcounter{dapan}\textbf{\Alph{dapan}.}\ignorespaces}
+        \renewcommand{\TrueTF}{\stepcounter{dapan}\textbf{\DapAnTF\sepTF}\ignorespaces}
+        \renewcommand{\True}{\ifnum\chType=0\setcounter{numTrueSol}{\thedapan}\setcounter{numTrue}{\thedapan}\fi}
+    \fi
+}
+
+\RenewEnviron{loigiai}{%
+    \ifshowsolutions
+        \begin{onlysolution}
+            \par\noindent\textbf{\loigiaiEX}
+            \BODY
+            \ifthenelse{\equal{\keyEX}{}}{}{\leavevmode\unskip\textchoice\ignorespaces}%
+        \end{onlysolution}%
+    \fi
+    \xdef\keyEX{}%
+    \setcounter{numTrueSol}{0}%
+}
+
+%shortans
+\define@key{optn}{kindSA}{\def\kindSA{#1}}
+\define@key{optn}{ketquaSA}{\def\ketqua{#1}\def\ketquaSA{\ketqua}}
+\SAOPTN{kindSA=,ketquaSA=KQ:}
+\newcommand{\shortans}[2][]{%
+	\gdef\chType{-1}%
+	\ifshowsolutions
+	    \hfill\raisebox{0pt}{\tikz[baseline=(char.base)]{%
+			\node (char)[rectangle,inner sep=2pt,rounded corners=2pt,fill=yellow!50,draw=red]{\color{red}~\selectshortans\ #2\phantom{~}};}}
+	\else
+	    \hfill\raisebox{0pt}{\tikz[baseline=(char.base)]{\node (char)[left]{\ketquaSA};
+			\draw[rounded corners=2pt] (0,-0.5*0.9cm) rectangle (4cm,0.5*0.9cm);}}
+	\fi
+	\par\xdef\saveFileAns{\detokenize{#2}}%
+}
+
+\theoremstyle{immini}
+\theoremseparator{.}
+\theorembodyfont{\rm}
+\newtheorem{ex}{\nameex}
+\newtheorem{vdex}{Ví dụ}
+\AtBeginEnvironment{vdex}{\setcounter{numTrueSol}{0}\def\dotEX{.}}
+
+%Hỗ trợ gói ex_test_rd đã được xóa bỏ
+\endinput
