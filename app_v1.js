@@ -1,5 +1,5 @@
 "use strict";
-
+let availableTemplates = [];
 // =====================================================================
 // ===        KHỐI MÃ THAY THẾ PdfTeXEngine (TRÁI TIM MỚI)        ===
 // =====================================================================
@@ -459,7 +459,7 @@ function main() {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
     // Các element khác bạn có thể lấy ở đây
-    let availableTemplates = [];
+    
     // === CÁC BIẾN VÀ HẰNG SỐ ===
     const globalEn = new PdfTeXEngine();
     let mainTexFile = 'main.tex';
