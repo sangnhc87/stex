@@ -434,7 +434,7 @@ async function initializeTemplatesFromJSON() {
         availableTemplates = templatesConfig;
 
         // Điền các lựa chọn vào dropdown
-        templateSelector.innerHTML = '<option value="">-- Chọn mẫu nhanh --</option>';
+        templateSelector.innerHTML = '<option value="">-- Chọn main --</option>';
         availableTemplates.forEach(template => {
             const option = document.createElement('option');
             option.value = template.id; // Dùng id làm value
@@ -686,7 +686,7 @@ async function init() {
     document.getElementById('clear-cache-btn')?.addEventListener('click', clearStyCache);
     document.getElementById('show-help-btn')?.addEventListener('click', showHelpModal);
     document.getElementById('download-zip-btn')?.addEventListener('click', downloadProjectAsZip);
-    document.getElementById('open-v2-btn')?.addEventListener('click', () => window.open('indexV4.html', '_blank'));
+    document.getElementById('open-v2-btn')?.addEventListener('click', () => window.open('index_11.html', '_blank'));
     document.getElementById('author-info-btn')?.addEventListener('click', showAuthorInfo);
     themeSelector?.addEventListener('change', (e) => { const theme = e.target.value; editorEl.setTheme(`ace/theme/${theme}`); localStorage.setItem('editorTheme', theme); });
     document.getElementById('snippet-manager-btn')?.addEventListener('click', showSnippetManager);
