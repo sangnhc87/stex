@@ -63,3 +63,16 @@ Bấm vào đó để:
 - **Cấp quyền Admin**: Đổi Role sang `Admin`.
 - **Gia hạn sử dụng**: Chọn ngày ở cột "Hết hạn". Nếu quá ngày này, người dùng sẽ bị khóa.
 
+## KHẮC PHỤC LỖI THƯỜNG GẶP
+
+### Lỗi: "This domain is not authorized for OAuth operations..."
+Đây là lỗi do tên miền trang web chưa được khai báo với Firebase.
+**Cách sửa:**
+1. Vào [Firebase Console](https://console.firebase.google.com/).
+2. Chọn dự án của bạn -> **Authentication** -> **Settings**.
+3. Chọn tab **Authorized domains**.
+4. Nhấn **Add domain**.
+5. Nhập tên miền trang web của bạn vào (ví dụ: `localhost` nếu chạy trên máy, hoặc `stex.pages.dev` nếu đã deploy).
+6. Nhấn **Add**.
+
+

@@ -796,13 +796,37 @@ function main() {
 
         loginBtn?.addEventListener('click', handleLogin);
         logoutBtn?.addEventListener('click', handleLogout);
-        adminBtn?.addEventListener('click', showAdminDashboard);
+        adminBtn?.addEventListener('click', async () => {
+            const user = firebase.auth().currentUser;
+            if (!user) return;
+
+            // Check role again just to be sure
+            const doc = await db.collection('users').doc(user.uid).get();
+            const userData = doc.data();
+
+            if (userData && userData.role === 'admin') {
+                showAdminDashboard();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Không có quyền Admin',
+                    html: `
+                        <p>Email <b>${user.email}</b> chưa được cấp quyền Admin.</p>
+                        <p>Vui lòng vào Firebase Console -> Firestore -> users -> tìm email này -> sửa <b>role</b> thành <b>'admin'</b>.</p>
+                    `
+                });
+            }
+        });
 
         // Monitor Auth State
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'inline-block';
+                // ALWAYS show Admin button if logged in, so user knows it exists.
+                // We check permission on click.
+                adminBtn.style.display = 'inline-block';
+
                 console.log("User logged in:", user.email);
 
                 // Check Firestore for user status
@@ -842,9 +866,6 @@ function main() {
 
                     // ALL CHECKS PASSED
                     unlockEditor();
-                    if (userData.role === 'admin') {
-                        adminBtn.style.display = 'inline-block';
-                    }
                 }
             } else {
                 loginBtn.style.display = 'inline-block';
@@ -960,86 +981,6 @@ function main() {
             editorEl.setReadOnly(false);
             document.getElementById('compile-btn').disabled = false;
             document.querySelector('.editor-pane').style.opacity = '1';
-        }
-
-        // --- FIREBASE STORAGE SETUP ---
-        const saveCloudBtn = document.getElementById('save-cloud-btn');
-        const loadCloudBtn = document.getElementById('load-cloud-btn');
-
-        saveCloudBtn?.addEventListener('click', saveToCloud);
-        loadCloudBtn?.addEventListener('click', loadFromCloud);
-
-        // Update UI on login
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                saveCloudBtn.style.display = 'inline-block';
-                loadCloudBtn.style.display = 'inline-block';
-            } else {
-                saveCloudBtn.style.display = 'none';
-                loadCloudBtn.style.display = 'none';
-            }
-        });
-
-        async function saveToCloud() {
-            const user = firebase.auth().currentUser;
-            if (!user) return Swal.fire('Lỗi', 'Bạn chưa đăng nhập.', 'error');
-
-            // Save current file content to Firestore (for text files)
-            // For images, we would use Storage, but let's start with text sync.
-            try {
-                const content = editorEl.getValue();
-                if (!currentOpenFile) return Swal.fire('Lỗi', 'Chưa mở file nào.', 'warning');
-
-                await db.collection('users').doc(user.uid).collection('files').doc(currentOpenFile).set({
-                    content: content,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                Swal.fire('Đã lưu', `File ${currentOpenFile} đã được lưu lên Cloud.`, 'success');
-            } catch (error) {
-                console.error("Save to cloud failed:", error);
-                Swal.fire('Lỗi lưu Cloud', error.message, 'error');
-            }
-        }
-
-        async function loadFromCloud() {
-            const user = firebase.auth().currentUser;
-            if (!user) return Swal.fire('Lỗi', 'Bạn chưa đăng nhập.', 'error');
-
-            try {
-                const snapshot = await db.collection('users').doc(user.uid).collection('files').get();
-                if (snapshot.empty) return Swal.fire('Cloud rỗng', 'Bạn chưa lưu file nào.', 'info');
-
-                let html = '<ul style="text-align: left;">';
-                snapshot.forEach(doc => {
-                    html += `<li><a href="#" onclick="loadCloudFile('${doc.id}')">${doc.id}</a></li>`;
-                });
-                html += '</ul>';
-
-                // Expose helper globally for the onclick handler
-                window.loadCloudFile = async (fileName) => {
-                    const doc = await db.collection('users').doc(user.uid).collection('files').doc(fileName).get();
-                    const data = doc.data();
-                    if (data && data.content) {
-                        // Save to local DB and open
-                        const textEncoder = new TextEncoder();
-                        await saveFileToDb(fileName, textEncoder.encode(data.content));
-                        await openFileInEditor(fileName);
-                        Swal.close();
-                        Swal.fire('Thành công', `Đã tải ${fileName} về máy.`, 'success');
-                    }
-                };
-
-                Swal.fire({
-                    title: 'Chọn file từ Cloud',
-                    html: html,
-                    showCloseButton: true,
-                    showConfirmButton: false
-                });
-
-            } catch (error) {
-                console.error("Load from cloud failed:", error);
-                Swal.fire('Lỗi tải Cloud', error.message, 'error');
-            }
         }
 
         // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
