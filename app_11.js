@@ -800,7 +800,7 @@ function main() {
             const files = await getAllFilesFromDb();
             if (files.length === 0) {
                 // Nếu là lần đầu chạy, tạo file main.tex mẫu
-                const defaultContent = `\\documentclass{article}\n\\usepackage{graphicx}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
+                const defaultContent = `\\documentclass{article}\n\\usepackage{graphicx}\n\\usepackage{polyglossia}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
                 const fileData = new TextEncoder().encode(defaultContent);
                 await saveFileToDb('main.tex', fileData);
                 files.push({ name: 'main.tex', data: fileData });
