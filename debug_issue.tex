@@ -1,0 +1,17 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usetikzlibrary{calc} % cần cho phép cộng vector, trung điểm,...
+
+\begin{document}
+
+\begin{tikzpicture}[scale=1,font=\footnotesize, line join=round, line cap=round, >=stealth]
+  \coordinate (A) at (-4.25,1.4);
+  \coordinate (B) at (6.50,6.10);
+  \begin{scope}[rotate around={23.62:(1.13,3.75)}]
+    \draw[dashed] (1.13,3.75) arc [x radius=5.87, y radius=1.2, start angle=0, end angle=-180];
+  \end{scope}
+  \begin{scope}[rotate around={-156.38:(1.13,3.75)}]
+    \draw[dashed] (1.13,3.75) arc [x radius=5.87, y radius=1.2, start angle=-180, end angle=0];
+\end{scope}
+\end{tikzpicture}
+\end{document}
