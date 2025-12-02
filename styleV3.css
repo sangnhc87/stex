@@ -121,6 +121,7 @@ html {
     padding: 10px;
     gap: 10px;
     min-height: 0;
+    padding-bottom: 45px; /* Add padding for footer handle */
 }
 
 .editor-pane,
@@ -665,7 +666,8 @@ body.is-resizing iframe {
     z-index: 1000; /* Nằm trên các thành phần khác */
     /* transform: translateY(100%);  */
     /* SỬA DÒNG NÀY: Đẩy xuống, chỉ chừa lại 1px của viền trên */
-    transform: translateY(calc(100% - 1px)); 
+    /* Show handle (40px) */
+    transform: translateY(calc(100% - 40px));  
     
     /* Tạo hiệu ứng trượt mượt mà */
     transition: transform 0.3s ease-in-out;

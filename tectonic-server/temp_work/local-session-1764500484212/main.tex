@@ -1,0 +1,106 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{amsmath,amssymb,makecell,fancyhdr,enumerate,arcs,physics,tasks,mathrsfs,graphics}
+\usepackage{tikz,tikz-3dplot,tkz-euclide,tkz-tab,tabvar,pgfplots,esvect}
+\usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=1.5cm]{geometry}
+\usepackage[hidelinks,unicode]{hyperref}
+\usepackage[utf8]{vietnam}
+\usepackage{polyglossia}
+\usepackage[dethi]{ex_test}
+\usepackage{lastpage}
+\usepackage{diagbox}
+\usepackage{fontawesome5}
+\usetikzlibrary{shapes.geometric,shadings,calc,snakes,patterns,arrows,intersections,angles,backgrounds,quotes}
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{compat=newest}
+\tikzset{point style/.append style={color=white}}
+\def\vec{\overrightarrow}
+\newcommand{\hoac}[1]{\left[\begin{aligned}#1\end{aligned}\right.}
+\newcommand{\heva}[1]{\left\{\begin{aligned}#1\end{aligned}\right.}
+\newcommand{\hetde}{\centerline{\rule[0.5ex]{2cm}{1pt} HẾT \rule[0.5ex]{2cm}{1pt}}}
+\newcommand{\tentruong}{TRƯỜNG THPT NGUYỄN HỮU CẢNH}
+\newcommand{\tengv}{GV Nguyễn Văn Sang}
+\newcommand{\tenkythi}{KIỂM TRA HKI NĂM HỌC 2025-2026}
+\newcommand{\tenmonthi}{MÔN TOÁN - LỚP 12}
+\newcommand{\thoigian}{90}
+\newcommand{\tieude}[3]{
+    \noindent
+    \begin{minipage}[b]{7cm}
+        \centerline{\textbf{\fontsize{13}{0}\selectfont \tentruong}}
+        \centerline{\textbf{\fontsize{13}{0}\selectfont \tengv}}
+        \centerline{(\textit{Đề thi có #1 trang})}
+        \centerline{\textit{ }}
+    \end{minipage}\hspace{1.5cm}
+    \begin{minipage}[b]{9cm}
+        \centerline{\textbf{\fontsize{13}{0}\selectfont \tenkythi}}
+        \centerline{\textbf{\fontsize{13}{0}\selectfont \tenmonthi}}
+        \centerline{\textit{\fontsize{12}{0}\selectfont Thời gian làm bài \thoigian \ phút}}
+        \centerline{\textit{\fontsize{12}{0}\selectfont (Đề có 12 câu trắc nghiệm, 4 đúng sai, 6 điền đáp án)}}
+    \end{minipage}
+    \begin{minipage}[b]{13cm}
+        \vspace*{.75cm}
+        \textbf{Họ và tên thí sinh: }{\tiny\dotfill}\\
+        \textbf{Số Báo Danh: }{\tiny\dotfill}
+    \end{minipage}
+    \begin{minipage}[b]{8cm}
+        \hspace*{1cm}\fbox{\bf Mã đề thi #3}
+    \end{minipage}
+}
+\newcommand{\chantrang}[2]{\rfoot{Trang \thepage/\pageref{LastPage} $-$ Mã đề #2}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\def\colorEX{}
+\renewtheorem{ex}{\color{blue!80!black}\textbf{Câu}}
+
+\newcommand{\made}{222}
+\begin{document}
+\tieude{\pageref{LastPage}}{0}{\made}
+\chantrang{\pageref{LastPage}}{\made}
+%\begin{center}\includegraphics[width=1\textwidth]{UnT18.4.6.png}\end{center}
+\subsection*{PHẦN I. Trắc nghiệm nhiều lựa chọn. (12 câu)}
+\setcounter{ex}{0}
+\Opensolutionfile{ans}%%[ans-phanI]
+\begin{ex}%[2D3H2-2]%[CTST - Lớp 12 - THPT Thiên Phước - Đồng Nai]%[Dương Công Tạo]
+	Bảng sau thống kê số lượt khách mỗi ngày của một hãng taxi trong $30$ ngày
+	\begin{center}
+		\begin{tabular}{|l|c|c|c|c|c|}
+		\hline
+		Số lượt & {$[5; 8)$} & $(8;11)$ & $11; 14)$ & $14; 17)$ & $(17;20)$ \\
+		\hline
+		Số ngày & 4 & 9 & 9 & 5 & 3\\
+		\hline
+	\end{tabular}
+	\end{center}
+	Độ lệch chuẩn $S$ của mẫu số liệu trên thỏa
+	\choice
+{\True $3< S< 4$}
+{$1< S< 2$}
+{$2< S< 3$}
+{$4< S< 5$}
+	\loigiai{
+		\begin{center}
+			\begin{tabular}{|l|c|c|c|c|c|}
+				\hline
+				Số lượt & $[5; 8)$ & $(8;11)$ & $11; 14)$ & $14; 17)$ & $(17;20)$ \\
+				\hline
+				Giá trị đại diện & $6{,}5$ & $9{,}5$ & $12{,}5$ & $15{,}5$ & $18{,}5$ \\
+				\hline
+				Số ngày & 4 & 9 & 9 & 5 & 3\\
+				\hline
+			\end{tabular}
+		\end{center}
+		Số khách trung bình trong $30$ ngày 
+		\begin{align*}
+			\overline{x}=\dfrac{1}{30}\left(6{,}5\cdot 4+9{,}5\cdot 9+12{,}5\cdot 9+15{,}5\cdot5+18{,}5\cdot 3\right)=11{,}9\text{ (khách)}.
+		\end{align*}
+		Phương sai của mẫu số liệu trên là 
+		\begin{align*}
+			S^2=&\dfrac{1}{30}[(6{,}5-11{,}9)^2\cdot 4+(9{,}5-11{,}9)^2\cdot 9+(12{,}5-11{,}9)^2\cdot 9+\\&(15{,}5-11{,}9)^2\cdot5+(18{,}5-11{,}9)^2\cdot 3]=12{,}24.
+		\end{align*}
+	Vậy độ lệch chuẩn $S$ của mẫu số liệu trên là $S\approx3{,}5$.
+	}
+\end{ex}
+\Closesolutionfile{ans}
+ \newpage
+
+\end{document}

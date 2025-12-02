@@ -1,0 +1,50 @@
+\documentclass{article}
+\usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=1.5cm]{geometry}
+\usepackage[hidelinks,unicode]{hyperref}
+% \usepackage[dethi]{ex_test} 
+\usepackage[dethi,color]{ex_test} 
+\input{khaibao.tex}
+% \hienloigiai
+\anloigiai
+\begin{document}
+\pagestyle{fancy} 
+\tieude{\pageref{LastPage}}{0}{\made} 
+\chantrang{\pageref{LastPage}}{\made}
+\caulc
+\cauds
+\caukq
+\begin{ex}
+Phương trình tiệm cận đứng của đồ thị hàm số $y=\dfrac{x+1}{x+2}$ là:
+\choice
+    {$x=-1$}
+    {\True $x=-2$}
+    {$x=2$}
+    {$y=1$}
+\loigiai{
+Ta có $\displaystyle \lim_{x\to -2^+}\frac{x+1}{x+2} = -\infty$, nên $x=-2$ là tiệm cận đứng.
+}
+\end{ex}
+\begin{ex}
+Phương trình tiệm cận đứng của đồ thị hàm số $y=\dfrac{x+1}{x+2}$ là:
+\choiceTFt
+    {$x=-1$}
+    {\True $x=-2$}
+    {$x=2$}
+    {$y=1$}
+\loigiai{
+Ta có $\displaystyle \lim_{x\to -2^+}\frac{x+1}{x+2} = -\infty$, nên $x=-2$ là tiệm cận đứng.
+}
+\end{ex}
+\begin{ex}
+Biết hàm số $f(x)=\dfrac{4x^2 + 6x + 4}{(x + 7)(x + 10)}$ có nguyên hàm $F(x)=mx + n\ln|x + 7| + p\ln|x + 10| + C$. Tính giá trị $m + n + p$, làm tròn đến phần nguyên.
+\shortans[oly]{$-58$}
+\loigiai{
+    Ta có:
+    \[
+    \int \dfrac{4x^2 + 6x + 4}{(x + 7)(x + 10)} \, dx = 4 x + \frac{158}{3} \ln|x + 7| - \frac{344}{3} \ln|x + 10| + C
+    \]
+    Do đó $m=4, n = \frac{158}{3}, p = -\frac{344}{3}$.
+    Tổng $m + n + p = 4 + \frac{158}{3} - \frac{344}{3} = 4 - \frac{186}{3} = 4-62=-58$.
+}
+\end{ex}
+\end{document}

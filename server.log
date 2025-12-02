@@ -1,0 +1,10 @@
+Tectonic Server running at http://localhost:3001
+Serving frontend at http://localhost:3001/index_tectonic.html
+Exec error: Error: Command failed: tectonic -X compile main.tex --synctex --keep-intermediates --keep-logs
+error: main.tex:6: ! LaTeX Error: File `ex_test.sty' not found.
+error: halted on potentially-recoverable error as specified
+
+Exec error: Error: Command failed: tectonic -X compile main.tex --synctex --keep-intermediates --keep-logs
+error: main.tex:6: ! LaTeX Error: File `ex_test.sty' not found.
+error: halted on potentially-recoverable error as specified
+
