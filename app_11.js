@@ -834,17 +834,41 @@ function main() {
                 const doc = await userRef.get();
 
                 if (!doc.exists) {
-                    // Create new user doc
+                    // NEW USER
+                    // Check if there are ANY admins yet
+                    const adminQuery = await db.collection('users').where('role', '==', 'admin').get();
+                    const isFirstUser = adminQuery.empty;
+
                     await userRef.set({
                         email: user.email,
-                        status: 'pending', // Default status
-                        role: 'user',
+                        status: isFirstUser ? 'approved' : 'pending',
+                        role: isFirstUser ? 'admin' : 'user',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
-                    lockEditor();
+
+                    if (isFirstUser) {
+                        Swal.fire('Xin chào Admin!', 'Bạn là người dùng đầu tiên, hệ thống đã tự động cấp quyền Admin cho bạn.', 'success');
+                        unlockEditor();
+                        adminBtn.style.display = 'inline-block';
+                    } else {
+                        Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
+                        lockEditor();
+                    }
                 } else {
+                    // EXISTING USER
                     const userData = doc.data();
+
+                    // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
+                    if (userData.role !== 'admin') {
+                        const adminQuery = await db.collection('users').where('role', '==', 'admin').get();
+                        if (adminQuery.empty) {
+                            await userRef.update({ role: 'admin', status: 'approved' });
+                            Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
+                            unlockEditor();
+                            adminBtn.style.display = 'inline-block';
+                            return; // Stop further checks
+                        }
+                    }
 
                     // CHECK 1: STATUS
                     if (userData.status !== 'approved') {
@@ -866,6 +890,9 @@ function main() {
 
                     // ALL CHECKS PASSED
                     unlockEditor();
+                    if (userData.role === 'admin') {
+                        adminBtn.style.display = 'inline-block';
+                    }
                 }
             } else {
                 loginBtn.style.display = 'inline-block';
@@ -930,9 +957,29 @@ function main() {
                 // Expose helper globally
                 window.updateUser = async (uid, field, value) => {
                     try {
+                        // If approving, ask for expiration date if not set
+                        if (field === 'status' && value === 'approved') {
+                            const currentDoc = await db.collection('users').doc(uid).get();
+                            const currentData = currentDoc.data();
+                            if (!currentData.expiryDate) {
+                                const { value: date } = await Swal.fire({
+                                    title: 'Đặt ngày hết hạn',
+                                    input: 'date',
+                                    label: 'Người dùng này sẽ được dùng đến ngày nào?',
+                                    showCancelButton: true
+                                });
+                                if (date) {
+                                    await db.collection('users').doc(uid).update({ expiryDate: date });
+                                }
+                            }
+                        }
+
                         await db.collection('users').doc(uid).update({ [field]: value });
                         const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
                         toast.fire({ icon: 'success', title: 'Đã cập nhật' });
+                        
+                        // Refresh dashboard to show new values
+                        showAdminDashboard(); 
                     } catch (e) {
                         Swal.fire('Lỗi', e.message, 'error');
                     }

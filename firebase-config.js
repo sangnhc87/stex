@@ -12,11 +12,16 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase (Compat API)
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+if (typeof firebase === 'undefined') {
+    console.error("Firebase SDK not loaded. Check index.html");
+} else {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    // Make these global so app_11.js can use them
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    window.storage = firebase.storage();
 
-console.log("Firebase initialized with stex-editor config");
+    console.log("Firebase initialized and globals set (window.db, window.auth)");
+}
