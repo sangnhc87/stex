@@ -42,6 +42,7 @@ app.post('/api/upload-image-batch', upload.any(), async (req, res) => {
             for (const file of req.files) {
                 // Allow .sty files to be uploaded with their original names
                 const targetPath = path.join(sessionDir, file.originalname);
+                await fs.ensureDir(path.dirname(targetPath));
                 await fs.move(file.path, targetPath, { overwrite: true });
             }
         }

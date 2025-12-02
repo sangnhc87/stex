@@ -788,6 +788,260 @@ function main() {
         initFooterPanel();
         initMathPreview();
         await initializeTemplatesFromJSON();
+
+        // --- FIREBASE AUTH SETUP ---
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const adminBtn = document.getElementById('admin-btn');
+
+        loginBtn?.addEventListener('click', handleLogin);
+        logoutBtn?.addEventListener('click', handleLogout);
+        adminBtn?.addEventListener('click', showAdminDashboard);
+
+        // Monitor Auth State
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                console.log("User logged in:", user.email);
+
+                // Check Firestore for user status
+                const userRef = db.collection('users').doc(user.uid);
+                const doc = await userRef.get();
+
+                if (!doc.exists) {
+                    // Create new user doc
+                    await userRef.set({
+                        email: user.email,
+                        status: 'pending', // Default status
+                        role: 'user',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
+                    lockEditor();
+                } else {
+                    const userData = doc.data();
+
+                    // CHECK 1: STATUS
+                    if (userData.status !== 'approved') {
+                        Swal.fire('Chờ duyệt', 'Tài khoản của bạn chưa được admin duyệt.', 'warning');
+                        lockEditor();
+                        return;
+                    }
+
+                    // CHECK 2: EXPIRATION
+                    if (userData.expiryDate) {
+                        const today = new Date();
+                        const expiry = new Date(userData.expiryDate);
+                        if (today > expiry) {
+                            Swal.fire('Hết hạn', `Tài khoản của bạn đã hết hạn vào ngày ${userData.expiryDate}. Vui lòng liên hệ Admin.`, 'error');
+                            lockEditor();
+                            return;
+                        }
+                    }
+
+                    // ALL CHECKS PASSED
+                    unlockEditor();
+                    if (userData.role === 'admin') {
+                        adminBtn.style.display = 'inline-block';
+                    }
+                }
+            } else {
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                adminBtn.style.display = 'none';
+                // Optional: Lock editor if login is required
+                // lockEditor(); 
+            }
+        });
+
+        async function showAdminDashboard() {
+            try {
+                const snapshot = await db.collection('users').get();
+                let html = `
+                    <div style="overflow-x: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Role</th>
+                                    <th>Hết hạn</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                snapshot.forEach(doc => {
+                    const u = doc.data();
+                    const uid = doc.id;
+                    const isSelf = (uid === firebase.auth().currentUser.uid);
+
+                    html += `
+                        <tr>
+                            <td>${u.email}</td>
+                            <td>
+                                <select onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
+                                    <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>Approved</option>
+                                    <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>Blocked</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
+                                    <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="date" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
+                            </td>
+                            <td>
+                                ${isSelf ? '<span>(Bạn)</span>' : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table></div>`;
+
+                // Expose helper globally
+                window.updateUser = async (uid, field, value) => {
+                    try {
+                        await db.collection('users').doc(uid).update({ [field]: value });
+                        const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                        toast.fire({ icon: 'success', title: 'Đã cập nhật' });
+                    } catch (e) {
+                        Swal.fire('Lỗi', e.message, 'error');
+                    }
+                };
+
+                Swal.fire({
+                    title: 'Admin Dashboard',
+                    html: html,
+                    width: '900px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error("Admin Error:", error);
+                Swal.fire('Lỗi', error.message, 'error');
+            }
+        }
+
+        async function handleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await firebase.auth().signInWithPopup(provider);
+            } catch (error) {
+                console.error("Login failed:", error);
+                Swal.fire('Lỗi đăng nhập', error.message, 'error');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await firebase.auth().signOut();
+                Swal.fire('Đã đăng xuất', '', 'success');
+            } catch (error) {
+                console.error("Logout failed:", error);
+            }
+        }
+
+        function lockEditor() {
+            editorEl.setReadOnly(true);
+            document.getElementById('compile-btn').disabled = true;
+            document.querySelector('.editor-pane').style.opacity = '0.5';
+        }
+
+        function unlockEditor() {
+            editorEl.setReadOnly(false);
+            document.getElementById('compile-btn').disabled = false;
+            document.querySelector('.editor-pane').style.opacity = '1';
+        }
+
+        // --- FIREBASE STORAGE SETUP ---
+        const saveCloudBtn = document.getElementById('save-cloud-btn');
+        const loadCloudBtn = document.getElementById('load-cloud-btn');
+
+        saveCloudBtn?.addEventListener('click', saveToCloud);
+        loadCloudBtn?.addEventListener('click', loadFromCloud);
+
+        // Update UI on login
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                saveCloudBtn.style.display = 'inline-block';
+                loadCloudBtn.style.display = 'inline-block';
+            } else {
+                saveCloudBtn.style.display = 'none';
+                loadCloudBtn.style.display = 'none';
+            }
+        });
+
+        async function saveToCloud() {
+            const user = firebase.auth().currentUser;
+            if (!user) return Swal.fire('Lỗi', 'Bạn chưa đăng nhập.', 'error');
+
+            // Save current file content to Firestore (for text files)
+            // For images, we would use Storage, but let's start with text sync.
+            try {
+                const content = editorEl.getValue();
+                if (!currentOpenFile) return Swal.fire('Lỗi', 'Chưa mở file nào.', 'warning');
+
+                await db.collection('users').doc(user.uid).collection('files').doc(currentOpenFile).set({
+                    content: content,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                Swal.fire('Đã lưu', `File ${currentOpenFile} đã được lưu lên Cloud.`, 'success');
+            } catch (error) {
+                console.error("Save to cloud failed:", error);
+                Swal.fire('Lỗi lưu Cloud', error.message, 'error');
+            }
+        }
+
+        async function loadFromCloud() {
+            const user = firebase.auth().currentUser;
+            if (!user) return Swal.fire('Lỗi', 'Bạn chưa đăng nhập.', 'error');
+
+            try {
+                const snapshot = await db.collection('users').doc(user.uid).collection('files').get();
+                if (snapshot.empty) return Swal.fire('Cloud rỗng', 'Bạn chưa lưu file nào.', 'info');
+
+                let html = '<ul style="text-align: left;">';
+                snapshot.forEach(doc => {
+                    html += `<li><a href="#" onclick="loadCloudFile('${doc.id}')">${doc.id}</a></li>`;
+                });
+                html += '</ul>';
+
+                // Expose helper globally for the onclick handler
+                window.loadCloudFile = async (fileName) => {
+                    const doc = await db.collection('users').doc(user.uid).collection('files').doc(fileName).get();
+                    const data = doc.data();
+                    if (data && data.content) {
+                        // Save to local DB and open
+                        const textEncoder = new TextEncoder();
+                        await saveFileToDb(fileName, textEncoder.encode(data.content));
+                        await openFileInEditor(fileName);
+                        Swal.close();
+                        Swal.fire('Thành công', `Đã tải ${fileName} về máy.`, 'success');
+                    }
+                };
+
+                Swal.fire({
+                    title: 'Chọn file từ Cloud',
+                    html: html,
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error("Load from cloud failed:", error);
+                Swal.fire('Lỗi tải Cloud', error.message, 'error');
+            }
+        }
+
         // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
         try {
             await openDb();
