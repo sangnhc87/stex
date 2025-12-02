@@ -471,7 +471,7 @@ function main() {
     const TEMPLATESG = {
         'DeThi': `\\documentclass[12pt]{article}\n\\usepackage[utf8]{vietnam}\n\\usepackage{polyglossia}\n\\begin{document}\n\nĐây là mẫu đề thi.\n\n\\end{document}`,
         'VeHinh': `\\documentclass[12pt,tikz]{standalone}\n\\usepackage{polyglossia}\n\\begin{document}\n\\begin{tikzpicture}\n\t% Vẽ hình ở đây\n\\end{tikzpicture}\n\\end{document}`,
-        'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`,
+        'Beamer': `\\documentclass{beamer}\n\\usepackage{polyglossia}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`,
         'book': `\\documentclass{book}\n\\usepackage[utf8]{vietnam}\n\\usepackage{polyglossia}\n\\title{Tiêu đề sách}\n\\author{Tác giả}\n\\begin{document}\n\\frontmatter\n\\maketitle\n\\mainmatter\n\\chapter{Chương 1}\n\n\\end{document}`
     };
     const PREPACKAGED_FILES = {};
