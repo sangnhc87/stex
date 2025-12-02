@@ -28,7 +28,7 @@ COPY . .
 RUN mkdir -p temp_work
 
 # Expose port
-EXPOSE 3001
+EXPOSE 8080
 
 # Start server
 CMD [ "node", "server.js" ]

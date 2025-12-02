@@ -6,7 +6,7 @@ const path = require('path');
 const { exec } = require('child_process');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const WORK_DIR = path.join(__dirname, 'temp_work');
 
 app.use(cors());
