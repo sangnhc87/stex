@@ -75,4 +75,24 @@ Bấm vào đó để:
 5. Nhập tên miền trang web của bạn vào (ví dụ: `localhost` nếu chạy trên máy, hoặc `stex.pages.dev` nếu đã deploy).
 6. Nhấn **Add**.
 
+### Lỗi: "Missing or insufficient permissions"
+Đây là lỗi do bạn chưa mở quyền ghi vào Database.
+**Cách sửa:**
+1. Vào [Firebase Console](https://console.firebase.google.com/).
+2. Chọn dự án -> **Firestore Database**.
+3. Chọn tab **Rules**.
+4. Sửa đoạn code trong đó thành:
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+5. Bấm **Publish**.
+
+
 
