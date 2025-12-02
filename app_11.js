@@ -819,89 +819,94 @@ function main() {
         });
 
         // Monitor Auth State
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'inline-block';
-                // ALWAYS show Admin button if logged in, so user knows it exists.
-                // We check permission on click.
-                adminBtn.style.display = 'inline-block';
+        if (typeof firebase === 'undefined') {
+            console.error("Firebase SDK not loaded.");
+            Swal.fire('Lỗi hệ thống', 'Không thể kết nối đến máy chủ xác thực (Firebase SDK missing). Vui lòng kiểm tra kết nối mạng hoặc tải lại trang.', 'error');
+        } else {
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    loginBtn.style.display = 'none';
+                    logoutBtn.style.display = 'inline-block';
+                    // ALWAYS show Admin button if logged in, so user knows it exists.
+                    // We check permission on click.
+                    adminBtn.style.display = 'inline-block';
 
-                console.log("User logged in:", user.email);
+                    console.log("User logged in:", user.email);
 
-                // Check Firestore for user status
-                const userRef = firestoreDb.collection('users').doc(user.uid);
-                const doc = await userRef.get();
+                    // Check Firestore for user status
+                    const userRef = firestoreDb.collection('users').doc(user.uid);
+                    const doc = await userRef.get();
 
-                if (!doc.exists) {
-                    // NEW USER
-                    // Check if there are ANY admins yet
-                    const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
-                    const isFirstUser = adminQuery.empty;
-
-                    await userRef.set({
-                        email: user.email,
-                        status: isFirstUser ? 'approved' : 'pending',
-                        role: isFirstUser ? 'admin' : 'user',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    if (isFirstUser) {
-                        Swal.fire('Xin chào Admin!', 'Bạn là người dùng đầu tiên, hệ thống đã tự động cấp quyền Admin cho bạn.', 'success');
-                        unlockEditor();
-                        adminBtn.style.display = 'inline-block';
-                    } else {
-                        Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
-                        lockEditor();
-                    }
-                } else {
-                    // EXISTING USER
-                    const userData = doc.data();
-
-                    // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
-                    if (userData.role !== 'admin') {
+                    if (!doc.exists) {
+                        // NEW USER
+                        // Check if there are ANY admins yet
                         const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
-                        if (adminQuery.empty) {
-                            await userRef.update({ role: 'admin', status: 'approved' });
-                            Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
+                        const isFirstUser = adminQuery.empty;
+
+                        await userRef.set({
+                            email: user.email,
+                            status: isFirstUser ? 'approved' : 'pending',
+                            role: isFirstUser ? 'admin' : 'user',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        if (isFirstUser) {
+                            Swal.fire('Xin chào Admin!', 'Bạn là người dùng đầu tiên, hệ thống đã tự động cấp quyền Admin cho bạn.', 'success');
                             unlockEditor();
                             adminBtn.style.display = 'inline-block';
-                            return; // Stop further checks
+                        } else {
+                            Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
+                            lockEditor();
                         }
-                    }
+                    } else {
+                        // EXISTING USER
+                        const userData = doc.data();
 
-                    // CHECK 1: STATUS
-                    if (userData.status !== 'approved') {
-                        Swal.fire('Chờ duyệt', 'Tài khoản của bạn chưa được admin duyệt.', 'warning');
-                        lockEditor();
-                        return;
-                    }
+                        // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
+                        if (userData.role !== 'admin') {
+                            const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
+                            if (adminQuery.empty) {
+                                await userRef.update({ role: 'admin', status: 'approved' });
+                                Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
+                                unlockEditor();
+                                adminBtn.style.display = 'inline-block';
+                                return; // Stop further checks
+                            }
+                        }
 
-                    // CHECK 2: EXPIRATION
-                    if (userData.expiryDate) {
-                        const today = new Date();
-                        const expiry = new Date(userData.expiryDate);
-                        if (today > expiry) {
-                            Swal.fire('Hết hạn', `Tài khoản của bạn đã hết hạn vào ngày ${userData.expiryDate}. Vui lòng liên hệ Admin.`, 'error');
+                        // CHECK 1: STATUS
+                        if (userData.status !== 'approved') {
+                            Swal.fire('Chờ duyệt', 'Tài khoản của bạn chưa được admin duyệt.', 'warning');
                             lockEditor();
                             return;
                         }
-                    }
 
-                    // ALL CHECKS PASSED
-                    unlockEditor();
-                    if (userData.role === 'admin') {
-                        adminBtn.style.display = 'inline-block';
+                        // CHECK 2: EXPIRATION
+                        if (userData.expiryDate) {
+                            const today = new Date();
+                            const expiry = new Date(userData.expiryDate);
+                            if (today > expiry) {
+                                Swal.fire('Hết hạn', `Tài khoản của bạn đã hết hạn vào ngày ${userData.expiryDate}. Vui lòng liên hệ Admin.`, 'error');
+                                lockEditor();
+                                return;
+                            }
+                        }
+
+                        // ALL CHECKS PASSED
+                        unlockEditor();
+                        if (userData.role === 'admin') {
+                            adminBtn.style.display = 'inline-block';
+                        }
                     }
+                } else {
+                    loginBtn.style.display = 'inline-block';
+                    logoutBtn.style.display = 'none';
+                    adminBtn.style.display = 'none';
+                    // Optional: Lock editor if login is required
+                    // lockEditor(); 
                 }
-            } else {
-                loginBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-                adminBtn.style.display = 'none';
-                // Optional: Lock editor if login is required
-                // lockEditor(); 
-            }
-        });
+            });
+        }
 
         async function showAdminDashboard() {
             try {
