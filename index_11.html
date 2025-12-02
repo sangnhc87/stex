@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8">
     <title>Modern Web LaTeX IDE</title>
-    <meta name="description" content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
+    <meta name="description"
+        content="An advanced, modern web-based LaTeX editor with file uploading and persistent storage.">
     <meta name="author" content="Nguyễn Văn Sang">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,17 +16,31 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 
     <link rel="stylesheet" href="styleV3.css">
-   <link rel="stylesheet" href="styleV4.css">
+    <link rel="stylesheet" href="styleV4.css">
 </head>
+
 <body>
     <!-- Thêm vào đâu đó trong <body>, ví dụ ngay sau thẻ <body> -->
     <div id="math-tooltip"></div>
     <div class="toolbar">
-        <div class="toolbar-group"><button id="show-help-btn" title="Hướng dẫn sử dụng"><i class="fas fa-question-circle"></i></button></div>
+        <div class="toolbar-group"><button id="show-help-btn" title="Hướng dẫn sử dụng"><i
+                    class="fas fa-question-circle"></i></button></div>
         <!-- <div class="toolbar-separator"></div> -->
-        <div class="toolbar-group"><button id="file-manager-btn" title="Quản lý File"><i class="fas fa-sitemap"></i></button><button id="zip-loader-btn" title="Tải lên dự án .zip"><i class="fas fa-file-archive"></i></button><input type="file" id="zip-loader-input" accept=".zip" style="display: none;"><button id="download-zip-btn" title="Tải dự án về dạng .zip"><i class="fas fa-download"></i></button></div>
+        <div class="toolbar-group"><button id="file-manager-btn" title="Quản lý File"><i
+                    class="fas fa-sitemap"></i></button><button id="zip-loader-btn" title="Tải lên dự án .zip"><i
+                    class="fas fa-file-archive"></i></button><input type="file" id="zip-loader-input" accept=".zip"
+                style="display: none;"><button id="download-zip-btn" title="Tải dự án về dạng .zip"><i
+                    class="fas fa-download"></i></button></div>
         <!-- <div class="toolbar-separator"></div> -->
-        <div class="toolbar-group"><i title="Chọn file chính để biên dịch"></i><select id="main-file-selector"></select><i title="Tạo file mới từ mẫu" style="margin-left: 10px;"></i><select id="template-selector"><option value="">-- Mẫu --</option><option value="DeThi">Đề Thi</option><option value="VeHinh">Vẽ Hình</option><option value="Beamer">Beamer</option><option value="book">Sách</option></select></div>
+        <div class="toolbar-group"><i title="Chọn file chính để biên dịch"></i><select
+                id="main-file-selector"></select><i title="Tạo file mới từ mẫu" style="margin-left: 10px;"></i><select
+                id="template-selector">
+                <option value="">-- Mẫu --</option>
+                <option value="DeThi">Đề Thi</option>
+                <option value="VeHinh">Vẽ Hình</option>
+                <option value="Beamer">Beamer</option>
+                <option value="book">Sách</option>
+            </select></div>
         <!-- <div class="toolbar-separator"></div> -->
         <div class="toolbar-group">
             <button id="snippet-manager-btn" title="Kho Snippet"><i class="fas fa-book-open"></i></button>
@@ -34,12 +50,12 @@
             <button id="open-v2-btn" title="Mở Editor V2"><i class="fas fa-external-link-alt"></i></button>
             <button id="open-gan-id-btn" title="Gán ID cho câu hỏi"><i class="fas fa-tags"></i></button>
             <!-- === THÊM CÁC NÚT MỚI VÀO ĐÂY === -->
-    <div class="toolbar-separator"></div>
-   <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
-<!-- <button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
+            <div class="toolbar-separator"></div>
+            <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
+            <!-- <button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
 <button id="fold-structure-btn" class="fold-button" title="Gập/Mở Chương, Mục"><i class="fas fa-sitemap"></i> </button> -->
         </div>
-        
+
         <div class="toolbar-group" style="margin-left: auto; align-items: center;">
             <i class="fas fa-palette icon-label" title="Chọn giao diện Editor"></i>
             <select id="theme-selector">
@@ -52,63 +68,77 @@
             </select>
             <!-- <div class="toolbar-separator"></div> -->
 
-          
-            
+
+
             <!-- <div class="toolbar-separator"></div> -->
             <button id="author-info-btn" title="Thông tin tác giả"><i class="fas fa-user-circle"></i></button>
             <button id="compile-btn" disabled><i class="fas fa-spinner fa-spin"></i> Initializing...</button>
         </div>
     </div>
-    
+
     <div class="main-container">
         <div class="editor-pane">
             <div id="editor"></div>
             <div class="controls">
-                <div id="console-header" class="console-header"><span>Console Output</span><span id="console-toggle-icon">▼</span></div>
+                <div id="console-header" class="console-header"><span>Console Output</span><span
+                        id="console-toggle-icon">▼</span></div>
                 <pre id="console" class="collapsed">Engine will be ready shortly...</pre>
             </div>
         </div>
         <div class="resizer" id="resizer"></div>
-        <div class="pdf-pane"><div id="pdfbox"></div></div>
+        <div class="pdf-pane">
+            <div id="pdfbox"></div>
+        </div>
     </div>
 
-    <div id="loading-overlay"><div class="spinner"></div><span id="loading-text">Compiling...</span></div>
+    <div id="loading-overlay">
+        <div class="spinner"></div><span id="loading-text">Compiling...</span>
+    </div>
 
     <div class="footer-panel" id="footer-panel">
         <div class="footer-handle" id="footer-handle">
-    <span><i class="fas fa-tools"></i></span>
-     <!-- Nút mở rộng/thu gọn -->
-    <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
-    
-    <!-- Nút tải file .tex hiện tại -->
-    <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i class="fas fa-file-download"></i></button>
-    
+            <span><i class="fas fa-tools"></i></span>
+            <!-- Nút mở rộng/thu gọn -->
+            <button id="expand-footer-btn" title="Mở rộng/Thu gọn"><i class="fas fa-chevron-up"></i></button>
 
-    
-      <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
-<button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i class="fas fa-compress-arrows-alt"></i></button>
-<button id="fold-structure-btn" class="fold-button" title="Gập/Mở Chương, Mục"><i class="fas fa-sitemap"></i> </button>
-<!-- === THÊM CỤM NÚT TĂNG/GIẢM CỠ CHỮ VÀO ĐÂY === -->
-<div class="font-size-controls">
-    <button id="decrease-font-size-btn" title="Giảm cỡ chữ"><i class="fas fa-minus"></i></button>
-    <span id="current-font-size">16</span>
-    <button id="increase-font-size-btn" title="Tăng cỡ chữ"><i class="fas fa-plus"></i></button>
-</div>
-<button id="latex-tools-btn" class="toolbar-btn" title="Các công cụ xử lý LaTeX"><i class="fas fa-magic"></i> Tools</button>
-<button id="generate-qr-btn" class="toolbar-btn" title="Tạo QR Code cho đáp án"><i class="fas fa-qrcode"></i> QR</button>
-</div>
+            <!-- Nút tải file .tex hiện tại -->
+            <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i
+                    class="fas fa-file-download"></i></button>
+
+
+
+            <!-- NÚT MỚI THAY THẾ CHO CÁC NÚT CŨ -->
+            <button id="fold-problems-btn" class="fold-button" title="Gập/Mở Ví dụ, Bài tập"><i
+                    class="fas fa-compress-arrows-alt"></i></button>
+            <button id="fold-structure-btn" class="fold-button" title="Gập/Mở Chương, Mục"><i
+                    class="fas fa-sitemap"></i> </button>
+            <!-- === THÊM CỤM NÚT TĂNG/GIẢM CỠ CHỮ VÀO ĐÂY === -->
+            <div class="font-size-controls">
+                <button id="decrease-font-size-btn" title="Giảm cỡ chữ"><i class="fas fa-minus"></i></button>
+                <span id="current-font-size">16</span>
+                <button id="increase-font-size-btn" title="Tăng cỡ chữ"><i class="fas fa-plus"></i></button>
+            </div>
+            <button id="latex-tools-btn" class="toolbar-btn" title="Các công cụ xử lý LaTeX"><i
+                    class="fas fa-magic"></i> Tools</button>
+            <button id="generate-qr-btn" class="toolbar-btn" title="Tạo QR Code cho đáp án"><i
+                    class="fas fa-qrcode"></i> QR</button>
+        </div>
         <div class="footer-content" id="footer-content">
             <!-- Môi trường -->
             <div class="helper-group">
                 <span class="helper-group-title">Môi trường:</span>
                 <button class="helper-btn" data-insert="\begin{itemize}\n\t\item \n\end{itemize}">Itemize</button>
                 <button class="helper-btn" data-insert="\begin{enumerate}\n\t\item \n\end{enumerate}">Enumerate</button>
-                <button class="helper-btn" data-insert="\begin{figure}\n\t\centering\n\t\n\t\caption{}\n\t\label{fig:}\n\end{figure}">Figure</button>
-                <button class="helper-btn" data-insert="\begin{table}\n\t\centering\n\t\caption{}\n\t\label{tab:}\n\t\begin{tabular}{cc}\n\t\t\n\t\end{tabular}\n\end{table}">Table</button>
-                <button class="helper-btn" data-insert="\begin{minipage}{0.48\textwidth}\n\t\n\end{minipage}">Minipage</button>
+                <button class="helper-btn"
+                    data-insert="\begin{figure}\n\t\centering\n\t\n\t\caption{}\n\t\label{fig:}\n\end{figure}">Figure</button>
+                <button class="helper-btn"
+                    data-insert="\begin{table}\n\t\centering\n\t\caption{}\n\t\label{tab:}\n\t\begin{tabular}{cc}\n\t\t\n\t\end{tabular}\n\end{table}">Table</button>
+                <button class="helper-btn"
+                    data-insert="\begin{minipage}{0.48\textwidth}\n\t\n\end{minipage}">Minipage</button>
                 <button class="helper-btn" data-insert="\begin{center}\n\t\n\end{center}">Center</button>
                 <button class="helper-btn" data-insert="\begin{tikzpicture}\n\t\n\end{tikzpicture}">TikZ</button>
-                <button class="helper-btn" data-insert="\begin{tabular}{|c|c|}\n\t\hline\n\t & \\\n\t\hline\n\t & \\\n\t\hline\n\end{tabular}">Tabular</button>
+                <button class="helper-btn"
+                    data-insert="\begin{tabular}{|c|c|}\n\t\hline\n\t & \\\n\t\hline\n\t & \\\n\t\hline\n\end{tabular}">Tabular</button>
             </div>
             <!-- Toán học -->
             <div class="helper-group">
@@ -142,7 +172,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="assign-id-modal" id="assignIdModal">
         <header>Gán ID cho câu hỏi</header>
         <label for="classSelect">Lớp</label>
@@ -178,17 +208,22 @@
     </div>
 
     <!-- === TẢI CÁC SCRIPT === -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ace.js" ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-language_tools.js" ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-fold.js" ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" ></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-language_tools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ext-fold.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- **** THÊM SCRIPT KATE.JS VÀO ĐÂY **** -->
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <!-- <script src="PdfTeXEngine_GOC.js" defer></script> -->
-    <script src="ganID.js" ></script>
-    <script src="QrAnswerExtractor.js" ></script>
-    <script src="app_v1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="ganID.js"></script>
+    <script src="QrAnswerExtractor.js"></script>
+    <script src="app_11.js"></script>
 
 </body>
+
 </html>
