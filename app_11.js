@@ -663,6 +663,8 @@ function main() {
                     canvas.style.display = 'block';
                     canvas.style.marginBottom = '10px';
                     canvas.style.border = '1px solid #ccc';
+                    canvas.style.width = '100%'; // Fit to container
+                    canvas.style.height = 'auto'; // Maintain aspect ratio
 
                     // SyncTeX Click Handler
                     if (window.ENABLE_SYNCTEX) {
