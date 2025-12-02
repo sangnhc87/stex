@@ -224,35 +224,137 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <!-- <script src="PdfTeXEngine_GOC.js" defer></script> -->
     <style>
-        /* Admin Dashboard Styles */
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .admin-table th,
-        .admin-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+        /* Premium Admin Dashboard Styles */
+        .admin-container {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             text-align: left;
         }
 
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .admin-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+
+        .admin-table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
         .admin-table th {
-            background-color: #f2f2f2;
+            background-color: #34495e;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        .admin-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+            vertical-align: middle;
+        }
+
+        .admin-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .admin-table tr:hover {
+            background-color: #f1f2f6;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-approved {
+            background-color: #e1f7d5;
+            color: #2ecc71;
+        }
+
+        .status-pending {
+            background-color: #fff4e5;
+            color: #f39c12;
+        }
+
+        .status-blocked {
+            background-color: #ffe5e5;
+            color: #e74c3c;
+        }
+
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
             font-weight: bold;
         }
 
-        .admin-table tr:nth-child(even) {
-            background-color: #f9f9f9;
+        .role-admin {
+            background-color: #e8f4fd;
+            color: #3498db;
         }
 
-        .admin-table select,
-        .admin-table input {
-            padding: 4px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
+        .role-user {
+            background-color: #f0f0f0;
+            color: #7f8c8d;
+        }
+
+        .action-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #dfe6e9;
+            background-color: white;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .action-select:hover {
+            border-color: #3498db;
+        }
+
+        .date-input {
+            padding: 6px;
+            border: 1px solid #dfe6e9;
+            border-radius: 6px;
+            font-family: inherit;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>

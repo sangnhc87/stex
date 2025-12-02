@@ -911,19 +911,41 @@ function main() {
         async function showAdminDashboard() {
             try {
                 const snapshot = await firestoreDb.collection('users').get();
+                const totalUsers = snapshot.size;
+                const activeUsers = snapshot.docs.filter(d => d.data().status === 'approved').length;
+                const pendingUsers = snapshot.docs.filter(d => d.data().status === 'pending').length;
+
                 let html = `
-                    <div style="overflow-x: auto;">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Role</th>
-                                    <th>Hết hạn</th>
-                                    <th>Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    <div class="admin-container">
+                        <div class="admin-header">
+                            <div class="admin-stats">
+                                <div class="stat-card">
+                                    <div class="stat-label">Tổng Users</div>
+                                    <div class="stat-value">${totalUsers}</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Đang hoạt động</div>
+                                    <div class="stat-value" style="color: #2ecc71;">${activeUsers}</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Chờ duyệt</div>
+                                    <div class="stat-value" style="color: #f39c12;">${pendingUsers}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Trạng thái</th>
+                                        <th>Vai trò</th>
+                                        <th>Hết hạn ngày</th>
+                                        <th>Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                 `;
 
                 snapshot.forEach(doc => {
@@ -931,33 +953,39 @@ function main() {
                     const uid = doc.id;
                     const isSelf = (uid === firebase.auth().currentUser.uid);
 
+                    const statusClass = `status-${u.status}`;
+                    const roleClass = `role-${u.role}`;
+
                     html += `
                         <tr>
-                            <td>${u.email}</td>
                             <td>
-                                <select onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
-                                    <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>Approved</option>
-                                    <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>Blocked</option>
+                                <div style="font-weight: 500;">${u.email}</div>
+                                <div style="font-size: 0.8em; color: #95a5a6;">ID: ${uid.substr(0, 8)}...</div>
+                            </td>
+                            <td>
+                                <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
+                                    <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                    <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>✅ Approved</option>
+                                    <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>⛔ Blocked</option>
                                 </select>
                             </td>
                             <td>
-                                <select onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
+                                <select class="action-select ${roleClass}" onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
                                     <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
                                     <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
                                 </select>
                             </td>
                             <td>
-                                <input type="date" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
+                                <input type="date" class="date-input" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
                             </td>
                             <td>
-                                ${isSelf ? '<span>(Bạn)</span>' : ''}
+                                ${isSelf ? '<span class="role-badge role-admin">BẠN</span>' : ''}
                             </td>
                         </tr>
                     `;
                 });
 
-                html += `</tbody></table></div>`;
+                html += `</tbody></table></div></div>`;
 
                 // Expose helper globally
                 window.updateUser = async (uid, field, value) => {
