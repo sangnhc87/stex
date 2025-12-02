@@ -474,7 +474,7 @@ function main() {
         'Beamer': `\\documentclass{beamer}\n\\usetheme{Madrid}\n\\title{Tiêu đề}\n\\author{Tác giả}\n\\begin{document}\n\\frame{\\titlepage}\n\\begin{frame}{Nội dung}\n\n\\end{frame}\n\\end{document}`,
         'book': `\\documentclass{book}\n\\usepackage[utf8]{vietnam}\n\\usepackage{polyglossia}\n\\title{Tiêu đề sách}\n\\author{Tác giả}\n\\begin{document}\n\\frontmatter\n\\maketitle\n\\mainmatter\n\\chapter{Chương 1}\n\n\\end{document}`
     };
-    const PREPACKAGED_FILES = {}; 
+    const PREPACKAGED_FILES = {};
     const DEFAULT_SNIPPETS_JSON = `[ { "name": "Môi trường cơ bản", "type": "folder", "children": [ { "name": "Itemize", "type": "snippet", "content": "\\\\begin{itemize}\\n\\t\\\\item \\n\\\\end{itemize}" }, { "name": "Enumerate", "type": "snippet", "content": "\\\\begin{enumerate}\\n\\t\\\\item \\n\\\\end{enumerate}" } ] }, { "name": "Toán học", "type": "folder", "children": [ { "name": "Phân số", "type": "snippet", "content": "\\\\dfrac{$1}{$2}" } ] } ]`;
 
     // === CÁC HÀM CƠ SỞ (GIỮ NGUYÊN) ===
@@ -652,7 +652,8 @@ function main() {
 
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
-                    const scale = 1.5;
+                    // Use a higher scale for better quality, or window.devicePixelRatio
+                    const scale = 2.5;
                     const viewport = page.getViewport({ scale });
 
                     const canvas = document.createElement('canvas');
