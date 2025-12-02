@@ -801,7 +801,7 @@ function main() {
             if (!user) return;
 
             // Check role again just to be sure
-            const doc = await db.collection('users').doc(user.uid).get();
+            const doc = await firestoreDb.collection('users').doc(user.uid).get();
             const userData = doc.data();
 
             if (userData && userData.role === 'admin') {
@@ -830,13 +830,13 @@ function main() {
                 console.log("User logged in:", user.email);
 
                 // Check Firestore for user status
-                const userRef = db.collection('users').doc(user.uid);
+                const userRef = firestoreDb.collection('users').doc(user.uid);
                 const doc = await userRef.get();
 
                 if (!doc.exists) {
                     // NEW USER
                     // Check if there are ANY admins yet
-                    const adminQuery = await db.collection('users').where('role', '==', 'admin').get();
+                    const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
                     const isFirstUser = adminQuery.empty;
 
                     await userRef.set({
@@ -860,7 +860,7 @@ function main() {
 
                     // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
                     if (userData.role !== 'admin') {
-                        const adminQuery = await db.collection('users').where('role', '==', 'admin').get();
+                        const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
                         if (adminQuery.empty) {
                             await userRef.update({ role: 'admin', status: 'approved' });
                             Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
@@ -905,7 +905,7 @@ function main() {
 
         async function showAdminDashboard() {
             try {
-                const snapshot = await db.collection('users').get();
+                const snapshot = await firestoreDb.collection('users').get();
                 let html = `
                     <div style="overflow-x: auto;">
                         <table class="admin-table">
@@ -959,7 +959,7 @@ function main() {
                     try {
                         // If approving, ask for expiration date if not set
                         if (field === 'status' && value === 'approved') {
-                            const currentDoc = await db.collection('users').doc(uid).get();
+                            const currentDoc = await firestoreDb.collection('users').doc(uid).get();
                             const currentData = currentDoc.data();
                             if (!currentData.expiryDate) {
                                 const { value: date } = await Swal.fire({
@@ -969,17 +969,17 @@ function main() {
                                     showCancelButton: true
                                 });
                                 if (date) {
-                                    await db.collection('users').doc(uid).update({ expiryDate: date });
+                                    await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
                                 }
                             }
                         }
 
-                        await db.collection('users').doc(uid).update({ [field]: value });
+                        await firestoreDb.collection('users').doc(uid).update({ [field]: value });
                         const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
                         toast.fire({ icon: 'success', title: 'Đã cập nhật' });
-                        
+
                         // Refresh dashboard to show new values
-                        showAdminDashboard(); 
+                        showAdminDashboard();
                     } catch (e) {
                         Swal.fire('Lỗi', e.message, 'error');
                     }

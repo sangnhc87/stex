@@ -20,8 +20,8 @@ if (typeof firebase === 'undefined') {
     }
     // Make these global so app_11.js can use them
     window.auth = firebase.auth();
-    window.db = firebase.firestore();
+    window.firestoreDb = firebase.firestore(); // Renamed to avoid conflict with IndexedDB 'db'
     window.storage = firebase.storage();
 
-    console.log("Firebase initialized and globals set (window.db, window.auth)");
+    console.log("Firebase initialized and globals set (window.firestoreDb, window.auth)");
 }
