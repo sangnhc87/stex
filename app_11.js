@@ -664,40 +664,42 @@ function main() {
                     canvas.style.border = '1px solid #ccc';
 
                     // SyncTeX Click Handler
-                    canvas.addEventListener('click', async (e) => {
-                        const rect = canvas.getBoundingClientRect();
-                        const x = (e.clientX - rect.left) * (viewport.width / rect.width); // Scale to canvas coords
-                        const y = (e.clientY - rect.top) * (viewport.height / rect.height);
+                    if (window.ENABLE_SYNCTEX) {
+                        canvas.addEventListener('click', async (e) => {
+                            const rect = canvas.getBoundingClientRect();
+                            const x = (e.clientX - rect.left) * (viewport.width / rect.width); // Scale to canvas coords
+                            const y = (e.clientY - rect.top) * (viewport.height / rect.height);
 
-                        // Convert to points (PDF coordinates are usually 72 DPI)
-                        // PDF.js viewport is already scaled. We need coordinates relative to the unscaled PDF page?
-                        // Actually, SyncTeX expects coordinates in points from top-left.
-                        // viewport.width is (page width in points) * scale.
-                        // So x / scale should be points.
+                            // Convert to points (PDF coordinates are usually 72 DPI)
+                            // PDF.js viewport is already scaled. We need coordinates relative to the unscaled PDF page?
+                            // Actually, SyncTeX expects coordinates in points from top-left.
+                            // viewport.width is (page width in points) * scale.
+                            // So x / scale should be points.
 
-                        const pdfX = x / scale;
-                        const pdfY = y / scale;
+                            const pdfX = x / scale;
+                            const pdfY = y / scale;
 
-                        console.log(`SyncTeX Click: Page ${pageNum}, x=${pdfX}, y=${pdfY}`);
+                            console.log(`SyncTeX Click: Page ${pageNum}, x=${pdfX}, y=${pdfY}`);
 
-                        try {
-                            const res = await fetch(`${BACKEND_API_URL}/api/synctex/edit?session_id=${globalEn.sessionId}&page=${pageNum}&x=${pdfX}&y=${pdfY}`);
-                            const data = await res.json();
+                            try {
+                                const res = await fetch(`${BACKEND_API_URL}/api/synctex/edit?session_id=${globalEn.sessionId}&page=${pageNum}&x=${pdfX}&y=${pdfY}`);
+                                const data = await res.json();
 
-                            if (data.file && data.line) {
-                                console.log("SyncTeX Match:", data);
-                                // Open file and jump to line
-                                await openFileInEditor(data.file);
-                                editorEl.gotoLine(data.line, 0, true);
-                                editorEl.focus();
-                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Jumped to ${data.file}:${data.line}`, showConfirmButton: false, timer: 1000 });
-                            } else {
-                                console.warn("SyncTeX: No match found");
+                                if (data.file && data.line) {
+                                    console.log("SyncTeX Match:", data);
+                                    // Open file and jump to line
+                                    await openFileInEditor(data.file);
+                                    editorEl.gotoLine(data.line, 0, true);
+                                    editorEl.focus();
+                                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Jumped to ${data.file}:${data.line}`, showConfirmButton: false, timer: 1000 });
+                                } else {
+                                    console.warn("SyncTeX: No match found");
+                                }
+                            } catch (err) {
+                                console.error("SyncTeX Error:", err);
                             }
-                        } catch (err) {
-                            console.error("SyncTeX Error:", err);
-                        }
-                    });
+                        });
+                    }
 
                     container.appendChild(canvas);
 
