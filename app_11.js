@@ -1031,100 +1031,120 @@ function main() {
 
                 // 3. Render Logic (with Pagination)
                 window.renderAdminTable = () => {
-                    const container = document.getElementById('adminTableContainer');
-                    if (!container) return;
+                    try {
+                        const container = document.getElementById('adminTableContainer');
+                        if (!container) {
+                            console.warn("Container not found, retrying...");
+                            setTimeout(window.renderAdminTable, 100);
+                            return;
+                        }
 
-                    const { filteredUsers, currentPage, itemsPerPage, sortField, sortOrder } = window.adminState;
+                        const { filteredUsers, currentPage, itemsPerPage, sortField, sortOrder } = window.adminState;
 
-                    if (filteredUsers.length === 0) {
-                        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #7f8c8d; font-size: 1.1em;">Không tìm thấy kết quả nào.</div>';
-                        return;
-                    }
+                        if (!filteredUsers || filteredUsers.length === 0) {
+                            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #7f8c8d; font-size: 1.1em;">Không tìm thấy kết quả nào.</div>';
+                            return;
+                        }
 
-                    // Pagination Slice
-                    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-                    const start = (currentPage - 1) * itemsPerPage;
-                    const end = start + itemsPerPage;
-                    const pageUsers = filteredUsers.slice(start, end);
+                        // Pagination Slice
+                        const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+                        const start = (currentPage - 1) * itemsPerPage;
+                        const end = start + itemsPerPage;
+                        const pageUsers = filteredUsers.slice(start, end);
 
-                    // Sort Icon Helper
-                    const getSortIcon = (field) => {
-                        if (sortField !== field) return '<i class="fas fa-sort" style="opacity: 0.3;"></i>';
-                        return sortOrder === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
-                    };
+                        // Sort Icon Helper
+                        const getSortIcon = (field) => {
+                            if (sortField !== field) return '<i class="fas fa-sort" style="opacity: 0.3;"></i>';
+                            return sortOrder === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                        };
 
-                    let tableHtml = `
-                        <table class="admin-table">
-                            <thead>
+                        // Helper: Generate consistent color from string
+                        const stringToColor = (str) => {
+                            let hash = 0;
+                            for (let i = 0; i < str.length; i++) {
+                                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                            }
+                            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                            return '#' + "00000".substring(0, 6 - c.length) + c;
+                        };
+
+                        let tableHtml = `
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortAdminUsers('email')">User ${getSortIcon('email')}</th>
+                                        <th onclick="sortAdminUsers('status')">Trạng thái ${getSortIcon('status')}</th>
+                                        <th onclick="sortAdminUsers('role')">Vai trò ${getSortIcon('role')}</th>
+                                        <th onclick="sortAdminUsers('expiryDate')">Hết hạn ${getSortIcon('expiryDate')}</th>
+                                        <th>Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        pageUsers.forEach(u => {
+                            const uid = u.id;
+                            const isSelf = (uid === firebase.auth().currentUser.uid);
+                            const statusClass = `status-${u.status}`;
+                            const roleClass = `role-${u.role}`;
+
+                            // Avatar Generation
+                            const initial = u.email ? u.email.charAt(0).toUpperCase() : '?';
+                            const avatarColor = u.email ? stringToColor(u.email) : '#ccc';
+
+                            tableHtml += `
                                 <tr>
-                                    <th onclick="sortAdminUsers('email')">User ${getSortIcon('email')}</th>
-                                    <th onclick="sortAdminUsers('status')">Trạng thái ${getSortIcon('status')}</th>
-                                    <th onclick="sortAdminUsers('role')">Vai trò ${getSortIcon('role')}</th>
-                                    <th onclick="sortAdminUsers('expiryDate')">Hết hạn ${getSortIcon('expiryDate')}</th>
-                                    <th>Ghi chú</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-
-                    pageUsers.forEach(u => {
-                        const uid = u.id;
-                        const isSelf = (uid === firebase.auth().currentUser.uid);
-                        const statusClass = `status-${u.status}`;
-                        const roleClass = `role-${u.role}`;
-
-                        // Avatar Generation
-                        const initial = u.email.charAt(0).toUpperCase();
-                        const avatarColor = stringToColor(u.email);
-
-                        tableHtml += `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar" style="background-color: ${avatarColor}">${initial}</div>
-                                        <div class="user-info">
-                                            <div class="user-email">${u.email}</div>
-                                            <div class="user-id">ID: ${uid.substr(0, 8)}...</div>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-avatar" style="background-color: ${avatarColor}">${initial}</div>
+                                            <div class="user-info">
+                                                <div class="user-email">${u.email}</div>
+                                                <div class="user-id">ID: ${uid.substr(0, 8)}...</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
-                                        <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
-                                        <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>✅ Approved</option>
-                                        <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>⛔ Blocked</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select class="action-select ${roleClass}" onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
-                                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
-                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="date" class="date-input" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
-                                </td>
-                                <td>
-                                    ${isSelf ? '<span class="role-badge role-admin">BẠN</span>' : ''}
-                                </td>
-                            </tr>
-                        `;
-                    });
+                                    </td>
+                                    <td>
+                                        <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
+                                            <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                            <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>✅ Approved</option>
+                                            <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>⛔ Blocked</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="action-select ${roleClass}" onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
+                                            <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                                            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="date" class="date-input" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
+                                    </td>
+                                    <td>
+                                        ${isSelf ? '<span class="role-badge role-admin">BẠN</span>' : ''}
+                                    </td>
+                                </tr>
+                            `;
+                        });
 
-                    tableHtml += `</tbody></table>`;
+                        tableHtml += `</tbody></table>`;
 
-                    // Pagination Controls
-                    if (totalPages > 1) {
-                        tableHtml += `
-                            <div class="pagination-controls">
-                                <span class="page-info">Trang ${currentPage} / ${totalPages} (${filteredUsers.length} users)</span>
-                                <button class="page-btn" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
-                                <button class="page-btn" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>
-                            </div>
-                        `;
+                        // Pagination Controls
+                        if (totalPages > 1) {
+                            tableHtml += `
+                                <div class="pagination-controls">
+                                    <span class="page-info">Trang ${currentPage} / ${totalPages} (${filteredUsers.length} users)</span>
+                                    <button class="page-btn" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
+                                    <button class="page-btn" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                            `;
+                        }
+
+                        container.innerHTML = tableHtml;
+                    } catch (e) {
+                        console.error("Render Error:", e);
+                        const container = document.getElementById('adminTableContainer');
+                        if (container) container.innerHTML = `<div style="color:red; padding: 20px;">Lỗi hiển thị: ${e.message}</div>`;
                     }
-
-                    container.innerHTML = tableHtml;
                 };
 
                 // Pagination Helper
@@ -1136,16 +1156,6 @@ function main() {
                         renderAdminTable();
                     }
                 };
-
-                // Helper: Generate consistent color from string
-                function stringToColor(str) {
-                    let hash = 0;
-                    for (let i = 0; i < str.length; i++) {
-                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-                    }
-                    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-                    return '#' + "00000".substring(0, 6 - c.length) + c;
-                }
 
                 // Expose helper globally
                 window.updateUser = async (uid, field, value) => {
