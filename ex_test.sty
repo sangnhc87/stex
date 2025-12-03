@@ -511,4 +511,16 @@
   }{\par\medskip}
 }
 
+% Define inputansbox command for answer table
+\newcommand{\inputansbox}[2]{%
+    \begin{multicols}{#1}
+    \renewenvironment{Solution}[1]{%
+        \noindent\textbf{##1.} \ignorespaces
+    }{%
+        \par
+    }%
+    \input{#2}
+    \end{multicols}
+}
+
 \endinput
