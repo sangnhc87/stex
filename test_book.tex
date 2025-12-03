@@ -74,6 +74,17 @@
 {\begin{tc_inner}{#1}{#2}}
 {\end{tc_inner}}
 
+% Helper to initialize ex-like behavior
+\newcommand{\InitPremiumEx}{
+    \setcounter{dapan}{0}
+    \setcounter{numTrueSol}{0}
+    \gdef\saveFileAns{}
+    \gdef\keyEX{}
+    \gdef\chType{0}
+    \def\dotEX{.}
+    \SetExEnvironmentOptions
+}
+
 \newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
     premiumbox=mainColor,
     title={\textbf{Bài tập~\thetcbcounter:} #2},
@@ -81,7 +92,7 @@
     #1
 }
 \DeclareDocumentEnvironment{bt}{ m m }
-{\begin{bt_inner}{#1}{#2}}
+{\begin{bt_inner}{#1}{#2}\InitPremiumEx}
 {\end{bt_inner}}
 
 \newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
@@ -91,7 +102,7 @@
     #1
 }
 \DeclareDocumentEnvironment{vd}{ m m }
-{\begin{vd_inner}{#1}{#2}}
+{\begin{vd_inner}{#1}{#2}\InitPremiumEx}
 {\end{vd_inner}}
 
 % Note (No counter)
