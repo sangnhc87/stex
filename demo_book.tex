@@ -1,0 +1,104 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage[showans=true, showkey=true]{pro_book}
+
+\usepackage{polyglossia}
+\setmainlanguage{vietnamese}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+
+\title{Demo Sách Chuyên Nghiệp với pro\_book.sty}
+\author{Antigravity}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\StartProBook
+
+\section{Lý Thuyết (Premium Design)}
+
+\begin{dn}{Hàm số lũy thừa}{def:luythua}
+    Hàm số $y=x^\alpha$ với $\alpha \in \mathbb{R}$ được gọi là hàm số lũy thừa.
+\end{dn}
+
+\begin{dl}{Đạo hàm}{thm:daoham}
+    $(x^\alpha)' = \alpha x^{\alpha-1}$.
+\end{dl}
+
+\begin{note}
+    Chú ý: Công thức trên chỉ đúng khi $x > 0$.
+\end{note}
+
+\section{Ví Dụ Minh Họa}
+
+\begin{vd}{Tìm tập xác định}{vd:txd}
+    Tìm tập xác định của hàm số $y=(x-1)^{\frac{1}{3}}$.
+    \loigiai{
+        Vì số mũ $\frac{1}{3}$ không nguyên nên điều kiện là $x-1 > 0 \Leftrightarrow x > 1$.
+        Vậy $D = (1; +\infty)$.
+    }
+\end{vd}
+
+\section{Bài Tập Trắc Nghiệm}
+
+\begin{bt}{Tính đạo hàm}{bt:daoham}
+    Tính đạo hàm của $y=x^{\pi}$.
+    \choice
+    {$\pi x^{\pi-1}$}
+    {\True $\pi x^{\pi-1}$}
+    {$x^{\pi} \ln x$}
+    {$\pi x^{\pi}$}
+    \loigiai{
+        Áp dụng công thức $(x^\alpha)' = \alpha x^{\alpha-1}$, ta có $y' = \pi x^{\pi-1}$.
+    }
+\end{bt}
+
+\begin{ex}[Câu hỏi nhận biết]
+    Đồ thị hàm số $y=\frac{x-1}{x+1}$ có tiệm cận đứng là:
+    \choice
+    {$x=1$}
+    {\True $x=-1$}
+    {$y=1$}
+    {$y=-1$}
+    \loigiai{
+        Tiệm cận đứng là nghiệm của mẫu số: $x+1=0 \Rightarrow x=-1$.
+    }
+\end{ex}
+
+\begin{ex}[Câu hỏi vận dụng]
+    Cho hàm số $y=f(x)$ có bảng biến thiên như sau...
+    Hàm số đồng biến trên khoảng nào?
+    \choice
+    {$(-\infty; -1)$}
+    {$(0; 1)$}
+    {\True $(1; +\infty)$}
+    {$(-1; 1)$}
+    \loigiai{
+        Dựa vào bảng biến thiên, $y' > 0$ trên $(1; +\infty)$.
+    }
+\end{ex}
+
+\section{Trắc Nghiệm Đúng Sai}
+
+\begin{ex}[Đúng sai]
+    Cho hàm số $y=x^3 - 3x^2 + 2$.
+    \choiceTF
+    {Hàm số có 2 cực trị.}
+    {\True Hàm số đạt cực đại tại $x=0$.}
+    {Giá trị cực tiểu là $-2$.}
+    {\True Đồ thị cắt trục tung tại điểm có tung độ bằng 2.}
+    \loigiai{
+        $y' = 3x^2 - 6x$. $y'=0 \Leftrightarrow x=0$ hoặc $x=2$.
+        Tại $x=0, y=2$ (Cực đại).
+        Tại $x=2, y=-2$ (Cực tiểu).
+    }
+\end{ex}
+
+\StopProBook
+\PrintAnswers
+
+\end{document}

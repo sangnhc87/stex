@@ -1,0 +1,222 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pro_book}[2024/05/22 Professional Book Package]
+
+% ==================================================
+% 1. OPTIONS & PACKAGES
+% ==================================================
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{
+    family=PRO,
+    prefix=PRO@
+}
+\DeclareBoolOption{showans} % Show detailed solutions
+\DeclareBoolOption{showkey} % Show key (A, B, C, D) next to question
+\DeclareBoolOption[true]{color} % Use colors
+
+\ProcessKeyvalOptions*
+
+\RequirePackage{xparse}
+\RequirePackage{calc}
+\RequirePackage{tikz}
+\usetikzlibrary{positioning, calc, shadows, shapes.geometric}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{environ}
+\RequirePackage{amssymb}
+\RequirePackage{fontawesome}
+\RequirePackage{multicol}
+\RequirePackage{tasks}
+% \RequirePackage{answers} % Removed custom implementation used instead
+
+% ==================================================
+% 2. COLORS & STYLES
+% ==================================================
+\definecolor{proMain}{HTML}{005f73}
+\definecolor{proSecond}{HTML}{0a9396}
+\definecolor{proAccent}{HTML}{94d2bd}
+\definecolor{proHighlight}{HTML}{e9d8a6}
+\definecolor{proAlert}{HTML}{ae2012}
+
+\tcbset{
+    probox/.style={
+        enhanced,
+        colback=white,
+        colframe=#1,
+        fonttitle=\bfseries,
+        attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
+        boxed title style={colback=#1, rounded corners},
+        drop fuzzy shadow
+    }
+}
+
+% ==================================================
+% 3. SOLUTION & ANSWER KEY LOGIC (CUSTOM)
+% ==================================================
+\newwrite\pro@ansfile
+\newcommand{\pro@ansfilename}{ans-pro.tex}
+
+% Command to start recording answers
+\newcommand{\StartProBook}{
+    \immediate\openout\pro@ansfile=\pro@ansfilename
+}
+
+% Command to stop recording and print answers
+\newcommand{\StopProBook}{
+    \immediate\closeout\pro@ansfile
+}
+
+\newcommand{\PrintAnswers}{
+    \section*{Bảng Đáp Án}
+    \begin{multicols}{10}
+    \input{\pro@ansfilename}
+    \end{multicols}
+}
+
+% Internal counters and storage
+\newcounter{pro@numTrue}
+\def\pro@key{}
+
+% \True command to mark correct answer
+\newcommand{\True}{%
+    \ifbool{PRO@showkey}{%
+        \textcolor{proAlert}{\bfseries\Alph{task} (Đ)}%
+    }{%
+        \textbf{\Alph{task}}%
+    }%
+    \gdef\pro@key{\Alph{task}}%
+    % Write to answer file: \Ans{QuestionNumber}{Key}
+    \immediate\write\pro@ansfile{\string\Ans{\theex}{\Alph{task}}}%
+}
+
+% Helper command to format answers in the table
+\newcommand{\Ans}[2]{%
+    \noindent\textbf{#1.} #2 \par
+}
+
+% ==================================================
+% 4. ENVIRONMENTS (EX, BT, VD)
+% ==================================================
+\newcounter{ex}[section]
+\renewcommand{\theex}{\thesection.\arabic{ex}}
+
+% Generic Question Box
+\NewDocumentEnvironment{ex}{ O{} }{
+    \refstepcounter{ex}
+    \par\medskip
+    \noindent\textbf{\color{proMain}Câu \theex.} #1
+    \ignorespaces
+}{
+    \par\medskip
+}
+
+% Example Box (Ví dụ)
+\newtcolorbox[auto counter, number within=section]{vdbox}[2][]{
+    probox=proSecond,
+    title={\textbf{Ví dụ~\thetcbcounter:} #2},
+    #1
+}
+\NewDocumentEnvironment{vd}{ m m }{
+    \begin{vdbox}{#2}
+}{
+    \end{vdbox}
+}
+
+% Exercise Box (Bài tập)
+\newtcolorbox[auto counter, number within=section]{btbox}[2][]{
+    probox=proMain,
+    title={\textbf{Bài tập~\thetcbcounter:} #2},
+    #1
+}
+\NewDocumentEnvironment{bt}{ m m }{
+    \begin{btbox}{#2}
+}{
+    \end{btbox}
+}
+
+% Definitions, Theorems
+\newtcolorbox[auto counter, number within=section]{dnbox}[2][]{
+    probox=proSecond,
+    title={\textbf{Định nghĩa~\thetcbcounter:} #2},
+    #1
+}
+\NewDocumentEnvironment{dn}{ m m }{\begin{dnbox}{#2}}{\end{dnbox}}
+
+\newtcolorbox[auto counter, number within=section]{dlbox}[2][]{
+    probox=proMain,
+    title={\textbf{Định lý~\thetcbcounter:} #2},
+    #1
+}
+\NewDocumentEnvironment{dl}{ m m }{\begin{dlbox}{#2}}{\end{dlbox}}
+
+% Note Box
+\newtcolorbox{notebox}{
+    probox=proAlert,
+    title={\textbf{\faExclamationTriangle\ Chú ý}},
+    colback=proAlert!5,
+    coltitle=proAlert,
+    borderline west={2pt}{0pt}{proAlert},
+    frame hidden,
+    boxed title style={empty, boxsep=2pt},
+    attach boxed title to top left={yshift=-2mm, xshift=0mm},
+}
+\NewDocumentEnvironment{note}{ }{\begin{notebox}}{\end{notebox}}
+
+% ==================================================
+% 5. MULTIPLE CHOICE (CHOICE)
+% ==================================================
+\newlength{\pro@width}
+\NewDocumentCommand{\choice}{ m m m m }{
+    \par\noindent
+    \settowidth{\pro@width}{A. #1}
+    \ifdim\pro@width < 0.2\linewidth
+        \begin{tasks}(4)
+            \task #1 \task #2 \task #3 \task #4
+        \end{tasks}
+    \else
+        \settowidth{\pro@width}{A. #1 \hspace{1cm} B. #2}
+        \ifdim\pro@width < 0.8\linewidth
+            \begin{tasks}(2)
+                \task #1 \task #2 \task #3 \task #4
+            \end{tasks}
+        \else
+            \begin{tasks}(1)
+                \task #1 \task #2 \task #3 \task #4
+            \end{tasks}
+        \fi
+    \fi
+}
+
+% ==================================================
+% 6. TRUE/FALSE (CHOICETF)
+% ==================================================
+\NewDocumentCommand{\choiceTF}{ m m m m }{
+    \begin{tasks}(1)
+        \task #1
+        \task #2
+        \task #3
+        \task #4
+    \end{tasks}
+}
+
+% ==================================================
+% 7. SOLUTION (LOIGIAI)
+% ==================================================
+\NewEnviron{loigiai}{
+    \ifbool{PRO@showans}{
+        \par\noindent
+        \begin{tcolorbox}[
+            enhanced,
+            frame hidden,
+            borderline west={2pt}{0pt}{proMain},
+            colback=proMain!5,
+            title={\textbf{Lời giải}},
+            coltitle=proMain,
+            attach boxed title to top left={yshift=-2mm, xshift=0mm},
+            boxed title style={empty, boxsep=2pt},
+            left=5pt, right=5pt, top=5pt, bottom=5pt
+        ]
+        \BODY
+        \end{tcolorbox}
+    }{}
+}
+
+\endinput
