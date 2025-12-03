@@ -85,6 +85,17 @@
     \SetExEnvironmentOptions
 }
 
+% Helper to finish ex-like behavior (write answers, reset)
+\newcommand{\FinishPremiumEx}{
+    \ifthenelse{\equal{\saveFileAns}{}}{}{
+        \Writetofile{ans}{\string\begin{Solution}{\thetcbcounter}}
+        \Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
+    }
+    \setcounter{numTrueSol}{0}
+    \setcounter{numTrue}{0}
+    \gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}
+}
+
 \newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
     premiumbox=mainColor,
     title={\textbf{Bài tập~\thetcbcounter:} #2},
@@ -93,7 +104,7 @@
 }
 \DeclareDocumentEnvironment{bt}{ m m }
 {\begin{bt_inner}{#1}{#2}\InitPremiumEx}
-{\end{bt_inner}}
+{\FinishPremiumEx\end{bt_inner}}
 
 \newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
     premiumbox=secondColor,
@@ -103,7 +114,7 @@
 }
 \DeclareDocumentEnvironment{vd}{ m m }
 {\begin{vd_inner}{#1}{#2}\InitPremiumEx}
-{\end{vd_inner}}
+{\FinishPremiumEx\end{vd_inner}}
 
 % Note (No counter)
 \DeclareDocumentEnvironment{note}{ }
