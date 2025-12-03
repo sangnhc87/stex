@@ -43,36 +43,62 @@
 }
 
 % Define Environments explicitly
-% Using DeclareDocumentEnvironment to handle both new and renew cases
-\newtcolorbox[auto counter, number within=section]{dn_inner}[3][]{
+% Using \renewenvironment as requested for better compatibility
+
+% 1. Dinh Nghia (dn)
+\newtcolorbox[auto counter, number within=section]{dnbox}[3][]{
     premiumbox=secondColor,
     title={\textbf{Định nghĩa~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\DeclareDocumentEnvironment{dn}{ m m }
-{\begin{dn_inner}{#1}{#2}}
-{\end{dn_inner}}
+\renewenvironment{dn}[2]
+    {\begin{dnbox}{#1}{#2}}
+    {\end{dnbox}}
 
-\newtcolorbox[auto counter, number within=section]{dl_inner}[3][]{
+% 2. Dinh Ly (dl)
+\newtcolorbox[auto counter, number within=section]{dlbox}[3][]{
     premiumbox=mainColor,
     title={\textbf{Định lý~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\DeclareDocumentEnvironment{dl}{ m m }
-{\begin{dl_inner}{#1}{#2}}
-{\end{dl_inner}}
+\renewenvironment{dl}[2]
+    {\begin{dlbox}{#1}{#2}}
+    {\end{dlbox}}
 
-\newtcolorbox[auto counter, number within=section]{tc_inner}[3][]{
+% 3. Tinh Chat (tc)
+\newtcolorbox[auto counter, number within=section]{tcbox}[3][]{
     premiumbox=accentColor!80!black,
     title={\textbf{Tính chất~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\DeclareDocumentEnvironment{tc}{ m m }
-{\begin{tc_inner}{#1}{#2}}
-{\end{tc_inner}}
+\renewenvironment{tc}[2]
+    {\begin{tcbox}{#1}{#2}}
+    {\end{tcbox}}
+
+% 4. Bai Tap (bt) - With ex features
+\newtcolorbox[auto counter, number within=section]{btbox}[3][]{
+    premiumbox=mainColor,
+    title={\textbf{Bài tập~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\renewenvironment{bt}[2]
+    {\begin{btbox}{#1}{#2}\InitPremiumEx}
+    {\FinishPremiumEx\end{btbox}}
+
+% 5. Vi Du (vd) - With ex features
+\newtcolorbox[auto counter, number within=section]{vdbox}[3][]{
+    premiumbox=secondColor,
+    title={\textbf{Ví dụ~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\renewenvironment{vd}[2]
+    {\begin{vdbox}{#1}{#2}\InitPremiumEx}
+    {\FinishPremiumEx\end{vdbox}}
 
 % Helper to initialize ex-like behavior
 \newcommand{\InitPremiumEx}{
