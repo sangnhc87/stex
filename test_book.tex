@@ -1,13 +1,169 @@
 \documentclass{article}
 \usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=1.5cm]{geometry}
 \usepackage[hidelinks,unicode]{hyperref}
-\usepackage[dethi]{ex_test} 
+% \usepackage[dethi]{ex_test} % Commented out to avoid conflicts/errors if package is broken
 \input{khaibao.tex}
-\anloigiai
+% \hienloigiai
+% \anloigiai % Commented out as it depends on ex_test
 \usepackage{polyglossia}
 \setmainlanguage{vietnamese}
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
+
+% ==================================================
+% === PREMIUM DESIGN DEFINITIONS ===
+% ==================================================
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,hooks,raster}
+\usepackage[explicit]{titlesec}
+\usepackage{fontawesome}
+
+% Colors
+\definecolor{mainColor}{HTML}{005f73}
+\definecolor{secondColor}{HTML}{0a9396}
+\definecolor{accentColor}{HTML}{94d2bd}
+\definecolor{highlightColor}{HTML}{e9d8a6}
+\definecolor{alertColor}{HTML}{ae2012}
+
+% Styles
+\tcbset{
+    premiumbox/.style={
+        enhanced,
+        colback=white,
+        colframe=#1,
+        fonttitle=\bfseries,
+        attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
+        boxed title style={colback=#1, rounded corners},
+        drop fuzzy shadow
+    }
+}
+
+% Define Environments explicitly
+\let\dn\relax \let\enddn\relax
+\newtcolorbox[auto counter, number within=section]{dn_inner}[3][]{
+    premiumbox=secondColor,
+    title={\textbf{Định nghĩa~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{dn}{ m m }
+{\begin{dn_inner}{#1}{#2}}
+{\end{dn_inner}}
+
+\let\dl\relax \let\enddl\relax
+\newtcolorbox[auto counter, number within=section]{dl_inner}[3][]{
+    premiumbox=mainColor,
+    title={\textbf{Định lý~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{dl}{ m m }
+{\begin{dl_inner}{#1}{#2}}
+{\end{dl_inner}}
+
+\let\tc\relax \let\endtc\relax
+\newtcolorbox[auto counter, number within=section]{tc_inner}[3][]{
+    premiumbox=accentColor!80!black,
+    title={\textbf{Tính chất~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{tc}{ m m }
+{\begin{tc_inner}{#1}{#2}}
+{\end{tc_inner}}
+
+\let\bt\relax \let\endbt\relax
+\newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
+    premiumbox=mainColor,
+    title={\textbf{Bài tập~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{bt}{ m m }
+{\begin{bt_inner}{#1}{#2}}
+{\end{bt_inner}}
+
+\let\vd\relax \let\endvd\relax
+\newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
+    premiumbox=secondColor,
+    title={\textbf{Ví dụ~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{vd}{ m m }
+{\begin{vd_inner}{#1}{#2}}
+{\end{vd_inner}}
+
+% Note (No counter)
+\let\note\relax \let\endnote\relax
+\newtcolorbox{note}{
+    enhanced,
+    colback=highlightColor!10,
+    colframe=alertColor,
+    borderline west={4pt}{0pt}{alertColor},
+    frame hidden,
+    left=10pt,
+    title={\textbf{\faExclamationTriangle\ Chú ý}},
+    coltitle=alertColor,
+    attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxed title style={empty, boxsep=0pt},
+    fonttitle=\bfseries
+}
+
+% Dang toan (No counter, custom title)
+\let\dang\relax \let\enddang\relax
+\newtcolorbox{dang}[1][]{
+    enhanced,
+    colback=white,
+    colframe=mainColor,
+    fonttitle=\bfseries\large,
+    title={#1},
+    attach boxed title to top left={yshift=-2mm, xshift=2mm},
+    boxed title style={colback=mainColor, sharp corners},
+    sharp corners,
+    top=4mm,
+    drop fuzzy shadow
+}
+
+% Section Styling
+\titleformat{\section}[block]
+  {\normalfont\Large\bfseries\color{mainColor}}
+  {}
+  {0pt}
+  {%
+    \begin{tikzpicture}[baseline=(current bounding box.west)]
+      \node[
+        fill=mainColor,
+        text=white,
+        rounded corners=3pt,
+        inner sep=5pt,
+        font=\Large\bfseries
+      ] (num) {\thesection};
+      \node[
+        right=5pt of num,
+        text=mainColor,
+        font=\Large\bfseries,
+        align=left
+      ] (title) {\MakeUppercase{#1}};
+      \draw[mainColor, line width=1.5pt] (title.south west) -- (title.south east);
+    \end{tikzpicture}%
+  }
+
+\titleformat{\subsection}[block]
+  {\normalfont\large\bfseries\color{secondColor}}
+  {}
+  {0pt}
+  {%
+    \begin{tikzpicture}[baseline=(current bounding box.west)]
+      \node[
+        text=secondColor,
+        font=\large\bfseries,
+        inner sep=0pt,
+        align=left
+      ] (title) {\thesubsection.~#1};
+      \draw[secondColor!50, line width=1pt] (title.south west) -- ([xshift=2cm]title.south west);
+    \end{tikzpicture}%
+  }
 
 \begin{document}
 
