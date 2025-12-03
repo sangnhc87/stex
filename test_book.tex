@@ -78,27 +78,41 @@
     {\begin{tcbox}{#1}{#2}}
     {\end{tcbox}}
 
-% 4. Bai Tap (bt) - With ex features
-\newtcolorbox[auto counter, number within=section]{btbox}[3][]{
-    premiumbox=mainColor,
-    title={\textbf{Bài tập~\thetcbcounter:} #2},
-    label={#3},
-    #1
-}
-\renewenvironment{bt}[2]
-    {\begin{btbox}{#1}{#2}\InitPremiumEx}
-    {\FinishPremiumEx\end{btbox}}
+% 4. Bai Tap (bt) - Defined as standard environment + tcolorbox wrapper
+% This allows verbatim-like content (loigiai) to work correctly
+\newcounter{bt}[section]
+\renewcommand{\thebt}{\thesection.\arabic{bt}}
+\newenvironment{bt}[2]
+    {\refstepcounter{bt}\InitPremiumEx\par\noindent\textbf{Bài tập~\thebt: #1} #2\par\medskip}
+    {\FinishPremiumEx}
 
-% 5. Vi Du (vd) - With ex features
-\newtcolorbox[auto counter, number within=section]{vdbox}[3][]{
-    premiumbox=secondColor,
-    title={\textbf{Ví dụ~\thetcbcounter:} #2},
-    label={#3},
-    #1
+\tcolorboxenvironment{bt}{
+    premiumbox=mainColor,
+    title={\textbf{Bài tập~\thebt:} \raggedright}, % Title is handled inside the box usually, but here we need a trick or just simple styling
+     
+    enhanced,
+    colback=white,
+    colframe=mainColor,
+    drop fuzzy shadow,
+    before skip=10pt,
+    after skip=10pt
 }
-\renewenvironment{vd}[2]
-    {\begin{vdbox}{#1}{#2}\InitPremiumEx}
-    {\FinishPremiumEx\end{vdbox}}
+
+% 5. Vi Du (vd)
+\newcounter{vd}[section]
+\renewcommand{\thevd}{\thesection.\arabic{vd}}
+\newenvironment{vd}[2]
+    {\refstepcounter{vd}\InitPremiumEx\par\noindent\textbf{\color{secondColor}Ví dụ~\thevd: #1} #2\par\medskip}
+    {\FinishPremiumEx}
+
+\tcolorboxenvironment{vd}{
+    enhanced,
+    colback=white,
+    colframe=secondColor,
+    drop fuzzy shadow,
+    before skip=10pt,
+    after skip=10pt
+}
 
 % Helper to initialize ex-like behavior
 \newcommand{\InitPremiumEx}{
