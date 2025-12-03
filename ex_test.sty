@@ -511,26 +511,20 @@
   }{\par\medskip}
 }
 
-% Define inputansbox command for answer table
-% Improved version to handle MC, TF, and ShortAns
+% Define inputansbox command for answer table with TikZ styling
 \newcommand{\inputansbox}[2]{%
     \begin{multicols}{#1}
-    % Redefine Solution environment to handle different types
-    \renewenvironment{Solution}[1]{%
-        \noindent\textbf{##1.}%
-        \def\tempLabel{##1}%
-        \ignorespaces
-    }{%
-        \par
-    }%
+    \RenewEnviron{Solution}[1]{%
+        \noindent
+        \begin{tikzpicture}[baseline=(current bounding box.center)]
+            \node[draw=gray!50, rectangle, rounded corners=3pt, 
+                  inner sep=3pt, fill=white,
+                  text width=\linewidth-10pt, align=left] 
+                  {\textbf{\color{blue}##1.} \BODY};
+        \end{tikzpicture}\par
+    }
     \input{#2}
     \end{multicols}
 }
-
-% Optional: Command to manually set column count for specific parts if needed
-% But the user seems to want one command to handle "reasonable design".
-% Since we can't easily detect content width before rendering in this simple setup,
-% we rely on the user providing the column count (as they did with {10} or {2}).
-% However, we can improve the spacing and look.
 
 \endinput

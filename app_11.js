@@ -662,6 +662,32 @@ function main() {
 
                 pdfbox.innerHTML = ''; // Clear previous content
 
+                // SyncTeX Handler
+                const handlePdfClick = async (event, pageNum, currentScale) => {
+                    if (!window.ENABLE_SYNCTEX) return;
+                    if (!globalEn.sessionId) return;
+
+                    const rect = event.target.getBoundingClientRect();
+                    const x = (event.clientX - rect.left) / currentScale;
+                    const y = (event.clientY - rect.top) / currentScale;
+
+                    console.log(`SyncTeX Click: Page ${pageNum}, x=${x}, y=${y}`);
+
+                    try {
+                        const res = await fetch(`${BACKEND_API_URL}/api/synctex/edit?session_id=${globalEn.sessionId}&page=${pageNum}&x=${x}&y=${y}`);
+                        const data = await res.json();
+
+                        if (data.line && data.file) {
+                            const editor = ace.edit("editor");
+                            editor.gotoLine(data.line, 0, true);
+                            editor.focus();
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Jump to line ${data.line}`, showConfirmButton: false, timer: 1000 });
+                        }
+                    } catch (e) {
+                        console.error("SyncTeX error:", e);
+                    }
+                };
+
                 // Check which view to use
                 if (window.location.pathname.includes('index_11.html')) {
                     // === CLASSIC VIEW (Simple Scroll) ===
@@ -688,6 +714,13 @@ function main() {
                         canvas.style.display = 'block';
                         canvas.style.marginBottom = '10px';
                         canvas.style.border = '1px solid #ccc';
+                        canvas.style.border = '1px solid #ccc';
+
+                        if (window.ENABLE_SYNCTEX) {
+                            canvas.style.cursor = 'pointer';
+                            canvas.addEventListener('click', (e) => handlePdfClick(e, pageNum, scale));
+                        }
+
                         container.appendChild(canvas);
 
                         const transform = outputScale !== 1
@@ -787,6 +820,13 @@ function main() {
                             textLayerDiv.className = 'textLayer';
                             textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
                             textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+                            textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+
+                            if (window.ENABLE_SYNCTEX) {
+                                textLayerDiv.style.cursor = 'pointer';
+                                textLayerDiv.addEventListener('click', (e) => handlePdfClick(e, pageNum, currentScale));
+                            }
+
                             pageContainer.appendChild(textLayerDiv);
 
                             const textContent = await page.getTextContent();
