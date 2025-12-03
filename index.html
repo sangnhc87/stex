@@ -112,7 +112,8 @@
             <button id="download-current-tex-btn" title="Tải file .tex hiện tại về máy"><i
                     class="fas fa-file-download"></i></button>
             <!-- Nút tải PDF -->
-            <button id="download-pdf-btn" title="Tải file PDF" disabled><i class="fas fa-file-pdf" style="color: #e74c3c;"></i></button>
+            <button id="download-pdf-btn" title="Tải file PDF" disabled><i class="fas fa-file-pdf"
+                    style="color: #e74c3c;"></i></button>
 
 
 
@@ -494,6 +495,25 @@
 
         .filter-select:focus {
             border-color: #3498db;
+        }
+
+        /* Modern PDF View Styles (Injected) */
+        .pdf-view-modern {
+            background-color: #525659;
+            /* Adobe Reader Dark Gray */
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .pdf-view-modern canvas {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            /* Floating effect */
+            margin-bottom: 30px !important;
+            max-width: 95%;
+            border: none !important;
+            transition: transform 0.2s;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>

@@ -665,6 +665,14 @@ function main() {
                 container.style.overflow = 'auto';
                 container.style.height = '100%';
                 container.style.position = 'relative';
+
+                // Apply distinct style based on page
+                if (window.location.pathname.includes('index_11.html')) {
+                    container.classList.add('pdf-view-classic'); // Standard view
+                } else {
+                    container.classList.add('pdf-view-modern'); // "Different angle" view for index.html
+                }
+
                 pdfbox.appendChild(container);
 
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {

@@ -1,0 +1,38 @@
+/* Modern PDF View Styles */
+.pdf-view-modern {
+    background-color: #2d3436;
+    /* Dark slate background */
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pdf-view-modern canvas {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    /* Deep shadow */
+    border-radius: 4px;
+    /* Slight rounding */
+    margin-bottom: 20px !important;
+    max-width: 90%;
+    /* Center and constrain width */
+    border: none !important;
+}
+
+/* Scrollbar styling for the container */
+.pdf-view-modern::-webkit-scrollbar {
+    width: 10px;
+}
+
+.pdf-view-modern::-webkit-scrollbar-track {
+    background: #2d3436;
+}
+
+.pdf-view-modern::-webkit-scrollbar-thumb {
+    background: #636e72;
+    border-radius: 5px;
+}
+
+.pdf-view-modern::-webkit-scrollbar-thumb:hover {
+    background: #b2bec3;
+}
