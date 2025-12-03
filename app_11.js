@@ -908,19 +908,27 @@ function main() {
             });
         }
 
-        // Global variable to store admin data
-        window.currentAdminUsers = [];
+        // Global state for admin dashboard
+        window.adminState = {
+            users: [],
+            filteredUsers: [],
+            currentPage: 1,
+            itemsPerPage: 10,
+            sortField: 'createdAt',
+            sortOrder: 'desc'
+        };
 
         async function showAdminDashboard() {
             try {
                 const snapshot = await firestoreDb.collection('users').orderBy('createdAt', 'desc').get();
-                window.currentAdminUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.adminState.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.adminState.filteredUsers = [...window.adminState.users];
 
-                const totalUsers = window.currentAdminUsers.length;
-                const activeUsers = window.currentAdminUsers.filter(u => u.status === 'approved').length;
-                const pendingUsers = window.currentAdminUsers.filter(u => u.status === 'pending').length;
+                // Calculate Stats
+                const totalUsers = window.adminState.users.length;
+                const activeUsers = window.adminState.users.filter(u => u.status === 'approved').length;
+                const pendingUsers = window.adminState.users.filter(u => u.status === 'pending').length;
 
-                // 1. Build the Shell (Header + Toolbar + Container)
                 let html = `
                     <div class="admin-container">
                         <div class="admin-header">
@@ -964,7 +972,6 @@ function main() {
                     </div>
                 `;
 
-                // 2. Show Modal (Wide)
                 await Swal.fire({
                     title: 'Admin Dashboard',
                     html: html,
@@ -973,101 +980,113 @@ function main() {
                     showConfirmButton: false,
                     showCloseButton: true,
                     didOpen: () => {
-                        // Initial Render
-                        renderAdminTable(window.currentAdminUsers);
+                        filterAdminUsers(); // Initial filter & render
                     }
                 });
 
-                // Expose helper globally
-                window.updateUser = async (uid, field, value) => {
-                    try {
-                        // If approving, ask for expiration date if not set
-                        if (field === 'status' && value === 'approved') {
-                            const currentDoc = await firestoreDb.collection('users').doc(uid).get();
-                            const currentData = currentDoc.data();
-                            if (!currentData.expiryDate) {
-                                const { value: date } = await Swal.fire({
-                                    title: 'Đặt ngày hết hạn',
-                                    input: 'date',
-                                    label: 'Người dùng này sẽ được dùng đến ngày nào?',
-                                    showCancelButton: true
-                                });
-                                if (date) {
-                                    await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
-                                    // Update local data
-                                    const userIndex = window.currentAdminUsers.findIndex(u => u.id === uid);
-                                    if (userIndex !== -1) window.currentAdminUsers[userIndex].expiryDate = date;
-                                }
-                            }
-                        }
+                // --- HELPER FUNCTIONS ---
 
-                        await firestoreDb.collection('users').doc(uid).update({ [field]: value });
-
-                        // Update local data
-                        const userIndex = window.currentAdminUsers.findIndex(u => u.id === uid);
-                        if (userIndex !== -1) window.currentAdminUsers[userIndex][field] = value;
-
-                        const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-                        toast.fire({ icon: 'success', title: 'Đã cập nhật' });
-
-                        // Re-render to show changes
-                        filterAdminUsers();
-                    } catch (e) {
-                        Swal.fire('Lỗi', e.message, 'error');
-                    }
-                };
-
-                // Filter Logic
+                // 1. Filter Logic
                 window.filterAdminUsers = () => {
                     const searchText = document.getElementById('adminSearch').value.toLowerCase();
                     const statusFilter = document.getElementById('filterStatus').value;
                     const roleFilter = document.getElementById('filterRole').value;
 
-                    const filtered = window.currentAdminUsers.filter(u => {
+                    window.adminState.filteredUsers = window.adminState.users.filter(u => {
                         const matchesSearch = u.email.toLowerCase().includes(searchText);
                         const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
                         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
                         return matchesSearch && matchesStatus && matchesRole;
                     });
 
-                    renderAdminTable(filtered);
+                    // Reset to page 1 on filter change
+                    window.adminState.currentPage = 1;
+                    sortAdminUsers(); // Sort and Render
                 };
 
-                // Render Logic
-                window.renderAdminTable = (users) => {
+                // 2. Sort Logic
+                window.sortAdminUsers = (field = window.adminState.sortField) => {
+                    if (field === window.adminState.sortField) {
+                        // Toggle order if clicking same field
+                        window.adminState.sortOrder = window.adminState.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        // New field, default to asc
+                        window.adminState.sortField = field;
+                        window.adminState.sortOrder = 'asc';
+                    }
+
+                    const { sortField, sortOrder } = window.adminState;
+
+                    window.adminState.filteredUsers.sort((a, b) => {
+                        let valA = a[sortField] || '';
+                        let valB = b[sortField] || '';
+
+                        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+
+                    renderAdminTable();
+                };
+
+                // 3. Render Logic (with Pagination)
+                window.renderAdminTable = () => {
                     const container = document.getElementById('adminTableContainer');
                     if (!container) return;
 
-                    if (users.length === 0) {
-                        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Không tìm thấy kết quả nào.</div>';
+                    const { filteredUsers, currentPage, itemsPerPage, sortField, sortOrder } = window.adminState;
+
+                    if (filteredUsers.length === 0) {
+                        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #7f8c8d; font-size: 1.1em;">Không tìm thấy kết quả nào.</div>';
                         return;
                     }
+
+                    // Pagination Slice
+                    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+                    const start = (currentPage - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    const pageUsers = filteredUsers.slice(start, end);
+
+                    // Sort Icon Helper
+                    const getSortIcon = (field) => {
+                        if (sortField !== field) return '<i class="fas fa-sort" style="opacity: 0.3;"></i>';
+                        return sortOrder === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                    };
 
                     let tableHtml = `
                         <table class="admin-table">
                             <thead>
                                 <tr>
-                                    <th>Email</th>
-                                    <th>Trạng thái</th>
-                                    <th>Vai trò</th>
-                                    <th>Hết hạn ngày</th>
+                                    <th onclick="sortAdminUsers('email')">User ${getSortIcon('email')}</th>
+                                    <th onclick="sortAdminUsers('status')">Trạng thái ${getSortIcon('status')}</th>
+                                    <th onclick="sortAdminUsers('role')">Vai trò ${getSortIcon('role')}</th>
+                                    <th onclick="sortAdminUsers('expiryDate')">Hết hạn ${getSortIcon('expiryDate')}</th>
                                     <th>Ghi chú</th>
                                 </tr>
                             </thead>
                             <tbody>
                     `;
 
-                    users.forEach(u => {
+                    pageUsers.forEach(u => {
                         const uid = u.id;
                         const isSelf = (uid === firebase.auth().currentUser.uid);
                         const statusClass = `status-${u.status}`;
                         const roleClass = `role-${u.role}`;
 
+                        // Avatar Generation
+                        const initial = u.email.charAt(0).toUpperCase();
+                        const avatarColor = stringToColor(u.email);
+
                         tableHtml += `
                             <tr>
                                 <td>
-                                    <div style="font-weight: 500;">${u.email}</div>
-                                    <div style="font-size: 0.8em; color: #95a5a6;">ID: ${uid.substr(0, 8)}...</div>
+                                    <div class="user-cell">
+                                        <div class="user-avatar" style="background-color: ${avatarColor}">${initial}</div>
+                                        <div class="user-info">
+                                            <div class="user-email">${u.email}</div>
+                                            <div class="user-id">ID: ${uid.substr(0, 8)}...</div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
@@ -1093,7 +1112,78 @@ function main() {
                     });
 
                     tableHtml += `</tbody></table>`;
+
+                    // Pagination Controls
+                    if (totalPages > 1) {
+                        tableHtml += `
+                            <div class="pagination-controls">
+                                <span class="page-info">Trang ${currentPage} / ${totalPages} (${filteredUsers.length} users)</span>
+                                <button class="page-btn" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
+                                <button class="page-btn" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        `;
+                    }
+
                     container.innerHTML = tableHtml;
+                };
+
+                // Pagination Helper
+                window.changePage = (delta) => {
+                    const newPage = window.adminState.currentPage + delta;
+                    const totalPages = Math.ceil(window.adminState.filteredUsers.length / window.adminState.itemsPerPage);
+                    if (newPage >= 1 && newPage <= totalPages) {
+                        window.adminState.currentPage = newPage;
+                        renderAdminTable();
+                    }
+                };
+
+                // Helper: Generate consistent color from string
+                function stringToColor(str) {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                    return '#' + "00000".substring(0, 6 - c.length) + c;
+                }
+
+                // Expose helper globally
+                window.updateUser = async (uid, field, value) => {
+                    try {
+                        // If approving, ask for expiration date if not set
+                        if (field === 'status' && value === 'approved') {
+                            const currentDoc = await firestoreDb.collection('users').doc(uid).get();
+                            const currentData = currentDoc.data();
+                            if (!currentData.expiryDate) {
+                                const { value: date } = await Swal.fire({
+                                    title: 'Đặt ngày hết hạn',
+                                    input: 'date',
+                                    label: 'Người dùng này sẽ được dùng đến ngày nào?',
+                                    showCancelButton: true
+                                });
+                                if (date) {
+                                    await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
+                                    // Update local data
+                                    const userIndex = window.adminState.users.findIndex(u => u.id === uid);
+                                    if (userIndex !== -1) window.adminState.users[userIndex].expiryDate = date;
+                                }
+                            }
+                        }
+
+                        await firestoreDb.collection('users').doc(uid).update({ [field]: value });
+
+                        // Update local data
+                        const userIndex = window.adminState.users.findIndex(u => u.id === uid);
+                        if (userIndex !== -1) window.adminState.users[userIndex][field] = value;
+
+                        const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                        toast.fire({ icon: 'success', title: 'Đã cập nhật' });
+
+                        // Re-filter to update view
+                        filterAdminUsers();
+                    } catch (e) {
+                        Swal.fire('Lỗi', e.message, 'error');
+                    }
                 };
 
             } catch (e) {
