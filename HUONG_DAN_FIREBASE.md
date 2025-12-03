@@ -80,7 +80,7 @@ Bấm vào đó để:
 **Cách sửa:**
 1. Vào [Firebase Console](https://console.firebase.google.com/).
 2. Chọn dự án -> **Firestore Database**.
-3. Chọn tab **Rules**.
+3. Chọn tab **Rules**. 
 4. Sửa đoạn code trong đó thành:
 ```
 rules_version = '2';
