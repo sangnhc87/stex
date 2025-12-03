@@ -452,7 +452,7 @@
 }
 \TFOPTN{dapanTF=a}
 
-\AtBeginEnvironment{ex}{
+\newcommand{\SetExEnvironmentOptions}{
     \ifshowsolutions
         \def\colorEX{\color{red}}
         \renewcommand{\TrueEX}{\stepcounter{dapan}\squareEX{\bf\Alph{dapan}}\ignorespaces}
@@ -469,6 +469,8 @@
         \renewcommand{\True}{\ifnum\chType=0\setcounter{numTrueSol}{\thedapan}\setcounter{numTrue}{\thedapan}\fi}
     \fi
 }
+
+\AtBeginEnvironment{ex}{\SetExEnvironmentOptions}
 
 \NewEnviron{loigiai}{%
     \ifshowsolutions
