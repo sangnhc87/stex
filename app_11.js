@@ -638,6 +638,23 @@ function main() {
 
             consoleOutput.innerHTML = r.log.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
             if (r.status === 0 && r.pdf) {
+                // === PDF Download Handler ===
+                const pdfBlob = new Blob([r.pdf], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                const downloadBtn = document.getElementById('download-pdf-btn');
+
+                if (downloadBtn) {
+                    downloadBtn.disabled = false;
+                    downloadBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = pdfUrl;
+                        link.download = 'output.pdf';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
+                }
+
                 // === PDF.js Rendering ===
                 const pdfData = r.pdf;
                 const loadingTask = pdfjsLib.getDocument({ data: pdfData });
