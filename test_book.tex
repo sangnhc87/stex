@@ -78,6 +78,28 @@
     {\begin{tcbox}{#1}{#2}}
     {\end{tcbox}}
 
+% Helper to initialize ex-like behavior
+\newcommand{\InitPremiumEx}{
+    \setcounter{dapan}{0}
+    \setcounter{numTrueSol}{0}
+    \gdef\saveFileAns{}
+    \gdef\keyEX{}
+    \gdef\chType{0}
+    \def\dotEX{.}
+    \SetExEnvironmentOptions
+}
+
+% Helper to finish ex-like behavior (write answers, reset)
+\newcommand{\FinishPremiumEx}{
+    \ifthenelse{\equal{\saveFileAns}{}}{}{
+        \Writetofile{ans}{\string\begin{Solution}{\thetcbcounter}}
+        \Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
+    }
+    \setcounter{numTrueSol}{0}
+    \setcounter{numTrue}{0}
+    \gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}
+}
+
 % 4. Bai Tap (bt) - Robust Wrapper Strategy
 % Defines an inner theorem (compatible with loigiai) and wraps it.
 \newtheorem{innerbt}{Bài tập}[section]
@@ -115,47 +137,9 @@
     {\begin{innervd}[#1]\label{#2}\InitPremiumEx}
     {\FinishPremiumEx\end{innervd}}
 
-% Helper to initialize ex-like behavior
-\newcommand{\InitPremiumEx}{
-    \setcounter{dapan}{0}
-    \setcounter{numTrueSol}{0}
-    \gdef\saveFileAns{}
-    \gdef\keyEX{}
-    \gdef\chType{0}
-    \def\dotEX{.}
-    \SetExEnvironmentOptions
-}
 
-% Helper to finish ex-like behavior (write answers, reset)
-\newcommand{\FinishPremiumEx}{
-    \ifthenelse{\equal{\saveFileAns}{}}{}{
-        \Writetofile{ans}{\string\begin{Solution}{\thetcbcounter}}
-        \Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
-    }
-    \setcounter{numTrueSol}{0}
-    \setcounter{numTrue}{0}
-    \gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}
-}
 
-\newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
-    premiumbox=mainColor,
-    title={\textbf{Bài tập~\thetcbcounter:} #2},
-    label={#3},
-    #1
-}
-\DeclareDocumentEnvironment{bt}{ m m }
-{\begin{bt_inner}{#1}{#2}\InitPremiumEx}
-{\FinishPremiumEx\end{bt_inner}}
 
-\newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
-    premiumbox=secondColor,
-    title={\textbf{Ví dụ~\thetcbcounter:} #2},
-    label={#3},
-    #1
-}
-\DeclareDocumentEnvironment{vd}{ m m }
-{\begin{vd_inner}{#1}{#2}\InitPremiumEx}
-{\FinishPremiumEx\end{vd_inner}}
 
 % Note (No counter)
 \DeclareDocumentEnvironment{note}{ }
