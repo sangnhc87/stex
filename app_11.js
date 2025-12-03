@@ -708,6 +708,10 @@ function main() {
                     toolbar.className = 'pdf-toolbar';
                     toolbar.innerHTML = `
                         <button id="pdf-toggle-sidebar" title="Toggle Sidebar"><i class="fas fa-bars"></i></button>
+                        <div class="pdf-search-box">
+                            <i class="fas fa-search pdf-search-icon"></i>
+                            <input type="text" id="pdf-search-input" class="pdf-search-input" placeholder="Tìm kiếm...">
+                        </div>
                         <div class="spacer"></div>
                         <button id="pdf-zoom-out" title="Zoom Out"><i class="fas fa-minus"></i></button>
                         <span id="pdf-scale-display" style="font-size: 13px; min-width: 50px; text-align: center;">100%</span>
@@ -770,11 +774,27 @@ function main() {
                                 ? [outputScale, 0, 0, outputScale, 0, 0]
                                 : null;
 
-                            // Render
-                            page.render({
+                            // Render Canvas
+                            const renderContext = {
                                 canvasContext: canvas.getContext('2d'),
                                 viewport: viewport,
                                 transform: transform
+                            };
+                            await page.render(renderContext).promise;
+
+                            // --- Render Text Layer (For Selection & Search) ---
+                            const textLayerDiv = document.createElement('div');
+                            textLayerDiv.className = 'textLayer';
+                            textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
+                            textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+                            pageContainer.appendChild(textLayerDiv);
+
+                            const textContent = await page.getTextContent();
+                            pdfjsLib.renderTextLayer({
+                                textContent: textContent,
+                                container: textLayerDiv,
+                                viewport: viewport,
+                                textDivs: []
                             });
                         }
                     };
@@ -799,6 +819,19 @@ function main() {
                     document.getElementById('pdf-toggle-sidebar').onclick = () => {
                         sidebar.classList.toggle('collapsed');
                     };
+
+                    // Search Functionality (Simple Browser Find)
+                    const searchInput = document.getElementById('pdf-search-input');
+                    searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const query = searchInput.value;
+                            if (query) {
+                                // Use browser's native find
+                                window.find(query, false, false, true, false, true, false);
+                            }
+                        }
+                    });
 
                     // 4. Load Outline (Table of Contents)
                     const outline = await pdf.getOutline();
