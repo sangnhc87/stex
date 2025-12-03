@@ -13,13 +13,14 @@
 % ==================================================
 % === PREMIUM DESIGN DEFINITIONS ===
 % ==================================================
-\usepackage{xparse} % Required for \NewDocumentEnvironment
+\usepackage{xparse}
 \usepackage{tcolorbox}
 \tcbuselibrary{skins,breakable,hooks,raster}
 \usepackage{tikz}
-\usetikzlibrary{positioning,calc} % Required for section styling
+\usetikzlibrary{positioning,calc}
 \usepackage[explicit]{titlesec}
 \usepackage{fontawesome}
+\usepackage{amssymb} % Required for \mathbb
 
 % Colors
 \definecolor{mainColor}{HTML}{005f73}
@@ -42,90 +43,96 @@
 }
 
 % Define Environments explicitly
-\let\dn\relax \let\enddn\relax
+% Using DeclareDocumentEnvironment to handle both new and renew cases
 \newtcolorbox[auto counter, number within=section]{dn_inner}[3][]{
     premiumbox=secondColor,
     title={\textbf{Định nghĩa~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\NewDocumentEnvironment{dn}{ m m }
+\DeclareDocumentEnvironment{dn}{ m m }
 {\begin{dn_inner}{#1}{#2}}
 {\end{dn_inner}}
 
-\let\dl\relax \let\enddl\relax
 \newtcolorbox[auto counter, number within=section]{dl_inner}[3][]{
     premiumbox=mainColor,
     title={\textbf{Định lý~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\NewDocumentEnvironment{dl}{ m m }
+\DeclareDocumentEnvironment{dl}{ m m }
 {\begin{dl_inner}{#1}{#2}}
 {\end{dl_inner}}
 
-\let\tc\relax \let\endtc\relax
 \newtcolorbox[auto counter, number within=section]{tc_inner}[3][]{
     premiumbox=accentColor!80!black,
     title={\textbf{Tính chất~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\NewDocumentEnvironment{tc}{ m m }
+\DeclareDocumentEnvironment{tc}{ m m }
 {\begin{tc_inner}{#1}{#2}}
 {\end{tc_inner}}
 
-\let\bt\relax \let\endbt\relax
 \newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
     premiumbox=mainColor,
     title={\textbf{Bài tập~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\NewDocumentEnvironment{bt}{ m m }
+\DeclareDocumentEnvironment{bt}{ m m }
 {\begin{bt_inner}{#1}{#2}}
 {\end{bt_inner}}
 
-\let\vd\relax \let\endvd\relax
 \newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
     premiumbox=secondColor,
     title={\textbf{Ví dụ~\thetcbcounter:} #2},
     label={#3},
     #1
 }
-\NewDocumentEnvironment{vd}{ m m }
+\DeclareDocumentEnvironment{vd}{ m m }
 {\begin{vd_inner}{#1}{#2}}
 {\end{vd_inner}}
 
 % Note (No counter)
-\let\note\relax \let\endnote\relax
-\newtcolorbox{note}{
-    enhanced,
-    colback=highlightColor!10,
-    colframe=alertColor,
-    borderline west={4pt}{0pt}{alertColor},
-    frame hidden,
-    left=10pt,
-    title={\textbf{\faExclamationTriangle\ Chú ý}},
-    coltitle=alertColor,
-    attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxed title style={empty, boxsep=0pt},
-    fonttitle=\bfseries
+\DeclareDocumentEnvironment{note}{ }
+{
+    \begin{tcolorbox}[
+        enhanced,
+        colback=highlightColor!10,
+        colframe=alertColor,
+        borderline west={4pt}{0pt}{alertColor},
+        frame hidden,
+        left=10pt,
+        title={\textbf{\faExclamationTriangle\ Chú ý}},
+        coltitle=alertColor,
+        attach boxed title to top left={yshift=-2mm, xshift=2mm},
+        boxed title style={empty, boxsep=0pt},
+        fonttitle=\bfseries
+    ]
+}
+{
+    \end{tcolorbox}
 }
 
 % Dang toan (No counter, custom title)
-\let\dang\relax \let\enddang\relax
-\newtcolorbox{dang}[1][]{
-    enhanced,
-    colback=white,
-    colframe=mainColor,
-    fonttitle=\bfseries\large,
-    title={#1},
-    attach boxed title to top left={yshift=-2mm, xshift=2mm},
-    boxed title style={colback=mainColor, sharp corners},
-    sharp corners,
-    top=4mm,
-    drop fuzzy shadow
+\DeclareDocumentEnvironment{dang}{ O{} }
+{
+    \begin{tcolorbox}[
+        enhanced,
+        colback=white,
+        colframe=mainColor,
+        fonttitle=\bfseries\large,
+        title={#1},
+        attach boxed title to top left={yshift=-2mm, xshift=2mm},
+        boxed title style={colback=mainColor, sharp corners},
+        sharp corners,
+        top=4mm,
+        drop fuzzy shadow
+    ]
+}
+{
+    \end{tcolorbox}
 }
 
 % Section Styling
