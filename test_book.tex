@@ -3,8 +3,7 @@
 \usepackage[hidelinks,unicode]{hyperref}
 \usepackage[dethi]{ex_test} 
 \input{khaibao.tex}
-% \hienloigiai
-% \anloigiai 
+\anloigiai
 \usepackage{polyglossia}
 \setmainlanguage{vietnamese}
 \usepackage{fontspec}
@@ -20,7 +19,10 @@
 \usetikzlibrary{positioning,calc}
 \usepackage[explicit]{titlesec}
 \usepackage{fontawesome}
-\usepackage{amssymb} % Required for \mathbb
+\usepackage{amssymb}
+
+% Compatibility for choiceTFt if not defined
+\providecommand{\choiceTFt}{\choiceTF}
 
 % Colors
 \definecolor{mainColor}{HTML}{005f73}
@@ -42,8 +44,27 @@
     }
 }
 
-% Define Environments explicitly
-% Using \renewenvironment as requested for better compatibility
+% Helper to initialize ex-like behavior
+\newcommand{\InitPremiumEx}{
+    \setcounter{dapan}{0}
+    \setcounter{numTrueSol}{0}
+    \gdef\saveFileAns{}
+    \gdef\keyEX{}
+    \gdef\chType{0}
+    \def\dotEX{.}
+    \SetExEnvironmentOptions
+}
+
+% Helper to finish ex-like behavior (write answers, reset)
+\newcommand{\FinishPremiumEx}{
+    \ifthenelse{\equal{\saveFileAns}{}}{}{
+        \Writetofile{ans}{\string\begin{Solution}{\thetcbcounter}}
+        \Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
+    }
+    \setcounter{numTrueSol}{0}
+    \setcounter{numTrue}{0}
+    \gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}
+}
 
 % 1. Dinh Nghia (dn)
 \newtcolorbox[auto counter, number within=section]{dnbox}[3][]{
@@ -78,38 +99,13 @@
     {\begin{tcbox}{#1}{#2}}
     {\end{tcbox}}
 
-% Helper to initialize ex-like behavior
-\newcommand{\InitPremiumEx}{
-    \setcounter{dapan}{0}
-    \setcounter{numTrueSol}{0}
-    \gdef\saveFileAns{}
-    \gdef\keyEX{}
-    \gdef\chType{0}
-    \def\dotEX{.}
-    \SetExEnvironmentOptions
-}
-
-% Helper to finish ex-like behavior (write answers, reset)
-\newcommand{\FinishPremiumEx}{
-    \ifthenelse{\equal{\saveFileAns}{}}{}{
-        \Writetofile{ans}{\string\begin{Solution}{\thetcbcounter}}
-        \Writetofile{ans}{\saveFileAns^^J\string\end{Solution}}
-    }
-    \setcounter{numTrueSol}{0}
-    \setcounter{numTrue}{0}
-    \gdef\saveFileAns{}\gdef\keyEX{}\gdef\chType{0}
-}
-
 % 4. Bai Tap (bt) - Robust Wrapper Strategy
-% Defines an inner theorem (compatible with loigiai) and wraps it.
 \newtheorem{innerbt}{Bài tập}[section]
 \tcolorboxenvironment{innerbt}{
     enhanced,
     colback=white,
     colframe=mainColor,
     fonttitle=\bfseries,
-    title={Bài tập~\theinnerbt}, % Fallback title if needed, but usually inline
-    % To hide the tcolorbox title and use the theorem's inline title:
     title={}, 
     boxed title style={empty},
     top=10pt,
@@ -136,10 +132,6 @@
 \NewDocumentEnvironment{vd}{ m m }
     {\begin{innervd}[#1]\label{#2}\InitPremiumEx}
     {\FinishPremiumEx\end{innervd}}
-
-
-
-
 
 % Note (No counter)
 \DeclareDocumentEnvironment{note}{ }
@@ -223,9 +215,11 @@
   }
 
 \begin{document}
+\pagestyle{fancy} 
+\tieude{\pageref{LastPage}}{0}{\made} 
+\chantrang{\pageref{LastPage}}{\made}
 
-\section{Chương 1: Hàm Số Lũy Thừa}
-\subsection{Lý thuyết cơ bản}
+\section{Chương 1: Hàm Số Lũy Thừa (Premium Design)}
 
 \begin{dn}{Hàm số lũy thừa}{dn:luythua}
     Hàm số $y=x^\alpha$ với $\alpha \in \mathbb{R}$ được gọi là hàm số lũy thừa.
@@ -235,13 +229,11 @@
     $(x^\alpha)' = \alpha x^{\alpha-1}$.
 \end{dl}
 
-\subsection{Bài tập vận dụng}
-
 \begin{vd}{Tìm tập xác định}{}
     Tìm tập xác định của hàm số $y=(x-1)^{\frac{1}{3}}$.
 \end{vd}
 
-\begin{bt}{Tính đạo hàm}{}
+\begin{bt}{Tính đạo hàm (Có trắc nghiệm)}{}
     Tính đạo hàm của $y=x^{\pi}$.
     \choiceTF
 	{$\dfrac{9}{\sqrt{35}}$}
@@ -255,15 +247,68 @@
 	}
 \end{bt}
 
-\section{Chương 2: Mũ và Logarit}
-\subsection{Phương trình mũ}
+\section{Đề Thi Mẫu (Standard ex)}
 
-\begin{dang}[Phương trình cơ bản]
-    $a^x = b \Leftrightarrow x = \log_a b$.
-\end{dang}
+\subsection{Phần I: Trắc nghiệm nhiều lựa chọn}
+\caulc
+\Opensolutionfile{ans}[ans-phanI]
 
-\begin{note}
-    Điều kiện: $0 < a \ne 1, b > 0$.
-\end{note}
+\begin{ex}
+Phương trình tiệm cận đứng của đồ thị hàm số $y=\dfrac{x+1}{x+2}$ là:
+\choice
+    {$x=-1$}
+    {\True $x=-2$}
+    {$x=2$}
+    {$y=1$}
+\loigiai{
+Ta có $\displaystyle \lim_{x\to -2^+}\frac{x+1}{x+2} = -\infty$, nên $x=-2$ là tiệm cận đứng.
+}
+\end{ex}
+\Closesolutionfile{ans}
+
+\subsection{Phần II: Trắc nghiệm đúng sai}
+\cauds
+\Opensolutionfile{ans}[ans-phanII]
+
+\begin{ex}
+Phương trình tiệm cận đứng của đồ thị hàm số $y=\dfrac{x+1}{x+2}$ là:
+\choiceTFt
+    {$x=-1$}
+    {\True $x=-2$}
+    {$x=2$}
+    {$y=1$}
+\loigiai{
+Ta có $\displaystyle \lim_{x\to -2^+}\frac{x+1}{x+2} = -\infty$, nên $x=-2$ là tiệm cận đứng.
+}
+\end{ex}
+\Closesolutionfile{ans}
+
+\subsection{Phần III: Trả lời ngắn}
+\caukq
+\Opensolutionfile{ans}[ans-phanIII]
+
+\begin{ex}
+Biết hàm số $f(x)=\dfrac{4x^2 + 6x + 4}{(x + 7)(x + 10)}$ có nguyên hàm $F(x)=mx + n\ln|x + 7| + p\ln|x + 10| + C$. Tính giá trị $m + n + p$, làm tròn đến phần nguyên.
+\shortans[oly]{$-58$}
+\loigiai{
+    Ta có:
+    \[
+    \int \dfrac{4x^2 + 6x + 4}{(x + 7)(x + 10)} \, dx = 4 x + \frac{158}{3} \ln|x + 7| - \frac{344}{3} \ln|x + 10| + C
+    \]
+    Do đó $m=4, n = \frac{158}{3}, p = -\frac{344}{3}$.
+    Tổng $m + n + p = 4 + \frac{158}{3} - \frac{344}{3} = 4 - \frac{186}{3} = 4-62=-58$.
+}
+\end{ex}
+\Closesolutionfile{ans}
+
+\section*{BẢNG ĐÁP ÁN}
+\noindent\textbf{A. ĐÁP ÁN PHẦN I}
+\inputansbox{10}{ans-phanI}
+
+\noindent\textbf{B. ĐÁP ÁN PHẦN II}
+\inputansbox{2}{ans-phanII}
+
+\noindent\textbf{C. ĐÁP ÁN PHẦN III}
+\inputansbox{2}{ans-phanIII}
 
 \end{document}
