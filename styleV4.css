@@ -284,41 +284,88 @@
 }
 
 /* ================================================= */
-/* === MODERN PDF VIEWER STYLES                  === */
+/* === MODERN PDF VIEWER STYLES (Colorful & Pro) === */
 /* ================================================= */
 .pdf-viewer-app {
     display: flex;
     flex-direction: column;
     height: 100%;
     background-color: #525659;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .pdf-toolbar {
     display: flex;
     align-items: center;
-    padding: 8px;
-    background-color: #323639;
+    padding: 8px 15px;
+    /* Gradient Background for "Colorful" look */
+    background: linear-gradient(90deg, #2c3e50 0%, #4ca1af 100%);
     color: white;
-    border-bottom: 1px solid #000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 10;
 }
 
 .pdf-toolbar button {
-    background: none;
-    border: none;
-    color: #f1f1f1;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
     cursor: pointer;
-    padding: 5px 10px;
+    padding: 6px 12px;
     font-size: 14px;
+    border-radius: 4px;
+    margin-right: 5px;
+    transition: all 0.2s;
 }
 
 .pdf-toolbar button:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-toolbar button:active {
+    transform: translateY(0);
 }
 
 .pdf-toolbar .spacer {
     flex: 1;
+}
+
+/* Search Box Style */
+.pdf-search-box {
+    position: relative;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.pdf-search-input {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 6px 15px 6px 35px;
+    color: white;
+    outline: none;
+    width: 150px;
+    transition: all 0.3s;
+}
+
+.pdf-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.pdf-search-input:focus {
+    background: rgba(255, 255, 255, 0.25);
+    width: 200px;
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.pdf-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
 }
 
 .pdf-body {
@@ -330,8 +377,8 @@
 
 .pdf-sidebar {
     width: 250px;
-    background-color: #f1f1f1;
-    border-right: 1px solid #ccc;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
     transition: margin-left 0.3s ease;
@@ -342,10 +389,14 @@
 }
 
 .pdf-sidebar-header {
-    padding: 10px;
+    padding: 12px;
     font-weight: bold;
-    background-color: #e0e0e0;
-    border-bottom: 1px solid #ccc;
+    background-color: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+    color: #495057;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
 }
 
 .pdf-sidebar-content {
@@ -355,26 +406,29 @@
 }
 
 .pdf-outline-item {
-    padding: 5px;
+    padding: 8px 10px;
     cursor: pointer;
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 14px;
+    color: #333;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    transition: background-color 0.2s;
 }
 
 .pdf-outline-item:hover {
-    background-color: #ddd;
+    background-color: #e2e6ea;
+    color: var(--color-primary);
 }
 
 .pdf-outline-children {
     margin-left: 15px;
+    border-left: 1px solid #dee2e6;
 }
 
 .pdf-main-view {
     flex: 1;
     overflow: auto;
-    padding: 20px;
+    padding: 30px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -382,11 +436,45 @@
 }
 
 .pdf-page-container {
-    margin-bottom: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    /* Deep shadow for depth */
     background-color: white;
+    position: relative;
+    /* For TextLayer */
 }
 
 .pdf-page-canvas {
     display: block;
+}
+
+/* --- TEXT LAYER (CRITICAL FOR SEARCH) --- */
+.textLayer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    opacity: 0.2;
+    /* Make text selectable but invisible-ish */
+    line-height: 1.0;
+}
+
+.textLayer>span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+/* Highlight for search results (if we implement custom highlighting) */
+.textLayer .highlight {
+    background-color: rgba(255, 255, 0, 0.5);
+    border-radius: 2px;
+}
+
+::selection {
+    background: rgba(0, 0, 255, 0.3);
 }
