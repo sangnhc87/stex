@@ -1,10 +1,10 @@
 \documentclass{article}
 \usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=1.5cm]{geometry}
 \usepackage[hidelinks,unicode]{hyperref}
-% \usepackage[dethi]{ex_test} % Commented out to avoid conflicts/errors if package is broken
+% \usepackage[dethi]{ex_test} 
 \input{khaibao.tex}
 % \hienloigiai
-% \anloigiai % Commented out as it depends on ex_test
+% \anloigiai 
 \usepackage{polyglossia}
 \setmainlanguage{vietnamese}
 \usepackage{fontspec}
@@ -13,8 +13,11 @@
 % ==================================================
 % === PREMIUM DESIGN DEFINITIONS ===
 % ==================================================
+\usepackage{xparse} % Required for \NewDocumentEnvironment
 \usepackage{tcolorbox}
 \tcbuselibrary{skins,breakable,hooks,raster}
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc} % Required for section styling
 \usepackage[explicit]{titlesec}
 \usepackage{fontawesome}
 
