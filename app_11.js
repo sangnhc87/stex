@@ -972,64 +972,9 @@ function main() {
                     </div>
                 `;
 
-                await Swal.fire({
-                    title: 'Admin Dashboard',
-                    html: html,
-                    width: '90%',
-                    maxWidth: '1200px',
-                    showConfirmButton: false,
-                    showCloseButton: true,
-                    didOpen: () => {
-                        filterAdminUsers(); // Initial filter & render
-                    }
-                });
+                // --- HELPER FUNCTIONS (Moved to top for scope availability) ---
 
-                // --- HELPER FUNCTIONS ---
-
-                // 1. Filter Logic
-                window.filterAdminUsers = () => {
-                    const searchText = document.getElementById('adminSearch').value.toLowerCase();
-                    const statusFilter = document.getElementById('filterStatus').value;
-                    const roleFilter = document.getElementById('filterRole').value;
-
-                    window.adminState.filteredUsers = window.adminState.users.filter(u => {
-                        const matchesSearch = u.email.toLowerCase().includes(searchText);
-                        const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
-                        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-                        return matchesSearch && matchesStatus && matchesRole;
-                    });
-
-                    // Reset to page 1 on filter change
-                    window.adminState.currentPage = 1;
-                    sortAdminUsers(); // Sort and Render
-                };
-
-                // 2. Sort Logic
-                window.sortAdminUsers = (field = window.adminState.sortField) => {
-                    if (field === window.adminState.sortField) {
-                        // Toggle order if clicking same field
-                        window.adminState.sortOrder = window.adminState.sortOrder === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        // New field, default to asc
-                        window.adminState.sortField = field;
-                        window.adminState.sortOrder = 'asc';
-                    }
-
-                    const { sortField, sortOrder } = window.adminState;
-
-                    window.adminState.filteredUsers.sort((a, b) => {
-                        let valA = a[sortField] || '';
-                        let valB = b[sortField] || '';
-
-                        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-                        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-                        return 0;
-                    });
-
-                    renderAdminTable();
-                };
-
-                // 3. Render Logic (with Pagination)
+                // 1. Render Logic (with Pagination)
                 window.renderAdminTable = () => {
                     try {
                         const container = document.getElementById('adminTableContainer');
@@ -1147,7 +1092,50 @@ function main() {
                     }
                 };
 
-                // Pagination Helper
+                // 2. Sort Logic
+                window.sortAdminUsers = (field = window.adminState.sortField) => {
+                    if (field === window.adminState.sortField) {
+                        // Toggle order if clicking same field
+                        window.adminState.sortOrder = window.adminState.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        // New field, default to asc
+                        window.adminState.sortField = field;
+                        window.adminState.sortOrder = 'asc';
+                    }
+
+                    const { sortField, sortOrder } = window.adminState;
+
+                    window.adminState.filteredUsers.sort((a, b) => {
+                        let valA = a[sortField] || '';
+                        let valB = b[sortField] || '';
+
+                        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+
+                    renderAdminTable();
+                };
+
+                // 3. Filter Logic
+                window.filterAdminUsers = () => {
+                    const searchText = document.getElementById('adminSearch').value.toLowerCase();
+                    const statusFilter = document.getElementById('filterStatus').value;
+                    const roleFilter = document.getElementById('filterRole').value;
+
+                    window.adminState.filteredUsers = window.adminState.users.filter(u => {
+                        const matchesSearch = u.email.toLowerCase().includes(searchText);
+                        const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
+                        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+                        return matchesSearch && matchesStatus && matchesRole;
+                    });
+
+                    // Reset to page 1 on filter change
+                    window.adminState.currentPage = 1;
+                    sortAdminUsers(); // Sort and Render
+                };
+
+                // 4. Pagination Helper
                 window.changePage = (delta) => {
                     const newPage = window.adminState.currentPage + delta;
                     const totalPages = Math.ceil(window.adminState.filteredUsers.length / window.adminState.itemsPerPage);
@@ -1157,7 +1145,7 @@ function main() {
                     }
                 };
 
-                // Expose helper globally
+                // 5. Update Helper
                 window.updateUser = async (uid, field, value) => {
                     try {
                         // If approving, ask for expiration date if not set
@@ -1195,6 +1183,18 @@ function main() {
                         Swal.fire('Lỗi', e.message, 'error');
                     }
                 };
+
+                await Swal.fire({
+                    title: 'Admin Dashboard',
+                    html: html,
+                    width: '90%',
+                    maxWidth: '1200px',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    didOpen: () => {
+                        filterAdminUsers(); // Initial filter & render
+                    }
+                });
 
             } catch (e) {
                 console.error(e);
