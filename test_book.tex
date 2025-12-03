@@ -78,38 +78,42 @@
     {\begin{tcbox}{#1}{#2}}
     {\end{tcbox}}
 
-% 4. Bai Tap (bt) - Defined as Theorem (like ex)
-% This ensures loigiai works correctly.
-\newtheorem{bt}{Bài tập}[section]
-\AtBeginEnvironment{bt}{\InitPremiumEx}
-\AtEndEnvironment{bt}{\FinishPremiumEx}
-
-\tcolorboxenvironment{bt}{
+% 4. Bai Tap (bt) - Robust Wrapper Strategy
+% Defines an inner theorem (compatible with loigiai) and wraps it.
+\newtheorem{innerbt}{Bài tập}[section]
+\tcolorboxenvironment{innerbt}{
     enhanced,
     colback=white,
     colframe=mainColor,
     fonttitle=\bfseries,
-    title={Bài tập~\thebt}, % Simple title for the wrapper
-    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
-    boxed title style={colback=mainColor, rounded corners},
+    title={Bài tập~\theinnerbt}, % Fallback title if needed, but usually inline
+    % To hide the tcolorbox title and use the theorem's inline title:
+    title={}, 
+    boxed title style={empty},
+    top=10pt,
     drop fuzzy shadow
 }
 
-% 5. Vi Du (vd) - Defined as Theorem (like ex)
-\newtheorem{vd}{Ví dụ}[section]
-\AtBeginEnvironment{vd}{\InitPremiumEx}
-\AtEndEnvironment{vd}{\FinishPremiumEx}
+\NewDocumentEnvironment{bt}{ m m }
+    {\begin{innerbt}[#1]\label{#2}\InitPremiumEx}
+    {\FinishPremiumEx\end{innerbt}}
 
-\tcolorboxenvironment{vd}{
+% 5. Vi Du (vd) - Robust Wrapper Strategy
+\newtheorem{innervd}{Ví dụ}[section]
+\tcolorboxenvironment{innervd}{
     enhanced,
     colback=white,
     colframe=secondColor,
     fonttitle=\bfseries,
-    title={Ví dụ~\thevd},
-    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
-    boxed title style={colback=secondColor, rounded corners},
+    title={},
+    boxed title style={empty},
+    top=10pt,
     drop fuzzy shadow
 }
+
+\NewDocumentEnvironment{vd}{ m m }
+    {\begin{innervd}[#1]\label{#2}\InitPremiumEx}
+    {\FinishPremiumEx\end{innervd}}
 
 % Helper to initialize ex-like behavior
 \newcommand{\InitPremiumEx}{
