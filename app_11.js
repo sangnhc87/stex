@@ -661,300 +661,373 @@ function main() {
                 const pdf = await loadingTask.promise;
 
                 pdfbox.innerHTML = ''; // Clear previous content
-                const container = document.createElement('div');
-                container.style.overflow = 'auto';
-                container.style.height = '100%';
-                container.style.position = 'relative';
 
-                // Apply distinct style based on page
+                // Check which view to use
                 if (window.location.pathname.includes('index_11.html')) {
-                    container.classList.add('pdf-view-classic'); // Standard view
-                } else {
-                    container.classList.add('pdf-view-modern'); // "Different angle" view for index.html
-                }
+                    // === CLASSIC VIEW (Simple Scroll) ===
+                    const container = document.createElement('div');
+                    container.classList.add('pdf-view-classic');
+                    container.style.overflow = 'auto';
+                    container.style.height = '100%';
+                    pdfbox.appendChild(container);
 
-                pdfbox.appendChild(container);
-
-                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                    const page = await pdf.getPage(pageNum);
-                    // Use a higher scale for better quality, or window.devicePixelRatio
-                    const scale = 2.5;
-                    const viewport = page.getViewport({ scale });
-
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    canvas.style.display = 'block';
-                    canvas.style.marginBottom = '10px';
-                    canvas.style.border = '1px solid #ccc';
-                    canvas.style.width = '100%'; // Fit to container
-                    canvas.style.height = 'auto'; // Maintain aspect ratio
-
-                    // SyncTeX Click Handler
-                    if (window.ENABLE_SYNCTEX) {
-                        canvas.addEventListener('click', async (e) => {
-                            const rect = canvas.getBoundingClientRect();
-                            const x = (e.clientX - rect.left) * (viewport.width / rect.width); // Scale to canvas coords
-                            const y = (e.clientY - rect.top) * (viewport.height / rect.height);
-
-                            // Convert to points (PDF coordinates are usually 72 DPI)
-                            // PDF.js viewport is already scaled. We need coordinates relative to the unscaled PDF page?
-                            // Actually, SyncTeX expects coordinates in points from top-left.
-                            // viewport.width is (page width in points) * scale.
-                            // So x / scale should be points.
-
-                            const pdfX = x / scale;
-                            const pdfY = y / scale;
-
-                            console.log(`SyncTeX Click: Page ${pageNum}, x=${pdfX}, y=${pdfY}`);
-
-                            try {
-                                const res = await fetch(`${BACKEND_API_URL}/api/synctex/edit?session_id=${globalEn.sessionId}&page=${pageNum}&x=${pdfX}&y=${pdfY}`);
-                                const data = await res.json();
-
-                                if (data.file && data.line) {
-                                    console.log("SyncTeX Match:", data);
-                                    // Open file and jump to line
-                                    await openFileInEditor(data.file);
-                                    editorEl.gotoLine(data.line, 0, true);
-                                    editorEl.focus();
-                                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Jumped to ${data.file}:${data.line}`, showConfirmButton: false, timer: 1000 });
-                                } else {
-                                    console.warn("SyncTeX: No match found");
-                                }
-                            } catch (err) {
-                                console.error("SyncTeX Error:", err);
-                            }
-                        });
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const scale = 1.5;
+                        const viewport = page.getViewport({ scale });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        canvas.style.display = 'block';
+                        canvas.style.marginBottom = '10px';
+                        canvas.style.border = '1px solid #ccc';
+                        container.appendChild(canvas);
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
                     }
 
-                    container.appendChild(canvas);
+                } else {
+                    // === RICH MODERN VIEW (Toolbar + Sidebar + Zoom) ===
+                    // 1. Build UI Structure
+                    const appDiv = document.createElement('div');
+                    appDiv.className = 'pdf-viewer-app';
 
-                    const renderContext = {
-                        canvasContext: context,
-                        viewport: viewport
+                    // Toolbar
+                    const toolbar = document.createElement('div');
+                    toolbar.className = 'pdf-toolbar';
+                    toolbar.innerHTML = `
+                        <button id="pdf-toggle-sidebar" title="Toggle Sidebar"><i class="fas fa-bars"></i></button>
+                        <div class="spacer"></div>
+                        <button id="pdf-zoom-out" title="Zoom Out"><i class="fas fa-minus"></i></button>
+                        <span id="pdf-scale-display" style="font-size: 13px; min-width: 50px; text-align: center;">100%</span>
+                        <button id="pdf-zoom-in" title="Zoom In"><i class="fas fa-plus"></i></button>
+                    `;
+                    appDiv.appendChild(toolbar);
+
+                    // Body
+                    const body = document.createElement('div');
+                    body.className = 'pdf-body';
+
+                    // Sidebar
+                    const sidebar = document.createElement('div');
+                    sidebar.className = 'pdf-sidebar';
+                    sidebar.innerHTML = `
+                        <div class="pdf-sidebar-header">Table of Contents</div>
+                        <div class="pdf-sidebar-content" id="pdf-outline-container"></div>
+                    `;
+                    body.appendChild(sidebar);
+
+                    // Main View
+                    const mainView = document.createElement('div');
+                    mainView.className = 'pdf-main-view';
+                    body.appendChild(mainView);
+
+                    appDiv.appendChild(body);
+                    pdfbox.appendChild(appDiv);
+
+                    // 2. State & Logic
+                    let currentScale = 1.0;
+
+                    const renderPages = async () => {
+                        mainView.innerHTML = ''; // Clear pages
+                        document.getElementById('pdf-scale-display').textContent = `${Math.round(currentScale * 100)}%`;
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: currentScale });
+
+                            const pageContainer = document.createElement('div');
+                            pageContainer.className = 'pdf-page-container';
+                            pageContainer.style.width = `${viewport.width}px`;
+                            pageContainer.style.height = `${viewport.height}px`;
+                            pageContainer.dataset.pageNumber = pageNum; // For linking
+
+                            const canvas = document.createElement('canvas');
+                            canvas.className = 'pdf-page-canvas';
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            pageContainer.appendChild(canvas);
+                            mainView.appendChild(pageContainer);
+
+                            // Render
+                            page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+                        }
                     };
-                    await page.render(renderContext).promise;
-                }
 
-            } else {
-                pdfbox.innerHTML = `<div class="error-display">Biên dịch thất bại.</div>`;
-            }
+                    // Initial Render
+                    await renderPages();
+
+                    // 3. Event Handlers
+                    // Zoom
+                    document.getElementById('pdf-zoom-in').onclick = () => {
+                        currentScale += 0.25;
+                        renderPages();
+                    };
+                    document.getElementById('pdf-zoom-out').onclick = () => {
+                        if (currentScale > 0.5) {
+                            currentScale -= 0.25;
+                            renderPages();
+                        }
+                    };
+
+                    // Sidebar Toggle
+                    document.getElementById('pdf-toggle-sidebar').onclick = () => {
+                        sidebar.classList.toggle('collapsed');
+                    };
+
+                    // 4. Load Outline (Table of Contents)
+                    const outline = await pdf.getOutline();
+                    const outlineContainer = document.getElementById('pdf-outline-container');
+
+                    if (outline && outline.length > 0) {
+                        const renderOutlineItem = (items, container) => {
+                            items.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'pdf-outline-item';
+                                div.textContent = item.title;
+                                div.title = item.title;
+
+                                // Click to jump
+                                div.onclick = async () => {
+                                    if (item.dest) {
+                                        const dest = typeof item.dest === 'string' ? await pdf.getDestination(item.dest) : item.dest;
+                                        if (dest) {
+                                            const pageRef = dest[0];
+                                            const pageIndex = await pdf.getPageIndex(pageRef);
+                                            const pageNum = pageIndex + 1;
+                                            // Scroll to page
+                                            const targetPage = mainView.querySelector(`[data-page-number="${pageNum}"]`);
+                                            if (targetPage) targetPage.scrollIntoView({ behavior: 'smooth' });
+                                        }
+                                    }
+                                };
+                                container.appendChild(div);
+
+                                if (item.items && item.items.length > 0) {
+                                    const childrenDiv = document.createElement('div');
+                                    childrenDiv.className = 'pdf-outline-children';
+                                    renderOutlineItem(item.items, childrenDiv);
+                                    container.appendChild(childrenDiv);
+                                }
+
+                            } else {
+                                pdfbox.innerHTML = `<div class="error-display">Biên dịch thất bại.</div>`;
+                            }
         } catch (error) {
-            pdfbox.innerHTML = `<div class="error-display">Lỗi client: ${error.message}</div>`;
-        } finally {
-            loadingOverlay.style.display = 'none';
-            compileBtn.disabled = false;
-            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
-        }
-    }
+                            pdfbox.innerHTML = `<div class="error-display">Lỗi client: ${error.message}</div>`;
+                        } finally {
+                            loadingOverlay.style.display = 'none';
+                            compileBtn.disabled = false;
+                            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
+                        }
+                    }
 
-    async function init() {
+                    async function init() {
 
-        // --- BƯỚC 1: Cấu hình Editor và Theme ---
-        const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
-        const themeSelector = document.getElementById('theme-selector');
-        if (themeSelector) themeSelector.value = savedTheme;
-        editorEl.setTheme(`ace/theme/${savedTheme}`);
-        editorEl.session.setMode("ace/mode/latex");
+                        // --- BƯỚC 1: Cấu hình Editor và Theme ---
+                        const savedTheme = localStorage.getItem('editorTheme') || 'monokai';
+                        const themeSelector = document.getElementById('theme-selector');
+                        if (themeSelector) themeSelector.value = savedTheme;
+                        editorEl.setTheme(`ace/theme/${savedTheme}`);
+                        editorEl.session.setMode("ace/mode/latex");
 
-        const savedFontSize = parseInt(localStorage.getItem('editorFontSize')) || 16;
-        const currentFontSizeSpan = document.getElementById('current-font-size');
-        editorEl.setFontSize(savedFontSize);
-        if (currentFontSizeSpan) currentFontSizeSpan.textContent = `${savedFontSize}`;
+                        const savedFontSize = parseInt(localStorage.getItem('editorFontSize')) || 16;
+                        const currentFontSizeSpan = document.getElementById('current-font-size');
+                        editorEl.setFontSize(savedFontSize);
+                        if (currentFontSizeSpan) currentFontSizeSpan.textContent = `${savedFontSize}`;
 
-        editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, showFoldWidgets: true });
-        editorEl.session.setFoldStyle("markbeginend");
-        const langTools = ace.require("ace/ext/language_tools");
-        const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
-        langTools.addCompleter(customCompleter);
+                        editorEl.setOptions({ enableBasicAutocompletion: true, enableLiveAutocompletion: true, showFoldWidgets: true });
+                        editorEl.session.setFoldStyle("markbeginend");
+                        const langTools = ace.require("ace/ext/language_tools");
+                        const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
+                        langTools.addCompleter(customCompleter);
 
-        // --- BƯỚC 2: Gán sự kiện cho tất cả các nút trên giao diện ---
-        // (Đã loại bỏ các listener cho các nút Google Drive và mainFileSelector)
-        const zipLoaderInput = document.getElementById('zip-loader-input');
-        const templateSelector = document.getElementById('template-selector');
+                        // --- BƯỚC 2: Gán sự kiện cho tất cả các nút trên giao diện ---
+                        // (Đã loại bỏ các listener cho các nút Google Drive và mainFileSelector)
+                        const zipLoaderInput = document.getElementById('zip-loader-input');
+                        const templateSelector = document.getElementById('template-selector');
 
-        document.getElementById('compile-btn')?.addEventListener('click', compile);
-        document.getElementById('zip-loader-btn')?.addEventListener('click', () => zipLoaderInput?.click());
-        zipLoaderInput?.addEventListener('change', handleZipLoad);
-        document.getElementById('file-manager-btn')?.addEventListener('click', showFileManager);
-        templateSelector?.addEventListener('change', handleTemplateChange);
-        document.getElementById('main-file-selector')?.addEventListener('change', handleMainFileChange); // Added listener
-        document.getElementById('console-header')?.addEventListener('click', toggleConsole);
-        document.getElementById('clear-cache-btn')?.addEventListener('click', clearStyCache);
-        document.getElementById('show-help-btn')?.addEventListener('click', showHelpModal);
-        document.getElementById('download-zip-btn')?.addEventListener('click', downloadProjectAsZip);
-        document.getElementById('open-v2-btn')?.addEventListener('click', () => window.open('index_11.html', '_blank'));
-        document.getElementById('author-info-btn')?.addEventListener('click', showAuthorInfo);
-        themeSelector?.addEventListener('change', (e) => { const theme = e.target.value; editorEl.setTheme(`ace/theme/${theme}`); localStorage.setItem('editorTheme', theme); });
-        document.getElementById('snippet-manager-btn')?.addEventListener('click', showSnippetManager);
-        document.getElementById('edit-snippets-btn')?.addEventListener('click', () => openFileInEditor('snippets.json'));
-        document.getElementById('edit-suggestions-btn')?.addEventListener('click', () => openFileInEditor('suggestions.json'));
-        document.getElementById('download-current-tex-btn')?.addEventListener('click', () => {
-            const content = editorEl.getValue();
-            if (!content.trim()) return Swal.fire({ icon: 'warning', title: 'Tệp rỗng' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-            link.download = currentOpenFile || 'current-file.tex';
-            link.click();
-            URL.revokeObjectURL(link.href);
-        });
-        document.getElementById('open-gan-id-btn')?.addEventListener('click', () => { if (typeof openAssignIdDialog === 'function') openAssignIdDialog(); });
-        document.getElementById('generate-qr-btn')?.addEventListener('click', () => QrAnswerExtractor.showModal());
-        document.getElementById('latex-tools-btn')?.addEventListener('click', showLatexToolsModal);
-        document.getElementById('fold-problems-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['ex', 'vd', 'bt']));
-        document.getElementById('fold-structure-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['section', 'subsection']));
-        document.getElementById('decrease-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(-1));
-        document.getElementById('increase-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(1));
+                        document.getElementById('compile-btn')?.addEventListener('click', compile);
+                        document.getElementById('zip-loader-btn')?.addEventListener('click', () => zipLoaderInput?.click());
+                        zipLoaderInput?.addEventListener('change', handleZipLoad);
+                        document.getElementById('file-manager-btn')?.addEventListener('click', showFileManager);
+                        templateSelector?.addEventListener('change', handleTemplateChange);
+                        document.getElementById('main-file-selector')?.addEventListener('change', handleMainFileChange); // Added listener
+                        document.getElementById('console-header')?.addEventListener('click', toggleConsole);
+                        document.getElementById('clear-cache-btn')?.addEventListener('click', clearStyCache);
+                        document.getElementById('show-help-btn')?.addEventListener('click', showHelpModal);
+                        document.getElementById('download-zip-btn')?.addEventListener('click', downloadProjectAsZip);
+                        document.getElementById('open-v2-btn')?.addEventListener('click', () => window.open('index_11.html', '_blank'));
+                        document.getElementById('author-info-btn')?.addEventListener('click', showAuthorInfo);
+                        themeSelector?.addEventListener('change', (e) => { const theme = e.target.value; editorEl.setTheme(`ace/theme/${theme}`); localStorage.setItem('editorTheme', theme); });
+                        document.getElementById('snippet-manager-btn')?.addEventListener('click', showSnippetManager);
+                        document.getElementById('edit-snippets-btn')?.addEventListener('click', () => openFileInEditor('snippets.json'));
+                        document.getElementById('edit-suggestions-btn')?.addEventListener('click', () => openFileInEditor('suggestions.json'));
+                        document.getElementById('download-current-tex-btn')?.addEventListener('click', () => {
+                            const content = editorEl.getValue();
+                            if (!content.trim()) return Swal.fire({ icon: 'warning', title: 'Tệp rỗng' });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+                            link.download = currentOpenFile || 'current-file.tex';
+                            link.click();
+                            URL.revokeObjectURL(link.href);
+                        });
+                        document.getElementById('open-gan-id-btn')?.addEventListener('click', () => { if (typeof openAssignIdDialog === 'function') openAssignIdDialog(); });
+                        document.getElementById('generate-qr-btn')?.addEventListener('click', () => QrAnswerExtractor.showModal());
+                        document.getElementById('latex-tools-btn')?.addEventListener('click', showLatexToolsModal);
+                        document.getElementById('fold-problems-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['ex', 'vd', 'bt']));
+                        document.getElementById('fold-structure-btn')?.addEventListener('click', () => toggleFoldAllEnvironments(['section', 'subsection']));
+                        document.getElementById('decrease-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(-1));
+                        document.getElementById('increase-font-size-btn')?.addEventListener('click', () => changeEditorFontSize(1));
 
-        // --- BƯỚC 3: Khởi tạo các thành phần giao diện khác ---
-        initResizer();
-        initFooterPanel();
-        initMathPreview();
-        await initializeTemplatesFromJSON();
+                        // --- BƯỚC 3: Khởi tạo các thành phần giao diện khác ---
+                        initResizer();
+                        initFooterPanel();
+                        initMathPreview();
+                        await initializeTemplatesFromJSON();
 
-        // --- FIREBASE AUTH SETUP ---
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const adminBtn = document.getElementById('admin-btn');
+                        // --- FIREBASE AUTH SETUP ---
+                        const loginBtn = document.getElementById('login-btn');
+                        const logoutBtn = document.getElementById('logout-btn');
+                        const adminBtn = document.getElementById('admin-btn');
 
-        loginBtn?.addEventListener('click', handleLogin);
-        logoutBtn?.addEventListener('click', handleLogout);
-        adminBtn?.addEventListener('click', async () => {
-            const user = firebase.auth().currentUser;
-            if (!user) return;
+                        loginBtn?.addEventListener('click', handleLogin);
+                        logoutBtn?.addEventListener('click', handleLogout);
+                        adminBtn?.addEventListener('click', async () => {
+                            const user = firebase.auth().currentUser;
+                            if (!user) return;
 
-            // Check role again just to be sure
-            const doc = await firestoreDb.collection('users').doc(user.uid).get();
-            const userData = doc.data();
+                            // Check role again just to be sure
+                            const doc = await firestoreDb.collection('users').doc(user.uid).get();
+                            const userData = doc.data();
 
-            if (userData && userData.role === 'admin') {
-                showAdminDashboard();
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Không có quyền Admin',
-                    html: `
+                            if (userData && userData.role === 'admin') {
+                                showAdminDashboard();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Không có quyền Admin',
+                                    html: `
                         <p>Email <b>${user.email}</b> chưa được cấp quyền Admin.</p>
                         <p>Vui lòng vào Firebase Console -> Firestore -> users -> tìm email này -> sửa <b>role</b> thành <b>'admin'</b>.</p>
                     `
-                });
-            }
-        });
-
-        // Monitor Auth State
-        if (typeof firebase === 'undefined') {
-            console.error("Firebase SDK not loaded.");
-            Swal.fire('Lỗi hệ thống', 'Không thể kết nối đến máy chủ xác thực (Firebase SDK missing). Vui lòng kiểm tra kết nối mạng hoặc tải lại trang.', 'error');
-        } else {
-            firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    loginBtn.style.display = 'none';
-                    logoutBtn.style.display = 'inline-block';
-                    // ALWAYS show Admin button if logged in, so user knows it exists.
-                    // We check permission on click.
-                    adminBtn.style.display = 'inline-block';
-
-                    console.log("User logged in:", user.email);
-
-                    // Check Firestore for user status
-                    const userRef = firestoreDb.collection('users').doc(user.uid);
-                    const doc = await userRef.get();
-
-                    if (!doc.exists) {
-                        // NEW USER
-                        // Check if there are ANY admins yet
-                        const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
-                        const isFirstUser = adminQuery.empty;
-
-                        await userRef.set({
-                            email: user.email,
-                            status: isFirstUser ? 'approved' : 'pending',
-                            role: isFirstUser ? 'admin' : 'user',
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            }
                         });
 
-                        if (isFirstUser) {
-                            Swal.fire('Xin chào Admin!', 'Bạn là người dùng đầu tiên, hệ thống đã tự động cấp quyền Admin cho bạn.', 'success');
-                            unlockEditor();
-                            adminBtn.style.display = 'inline-block';
+                        // Monitor Auth State
+                        if (typeof firebase === 'undefined') {
+                            console.error("Firebase SDK not loaded.");
+                            Swal.fire('Lỗi hệ thống', 'Không thể kết nối đến máy chủ xác thực (Firebase SDK missing). Vui lòng kiểm tra kết nối mạng hoặc tải lại trang.', 'error');
                         } else {
-                            Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
-                            lockEditor();
+                            firebase.auth().onAuthStateChanged(async (user) => {
+                                if (user) {
+                                    loginBtn.style.display = 'none';
+                                    logoutBtn.style.display = 'inline-block';
+                                    // ALWAYS show Admin button if logged in, so user knows it exists.
+                                    // We check permission on click.
+                                    adminBtn.style.display = 'inline-block';
+
+                                    console.log("User logged in:", user.email);
+
+                                    // Check Firestore for user status
+                                    const userRef = firestoreDb.collection('users').doc(user.uid);
+                                    const doc = await userRef.get();
+
+                                    if (!doc.exists) {
+                                        // NEW USER
+                                        // Check if there are ANY admins yet
+                                        const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
+                                        const isFirstUser = adminQuery.empty;
+
+                                        await userRef.set({
+                                            email: user.email,
+                                            status: isFirstUser ? 'approved' : 'pending',
+                                            role: isFirstUser ? 'admin' : 'user',
+                                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                        });
+
+                                        if (isFirstUser) {
+                                            Swal.fire('Xin chào Admin!', 'Bạn là người dùng đầu tiên, hệ thống đã tự động cấp quyền Admin cho bạn.', 'success');
+                                            unlockEditor();
+                                            adminBtn.style.display = 'inline-block';
+                                        } else {
+                                            Swal.fire('Đăng ký thành công', 'Tài khoản của bạn đang chờ duyệt.', 'info');
+                                            lockEditor();
+                                        }
+                                    } else {
+                                        // EXISTING USER
+                                        const userData = doc.data();
+
+                                        // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
+                                        if (userData.role !== 'admin') {
+                                            const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
+                                            if (adminQuery.empty) {
+                                                await userRef.update({ role: 'admin', status: 'approved' });
+                                                Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
+                                                unlockEditor();
+                                                adminBtn.style.display = 'inline-block';
+                                                return; // Stop further checks
+                                            }
+                                        }
+
+                                        // CHECK 1: STATUS
+                                        if (userData.status !== 'approved') {
+                                            Swal.fire('Chờ duyệt', 'Tài khoản của bạn chưa được admin duyệt.', 'warning');
+                                            lockEditor();
+                                            return;
+                                        }
+
+                                        // CHECK 2: EXPIRATION
+                                        if (userData.expiryDate) {
+                                            const today = new Date();
+                                            const expiry = new Date(userData.expiryDate);
+                                            if (today > expiry) {
+                                                Swal.fire('Hết hạn', `Tài khoản của bạn đã hết hạn vào ngày ${userData.expiryDate}. Vui lòng liên hệ Admin.`, 'error');
+                                                lockEditor();
+                                                return;
+                                            }
+                                        }
+
+                                        // ALL CHECKS PASSED
+                                        unlockEditor();
+                                        if (userData.role === 'admin') {
+                                            adminBtn.style.display = 'inline-block';
+                                        }
+                                    }
+                                } else {
+                                    loginBtn.style.display = 'inline-block';
+                                    logoutBtn.style.display = 'none';
+                                    adminBtn.style.display = 'none';
+                                    // Optional: Lock editor if login is required
+                                    // lockEditor(); 
+                                }
+                            });
                         }
-                    } else {
-                        // EXISTING USER
-                        const userData = doc.data();
 
-                        // BOOTSTRAP: If I am pending, but there are NO admins (maybe I was created before logic change), promote me.
-                        if (userData.role !== 'admin') {
-                            const adminQuery = await firestoreDb.collection('users').where('role', '==', 'admin').get();
-                            if (adminQuery.empty) {
-                                await userRef.update({ role: 'admin', status: 'approved' });
-                                Swal.fire('Xin chào Admin!', 'Hệ thống chưa có Admin nào. Bạn đã được tự động thăng cấp.', 'success');
-                                unlockEditor();
-                                adminBtn.style.display = 'inline-block';
-                                return; // Stop further checks
-                            }
-                        }
+                        // Global state for admin dashboard
+                        window.adminState = {
+                            users: [],
+                            filteredUsers: [],
+                            currentPage: 1,
+                            itemsPerPage: 10,
+                            sortField: 'createdAt',
+                            sortOrder: 'desc'
+                        };
 
-                        // CHECK 1: STATUS
-                        if (userData.status !== 'approved') {
-                            Swal.fire('Chờ duyệt', 'Tài khoản của bạn chưa được admin duyệt.', 'warning');
-                            lockEditor();
-                            return;
-                        }
+                        async function showAdminDashboard() {
+                            try {
+                                const snapshot = await firestoreDb.collection('users').orderBy('createdAt', 'desc').get();
+                                window.adminState.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                                window.adminState.filteredUsers = [...window.adminState.users];
 
-                        // CHECK 2: EXPIRATION
-                        if (userData.expiryDate) {
-                            const today = new Date();
-                            const expiry = new Date(userData.expiryDate);
-                            if (today > expiry) {
-                                Swal.fire('Hết hạn', `Tài khoản của bạn đã hết hạn vào ngày ${userData.expiryDate}. Vui lòng liên hệ Admin.`, 'error');
-                                lockEditor();
-                                return;
-                            }
-                        }
+                                // Calculate Stats
+                                const totalUsers = window.adminState.users.length;
+                                const activeUsers = window.adminState.users.filter(u => u.status === 'approved').length;
+                                const pendingUsers = window.adminState.users.filter(u => u.status === 'pending').length;
 
-                        // ALL CHECKS PASSED
-                        unlockEditor();
-                        if (userData.role === 'admin') {
-                            adminBtn.style.display = 'inline-block';
-                        }
-                    }
-                } else {
-                    loginBtn.style.display = 'inline-block';
-                    logoutBtn.style.display = 'none';
-                    adminBtn.style.display = 'none';
-                    // Optional: Lock editor if login is required
-                    // lockEditor(); 
-                }
-            });
-        }
-
-        // Global state for admin dashboard
-        window.adminState = {
-            users: [],
-            filteredUsers: [],
-            currentPage: 1,
-            itemsPerPage: 10,
-            sortField: 'createdAt',
-            sortOrder: 'desc'
-        };
-
-        async function showAdminDashboard() {
-            try {
-                const snapshot = await firestoreDb.collection('users').orderBy('createdAt', 'desc').get();
-                window.adminState.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                window.adminState.filteredUsers = [...window.adminState.users];
-
-                // Calculate Stats
-                const totalUsers = window.adminState.users.length;
-                const activeUsers = window.adminState.users.filter(u => u.status === 'approved').length;
-                const pendingUsers = window.adminState.users.filter(u => u.status === 'pending').length;
-
-                let html = `
+                                let html = `
                     <div class="admin-container">
                         <div class="admin-header">
                             <div class="admin-stats">
@@ -997,48 +1070,48 @@ function main() {
                     </div>
                 `;
 
-                // --- HELPER FUNCTIONS (Moved to top for scope availability) ---
+                                // --- HELPER FUNCTIONS (Moved to top for scope availability) ---
 
-                // 1. Render Logic (with Pagination)
-                window.renderAdminTable = () => {
-                    try {
-                        const container = document.getElementById('adminTableContainer');
-                        if (!container) {
-                            console.warn("Container not found, retrying...");
-                            setTimeout(window.renderAdminTable, 100);
-                            return;
-                        }
+                                // 1. Render Logic (with Pagination)
+                                window.renderAdminTable = () => {
+                                    try {
+                                        const container = document.getElementById('adminTableContainer');
+                                        if (!container) {
+                                            console.warn("Container not found, retrying...");
+                                            setTimeout(window.renderAdminTable, 100);
+                                            return;
+                                        }
 
-                        const { filteredUsers, currentPage, itemsPerPage, sortField, sortOrder } = window.adminState;
+                                        const { filteredUsers, currentPage, itemsPerPage, sortField, sortOrder } = window.adminState;
 
-                        if (!filteredUsers || filteredUsers.length === 0) {
-                            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #7f8c8d; font-size: 1.1em;">Không tìm thấy kết quả nào.</div>';
-                            return;
-                        }
+                                        if (!filteredUsers || filteredUsers.length === 0) {
+                                            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #7f8c8d; font-size: 1.1em;">Không tìm thấy kết quả nào.</div>';
+                                            return;
+                                        }
 
-                        // Pagination Slice
-                        const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-                        const start = (currentPage - 1) * itemsPerPage;
-                        const end = start + itemsPerPage;
-                        const pageUsers = filteredUsers.slice(start, end);
+                                        // Pagination Slice
+                                        const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+                                        const start = (currentPage - 1) * itemsPerPage;
+                                        const end = start + itemsPerPage;
+                                        const pageUsers = filteredUsers.slice(start, end);
 
-                        // Sort Icon Helper
-                        const getSortIcon = (field) => {
-                            if (sortField !== field) return '<i class="fas fa-sort" style="opacity: 0.3;"></i>';
-                            return sortOrder === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
-                        };
+                                        // Sort Icon Helper
+                                        const getSortIcon = (field) => {
+                                            if (sortField !== field) return '<i class="fas fa-sort" style="opacity: 0.3;"></i>';
+                                            return sortOrder === 'asc' ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                                        };
 
-                        // Helper: Generate consistent color from string
-                        const stringToColor = (str) => {
-                            let hash = 0;
-                            for (let i = 0; i < str.length; i++) {
-                                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-                            }
-                            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-                            return '#' + "00000".substring(0, 6 - c.length) + c;
-                        };
+                                        // Helper: Generate consistent color from string
+                                        const stringToColor = (str) => {
+                                            let hash = 0;
+                                            for (let i = 0; i < str.length; i++) {
+                                                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                                            }
+                                            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                                            return '#' + "00000".substring(0, 6 - c.length) + c;
+                                        };
 
-                        let tableHtml = `
+                                        let tableHtml = `
                             <table class="admin-table">
                                 <thead>
                                     <tr>
@@ -1052,17 +1125,17 @@ function main() {
                                 <tbody>
                         `;
 
-                        pageUsers.forEach(u => {
-                            const uid = u.id;
-                            const isSelf = (uid === firebase.auth().currentUser.uid);
-                            const statusClass = `status-${u.status}`;
-                            const roleClass = `role-${u.role}`;
+                                        pageUsers.forEach(u => {
+                                            const uid = u.id;
+                                            const isSelf = (uid === firebase.auth().currentUser.uid);
+                                            const statusClass = `status-${u.status}`;
+                                            const roleClass = `role-${u.role}`;
 
-                            // Avatar Generation
-                            const initial = u.email ? u.email.charAt(0).toUpperCase() : '?';
-                            const avatarColor = u.email ? stringToColor(u.email) : '#ccc';
+                                            // Avatar Generation
+                                            const initial = u.email ? u.email.charAt(0).toUpperCase() : '?';
+                                            const avatarColor = u.email ? stringToColor(u.email) : '#ccc';
 
-                            tableHtml += `
+                                            tableHtml += `
                                 <tr>
                                     <td>
                                         <div class="user-cell">
@@ -1094,332 +1167,332 @@ function main() {
                                     </td>
                                 </tr>
                             `;
-                        });
+                                        });
 
-                        tableHtml += `</tbody></table>`;
+                                        tableHtml += `</tbody></table>`;
 
-                        // Pagination Controls
-                        if (totalPages > 1) {
-                            tableHtml += `
+                                        // Pagination Controls
+                                        if (totalPages > 1) {
+                                            tableHtml += `
                                 <div class="pagination-controls">
                                     <span class="page-info">Trang ${currentPage} / ${totalPages} (${filteredUsers.length} users)</span>
                                     <button class="page-btn" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
                                     <button class="page-btn" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>
                                 </div>
                             `;
-                        }
+                                        }
 
-                        container.innerHTML = tableHtml;
-                    } catch (e) {
-                        console.error("Render Error:", e);
-                        const container = document.getElementById('adminTableContainer');
-                        if (container) container.innerHTML = `<div style="color:red; padding: 20px;">Lỗi hiển thị: ${e.message}</div>`;
-                    }
-                };
+                                        container.innerHTML = tableHtml;
+                                    } catch (e) {
+                                        console.error("Render Error:", e);
+                                        const container = document.getElementById('adminTableContainer');
+                                        if (container) container.innerHTML = `<div style="color:red; padding: 20px;">Lỗi hiển thị: ${e.message}</div>`;
+                                    }
+                                };
 
-                // 2. Sort Logic
-                window.sortAdminUsers = (field = window.adminState.sortField) => {
-                    if (field === window.adminState.sortField) {
-                        // Toggle order if clicking same field
-                        window.adminState.sortOrder = window.adminState.sortOrder === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        // New field, default to asc
-                        window.adminState.sortField = field;
-                        window.adminState.sortOrder = 'asc';
-                    }
+                                // 2. Sort Logic
+                                window.sortAdminUsers = (field = window.adminState.sortField) => {
+                                    if (field === window.adminState.sortField) {
+                                        // Toggle order if clicking same field
+                                        window.adminState.sortOrder = window.adminState.sortOrder === 'asc' ? 'desc' : 'asc';
+                                    } else {
+                                        // New field, default to asc
+                                        window.adminState.sortField = field;
+                                        window.adminState.sortOrder = 'asc';
+                                    }
 
-                    const { sortField, sortOrder } = window.adminState;
+                                    const { sortField, sortOrder } = window.adminState;
 
-                    window.adminState.filteredUsers.sort((a, b) => {
-                        let valA = a[sortField] || '';
-                        let valB = b[sortField] || '';
+                                    window.adminState.filteredUsers.sort((a, b) => {
+                                        let valA = a[sortField] || '';
+                                        let valB = b[sortField] || '';
 
-                        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-                        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-                        return 0;
-                    });
+                                        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                                        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                                        return 0;
+                                    });
 
-                    renderAdminTable();
-                };
+                                    renderAdminTable();
+                                };
 
-                // 3. Filter Logic
-                window.filterAdminUsers = () => {
-                    const searchEl = document.getElementById('adminSearch');
-                    const statusEl = document.getElementById('filterStatus');
-                    const roleEl = document.getElementById('filterRole');
+                                // 3. Filter Logic
+                                window.filterAdminUsers = () => {
+                                    const searchEl = document.getElementById('adminSearch');
+                                    const statusEl = document.getElementById('filterStatus');
+                                    const roleEl = document.getElementById('filterRole');
 
-                    // Safety check: if elements are missing (modal closed), stop.
-                    if (!searchEl || !statusEl || !roleEl) return;
+                                    // Safety check: if elements are missing (modal closed), stop.
+                                    if (!searchEl || !statusEl || !roleEl) return;
 
-                    const searchText = searchEl.value.toLowerCase();
-                    const statusFilter = statusEl.value;
-                    const roleFilter = roleEl.value;
+                                    const searchText = searchEl.value.toLowerCase();
+                                    const statusFilter = statusEl.value;
+                                    const roleFilter = roleEl.value;
 
-                    window.adminState.filteredUsers = window.adminState.users.filter(u => {
-                        const matchesSearch = u.email.toLowerCase().includes(searchText);
-                        const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
-                        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-                        return matchesSearch && matchesStatus && matchesRole;
-                    });
+                                    window.adminState.filteredUsers = window.adminState.users.filter(u => {
+                                        const matchesSearch = u.email.toLowerCase().includes(searchText);
+                                        const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
+                                        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+                                        return matchesSearch && matchesStatus && matchesRole;
+                                    });
 
-                    // Reset to page 1 on filter change
-                    window.adminState.currentPage = 1;
-                    sortAdminUsers(); // Sort and Render
-                };
+                                    // Reset to page 1 on filter change
+                                    window.adminState.currentPage = 1;
+                                    sortAdminUsers(); // Sort and Render
+                                };
 
-                // 4. Pagination Helper
-                window.changePage = (delta) => {
-                    const newPage = window.adminState.currentPage + delta;
-                    const totalPages = Math.ceil(window.adminState.filteredUsers.length / window.adminState.itemsPerPage);
-                    if (newPage >= 1 && newPage <= totalPages) {
-                        window.adminState.currentPage = newPage;
-                        renderAdminTable();
-                    }
-                };
+                                // 4. Pagination Helper
+                                window.changePage = (delta) => {
+                                    const newPage = window.adminState.currentPage + delta;
+                                    const totalPages = Math.ceil(window.adminState.filteredUsers.length / window.adminState.itemsPerPage);
+                                    if (newPage >= 1 && newPage <= totalPages) {
+                                        window.adminState.currentPage = newPage;
+                                        renderAdminTable();
+                                    }
+                                };
 
-                // 5. Update Helper
-                window.updateUser = async (uid, field, value) => {
-                    try {
-                        // Capture current filter state BEFORE any modal changes
-                        const currentSearch = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value : '';
-                        const currentStatus = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : 'all';
-                        const currentRole = document.getElementById('filterRole') ? document.getElementById('filterRole').value : 'all';
+                                // 5. Update Helper
+                                window.updateUser = async (uid, field, value) => {
+                                    try {
+                                        // Capture current filter state BEFORE any modal changes
+                                        const currentSearch = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value : '';
+                                        const currentStatus = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : 'all';
+                                        const currentRole = document.getElementById('filterRole') ? document.getElementById('filterRole').value : 'all';
 
-                        // If approving, ask for expiration date if not set
-                        if (field === 'status' && value === 'approved') {
-                            const currentDoc = await firestoreDb.collection('users').doc(uid).get();
-                            const currentData = currentDoc.data();
-                            if (!currentData.expiryDate) {
-                                // This Swal will CLOSE the dashboard. We must re-open it later.
-                                const { value: date } = await Swal.fire({
-                                    title: 'Đặt ngày hết hạn',
-                                    input: 'date',
-                                    label: 'Người dùng này sẽ được dùng đến ngày nào?',
-                                    showCancelButton: true
+                                        // If approving, ask for expiration date if not set
+                                        if (field === 'status' && value === 'approved') {
+                                            const currentDoc = await firestoreDb.collection('users').doc(uid).get();
+                                            const currentData = currentDoc.data();
+                                            if (!currentData.expiryDate) {
+                                                // This Swal will CLOSE the dashboard. We must re-open it later.
+                                                const { value: date } = await Swal.fire({
+                                                    title: 'Đặt ngày hết hạn',
+                                                    input: 'date',
+                                                    label: 'Người dùng này sẽ được dùng đến ngày nào?',
+                                                    showCancelButton: true
+                                                });
+
+                                                if (date) {
+                                                    await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
+                                                    // Update local data
+                                                    const userIndex = window.adminState.users.findIndex(u => u.id === uid);
+                                                    if (userIndex !== -1) window.adminState.users[userIndex].expiryDate = date;
+                                                }
+
+                                                // Since dashboard was closed, we must re-open it
+                                                await showAdminDashboard();
+
+                                                // Restore filter state
+                                                setTimeout(() => {
+                                                    if (document.getElementById('adminSearch')) document.getElementById('adminSearch').value = currentSearch;
+                                                    if (document.getElementById('filterStatus')) document.getElementById('filterStatus').value = currentStatus;
+                                                    if (document.getElementById('filterRole')) document.getElementById('filterRole').value = currentRole;
+                                                    filterAdminUsers(); // Re-apply filters
+                                                }, 100);
+
+                                                // Continue to update status
+                                            }
+                                        }
+
+                                        await firestoreDb.collection('users').doc(uid).update({ [field]: value });
+
+                                        // Update local data
+                                        const userIndex = window.adminState.users.findIndex(u => u.id === uid);
+                                        if (userIndex !== -1) window.adminState.users[userIndex][field] = value;
+
+                                        const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                                        toast.fire({ icon: 'success', title: 'Đã cập nhật' });
+
+                                        // Re-filter to update view (only if dashboard is still open)
+                                        if (document.getElementById('adminTableContainer')) {
+                                            filterAdminUsers();
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        Swal.fire('Lỗi', e.message, 'error');
+                                    }
+                                };
+
+                                await Swal.fire({
+                                    title: 'Admin Dashboard',
+                                    html: html,
+                                    width: '90%',
+                                    maxWidth: '1200px',
+                                    showConfirmButton: false,
+                                    showCloseButton: true,
+                                    didOpen: () => {
+                                        filterAdminUsers(); // Initial filter & render
+                                    }
                                 });
 
-                                if (date) {
-                                    await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
-                                    // Update local data
-                                    const userIndex = window.adminState.users.findIndex(u => u.id === uid);
-                                    if (userIndex !== -1) window.adminState.users[userIndex].expiryDate = date;
-                                }
-
-                                // Since dashboard was closed, we must re-open it
-                                await showAdminDashboard();
-
-                                // Restore filter state
-                                setTimeout(() => {
-                                    if (document.getElementById('adminSearch')) document.getElementById('adminSearch').value = currentSearch;
-                                    if (document.getElementById('filterStatus')) document.getElementById('filterStatus').value = currentStatus;
-                                    if (document.getElementById('filterRole')) document.getElementById('filterRole').value = currentRole;
-                                    filterAdminUsers(); // Re-apply filters
-                                }, 100);
-
-                                // Continue to update status
+                            } catch (e) {
+                                console.error(e);
+                                Swal.fire('Lỗi tải dữ liệu', e.message, 'error');
                             }
                         }
 
-                        await firestoreDb.collection('users').doc(uid).update({ [field]: value });
-
-                        // Update local data
-                        const userIndex = window.adminState.users.findIndex(u => u.id === uid);
-                        if (userIndex !== -1) window.adminState.users[userIndex][field] = value;
-
-                        const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-                        toast.fire({ icon: 'success', title: 'Đã cập nhật' });
-
-                        // Re-filter to update view (only if dashboard is still open)
-                        if (document.getElementById('adminTableContainer')) {
-                            filterAdminUsers();
+                        async function handleLogin() {
+                            const provider = new firebase.auth.GoogleAuthProvider();
+                            try {
+                                await firebase.auth().signInWithPopup(provider);
+                            } catch (error) {
+                                console.error("Login failed:", error);
+                                Swal.fire('Lỗi đăng nhập', error.message, 'error');
+                            }
                         }
-                    } catch (e) {
-                        console.error(e);
-                        Swal.fire('Lỗi', e.message, 'error');
+
+                        async function handleLogout() {
+                            try {
+                                await firebase.auth().signOut();
+                                Swal.fire('Đã đăng xuất', '', 'success');
+                            } catch (error) {
+                                console.error("Logout failed:", error);
+                            }
+                        }
+
+                        function lockEditor() {
+                            editorEl.setReadOnly(true);
+                            document.getElementById('compile-btn').disabled = true;
+                            document.querySelector('.editor-pane').style.opacity = '0.5';
+                        }
+
+                        function unlockEditor() {
+                            editorEl.setReadOnly(false);
+                            document.getElementById('compile-btn').disabled = false;
+                            document.querySelector('.editor-pane').style.opacity = '1';
+                        }
+
+                        // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
+                        try {
+                            await openDb();
+                            await loadCustomSuggestions();
+
+                            // Kết nối đến server backend
+                            await globalEn.loadEngine();
+
+                            // Load các file đã lưu từ DB vào bộ đệm của engine
+                            const files = await getAllFilesFromDb();
+                            if (files.length === 0) {
+                                // Nếu là lần đầu chạy, tạo file main.tex mẫu
+                                const defaultContent = `\\documentclass{article}\n\\usepackage{graphicx}\n\\usepackage{polyglossia}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
+                                const fileData = new TextEncoder().encode(defaultContent);
+                                await saveFileToDb('main.tex', fileData);
+                                files.push({ name: 'main.tex', data: fileData });
+                            }
+                            files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
+
+                            // Tự động quyết định file chính để mở (không cần selector)
+                            const texFiles = files.filter(f => f.name.endsWith('.tex')).map(f => f.name);
+                            mainTexFile = texFiles.find(name => name === 'main.tex') || texFiles[0] || 'main.tex';
+
+                            // Cập nhật lại dropdown file chính (nếu nó tồn tại trên UI)
+                            await updateMainFileSelector();
+
+                            // Mở file chính trong editor
+                            await openFileInEditor(mainTexFile);
+
+                            // Báo hiệu sẵn sàng
+                            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
+                            compileBtn.disabled = false;
+                            consoleOutput.innerHTML = "Kết nối server thành công. Sẵn sàng!";
+
+                        } catch (err) {
+                            console.error("Lỗi trong quá trình khởi tạo:", err);
+                            consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
+                            compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi Backend';
+                        }
                     }
-                };
 
-                await Swal.fire({
-                    title: 'Admin Dashboard',
-                    html: html,
-                    width: '90%',
-                    maxWidth: '1200px',
-                    showConfirmButton: false,
-                    showCloseButton: true,
-                    didOpen: () => {
-                        filterAdminUsers(); // Initial filter & render
+                    async function updateMainFileSelector() {
+                        const mainFileSelector = document.getElementById('main-file-selector');
+                        // --- BƯỚC KIỂM TRA QUAN TRỌNG ---
+                        if (!mainFileSelector) {
+                            console.log("Không tìm thấy element 'main-file-selector'. Bỏ qua việc cập nhật UI.");
+                            return; // Thoát khỏi hàm nếu không tìm thấy element
+                        }
+
+                        // Đoạn code còn lại chỉ chạy nếu element tồn tại
+                        const allFiles = (await getAllFilesFromDb()).map(f => f.name);
+                        const validPrefixes = ['main', 'file', 'de', 'khaibao'];
+                        mainFileSelector.innerHTML = '';
+                        const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort();
+
+                        if (filteredTexFiles.length === 0) {
+                            const option = document.createElement('option');
+                            option.textContent = 'Không có file chính';
+                            option.disabled = true;
+                            mainFileSelector.appendChild(option);
+                            return;
+                        }
+
+                        filteredTexFiles.forEach(fileName => {
+                            const option = document.createElement('option');
+                            option.value = fileName;
+                            option.textContent = fileName;
+                            mainFileSelector.appendChild(option);
+                        });
+
+                        if (filteredTexFiles.includes(mainTexFile)) {
+                            mainFileSelector.value = mainTexFile;
+                        } else {
+                            mainTexFile = filteredTexFiles[0] || '';
+                            mainFileSelector.value = mainTexFile;
+                        }
                     }
-                });
+                    function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
+                    async function handleTemplateChangegg(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); }; }
+                    async function handleTemplateChange(event) {
+                        const templateId = event.target.value;
+                        if (!templateId) return;
 
-            } catch (e) {
-                console.error(e);
-                Swal.fire('Lỗi tải dữ liệu', e.message, 'error');
-            }
-        }
+                        try {
+                            // 1. Tìm thông tin mẫu dựa trên ID đã chọn
+                            const selectedTemplate = availableTemplates.find(t => t.id === templateId);
+                            if (!selectedTemplate) throw new Error(`Không tìm thấy mẫu với ID: ${templateId}`);
 
-        async function handleLogin() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                await firebase.auth().signInWithPopup(provider);
-            } catch (error) {
-                console.error("Login failed:", error);
-                Swal.fire('Lỗi đăng nhập', error.message, 'error');
-            }
-        }
+                            // 2. Tải nội dung của file .tex tương ứng
+                            const templateFileName = selectedTemplate.file;
+                            const response = await fetch(templateFileName);
+                            if (!response.ok) throw new Error(`Không thể tải file mẫu: ${templateFileName}`);
+                            const templateContent = await response.text();
 
-        async function handleLogout() {
-            try {
-                await firebase.auth().signOut();
-                Swal.fire('Đã đăng xuất', '', 'success');
-            } catch (error) {
-                console.error("Logout failed:", error);
-            }
-        }
+                            // 3. Logic tạo file mới cho người dùng (giữ nguyên như cũ)
+                            const newFileName = `main-${templateId.toLowerCase()}.tex`;
+                            const existingFile = await getFileFromDb(newFileName);
 
-        function lockEditor() {
-            editorEl.setReadOnly(true);
-            document.getElementById('compile-btn').disabled = true;
-            document.querySelector('.editor-pane').style.opacity = '0.5';
-        }
+                            if (existingFile) {
+                                mainTexFile = newFileName;
+                                await openFileInEditor(newFileName);
+                                await updateMainFileSelector();
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 });
+                            } else {
+                                const textEncoder = new TextEncoder();
+                                const templateData = textEncoder.encode(templateContent);
+                                await saveFileToDb(newFileName, templateData);
+                                globalEn.writeMemFSFile(newFileName, templateData);
+                                mainTexFile = newFileName;
+                                await openFileInEditor(newFileName);
+                                await updateMainFileSelector();
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 });
+                            }
 
-        function unlockEditor() {
-            editorEl.setReadOnly(false);
-            document.getElementById('compile-btn').disabled = false;
-            document.querySelector('.editor-pane').style.opacity = '1';
-        }
+                        } catch (error) {
+                            console.error("Lỗi khi xử lý mẫu:", error);
+                            Swal.fire('Lỗi', `Không thể tải nội dung file mẫu. Chi tiết: ${error.message}`, 'error');
+                        } finally {
+                            // Reset lại selector để người dùng có thể chọn lại
+                            event.target.value = '';
+                        }
+                    }
+                    async function showFileManager() { try { const files = await getAllFilesFromDb(); files.sort((a, b) => a.name.localeCompare(b.name)); const getFileIcon = (fileName) => { if (fileName.endsWith('.tex')) return 'fa-file-code'; if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt'; if (fileName.endsWith('.json')) return 'fa-file-medical-alt'; if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image'; return 'fa-file'; }; let fileListHtml = files.map(file => `<div class="file-manager-item" data-filename="${file.name}"><div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div><div class="file-actions"><button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button><button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button></div></div>`).join(''); if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>'; const managerHTML = `<div class="swal2-content" style="text-align: left;"><div style="display: flex; gap: 10px; margin-bottom: 10px;"><input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex"><button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button></div> <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button></div><div id="file-manager-container">${fileListHtml}</div>`; Swal.fire({ title: '<strong>Quản lý File Dự án</strong>', html: managerHTML, width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: () => { const fileLoaderInput = document.createElement('input'); fileLoaderInput.type = 'file'; fileLoaderInput.multiple = true; fileLoaderInput.style.display = 'none'; document.body.appendChild(fileLoaderInput); document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile); document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click()); fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); document.body.removeChild(fileLoaderInput); }); document.getElementById('file-manager-container').addEventListener('click', handleFileAction); } }); } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); } }
+                    async function handleAddNewFile() { const input = document.getElementById('new-filename-input'); const newFileName = input.value.trim(); if (!newFileName || !newFileName.includes('.')) { Swal.showValidationMessage('Tên file không hợp lệ.'); return; } if (await getFileFromDb(newFileName)) { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'File đã tồn tại!', showConfirmButton: false, timer: 2000 }); return; } await saveFileToDb(newFileName, new Uint8Array()); globalEn.writeMemFSFile(newFileName, new Uint8Array()); Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã thêm file ${newFileName}`, showConfirmButton: false, timer: 2000 }); }
+                    async function handleFileAction(event) { const target = event.target; const fileItem = target.closest('.file-manager-item'); if (!fileItem) return; const fileName = fileItem.dataset.filename; if (target.classList.contains('file-open-btn')) { await openFileInEditor(fileName); Swal.close(); } else if (target.classList.contains('file-delete-btn')) { Swal.fire({ title: `Xóa file "${fileName}"?`, text: "Hành động này không thể hoàn tác!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Vâng, xóa nó!', cancelButtonText: 'Hủy' }).then(async (result) => { if (result.isConfirmed) { await deleteFileFromDb(fileName); if (typeof globalEn.removeMemFSFile === 'function') { globalEn.removeMemFSFile(fileName); } if (currentOpenFile === fileName) { await openFileInEditor(mainTexFile || 'main.tex'); } Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã xóa file!', showConfirmButton: false, timer: 2000 }); } }); } }
+                    async function handleFileLoad(event) { const files = event.target.files; if (!files.length) return; const promises = Array.from(files).map(file => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = async (e) => { const fileData = new Uint8Array(e.target.result); await saveFileToDb(file.name, fileData); globalEn.writeMemFSFile(file.name, fileData); resolve(); }; reader.onerror = reject; reader.readAsArrayBuffer(file); }); }); await Promise.all(promises); Swal.fire('Thành công', `${files.length} file đã được tải lên và lưu lại.`, 'success'); updateMainFileSelector(); if (typeof showFileManager === 'function') showFileManager(); event.target.value = ''; }
+                    async function handleZipLoad(event) { const file = event.target.files[0]; if (!file) return; loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang giải nén và xử lý file...'; try { const zip = await JSZip.loadAsync(file); const fileEntries = Object.values(zip.files).filter(entry => !entry.dir && !entry.name.startsWith('__MACOSX/') && !entry.name.endsWith('/.DS_Store')); if (fileEntries.length === 0) { loadingOverlay.style.display = 'none'; Swal.fire('Tệp ZIP trống', 'Không tìm thấy tệp hợp lệ nào để import.', 'warning'); return; } let commonPath = ''; const firstPath = fileEntries[0].name; const firstSlashIndex = firstPath.indexOf('/'); if (firstSlashIndex > -1) { const potentialRoot = firstPath.substring(0, firstSlashIndex + 1); if (fileEntries.every(entry => entry.name.startsWith(potentialRoot))) { commonPath = potentialRoot; } } const promises = fileEntries.map(zipEntry => { return zipEntry.async('uint8array').then(async (content) => { const finalFileName = zipEntry.name.substring(commonPath.length); if (finalFileName) { await saveFileToDb(finalFileName, content); globalEn.writeMemFSFile(finalFileName, content); } }); }); await Promise.all(promises); Swal.fire('Thành công!', `${promises.length} file từ ${file.name} đã được giải nén và lưu lại!`, 'success'); updateMainFileSelector(); } catch (error) { console.error("Error processing zip file:", error); Swal.fire('Lỗi', 'Không thể xử lý file zip. Vui lòng kiểm tra file và thử lại.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; event.target.value = ''; } }
+                    async function downloadProjectAsZip() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang nén dự án...'; try { const files = await getAllFilesFromDb(); if (files.length === 0) { Swal.fire('Thông báo', 'Không có file nào để tải về.', 'info'); return; } const zip = new JSZip(); files.forEach(file => zip.file(file.name, file.data)); const blob = await zip.generateAsync({ type: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const date = new Date().toISOString().slice(0, 10); link.download = `latex-project-${date}.zip`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { console.error("Error creating zip file:", error); Swal.fire('Lỗi', 'Không thể tạo file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; } }
+                    function clearStyCache() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } Swal.fire({ title: 'Bạn chắc chắn?', html: "Hành động này sẽ <b>xóa tất cả các file đã cache</b> (gói .sty, .cls...).<br>Hành động này không thể hoàn tác và sẽ tải lại trang.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Vâng, xóa hết!', cancelButtonText: 'Hủy' }).then((result) => { if (result.isConfirmed) { db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).clear().onsuccess = () => Swal.fire('Đã xóa!', 'Cache đã được dọn dẹp. Trang sẽ tải lại.', 'success').then(() => location.reload()); } }); }
 
-        // --- BƯỚC 4: Luồng khởi tạo chính của ứng dụng ---
-        try {
-            await openDb();
-            await loadCustomSuggestions();
-
-            // Kết nối đến server backend
-            await globalEn.loadEngine();
-
-            // Load các file đã lưu từ DB vào bộ đệm của engine
-            const files = await getAllFilesFromDb();
-            if (files.length === 0) {
-                // Nếu là lần đầu chạy, tạo file main.tex mẫu
-                const defaultContent = `\\documentclass{article}\n\\usepackage{graphicx}\n\\usepackage{polyglossia}\n\\begin{document}\n\nHello from Server-Side Compiler!\n\n\\end{document}`;
-                const fileData = new TextEncoder().encode(defaultContent);
-                await saveFileToDb('main.tex', fileData);
-                files.push({ name: 'main.tex', data: fileData });
-            }
-            files.forEach(file => globalEn.writeMemFSFile(file.name, file.data));
-
-            // Tự động quyết định file chính để mở (không cần selector)
-            const texFiles = files.filter(f => f.name.endsWith('.tex')).map(f => f.name);
-            mainTexFile = texFiles.find(name => name === 'main.tex') || texFiles[0] || 'main.tex';
-
-            // Cập nhật lại dropdown file chính (nếu nó tồn tại trên UI)
-            await updateMainFileSelector();
-
-            // Mở file chính trong editor
-            await openFileInEditor(mainTexFile);
-
-            // Báo hiệu sẵn sàng
-            compileBtn.innerHTML = '<i class="fas fa-play"></i> Biên dịch';
-            compileBtn.disabled = false;
-            consoleOutput.innerHTML = "Kết nối server thành công. Sẵn sàng!";
-
-        } catch (err) {
-            console.error("Lỗi trong quá trình khởi tạo:", err);
-            consoleOutput.innerHTML = `Khởi tạo thất bại: ${err.message || err}`;
-            compileBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi Backend';
-        }
-    }
-
-    async function updateMainFileSelector() {
-        const mainFileSelector = document.getElementById('main-file-selector');
-        // --- BƯỚC KIỂM TRA QUAN TRỌNG ---
-        if (!mainFileSelector) {
-            console.log("Không tìm thấy element 'main-file-selector'. Bỏ qua việc cập nhật UI.");
-            return; // Thoát khỏi hàm nếu không tìm thấy element
-        }
-
-        // Đoạn code còn lại chỉ chạy nếu element tồn tại
-        const allFiles = (await getAllFilesFromDb()).map(f => f.name);
-        const validPrefixes = ['main', 'file', 'de', 'khaibao'];
-        mainFileSelector.innerHTML = '';
-        const filteredTexFiles = allFiles.filter(name => name.endsWith('.tex') && validPrefixes.some(prefix => name.toLowerCase().startsWith(prefix))).sort();
-
-        if (filteredTexFiles.length === 0) {
-            const option = document.createElement('option');
-            option.textContent = 'Không có file chính';
-            option.disabled = true;
-            mainFileSelector.appendChild(option);
-            return;
-        }
-
-        filteredTexFiles.forEach(fileName => {
-            const option = document.createElement('option');
-            option.value = fileName;
-            option.textContent = fileName;
-            mainFileSelector.appendChild(option);
-        });
-
-        if (filteredTexFiles.includes(mainTexFile)) {
-            mainFileSelector.value = mainTexFile;
-        } else {
-            mainTexFile = filteredTexFiles[0] || '';
-            mainFileSelector.value = mainTexFile;
-        }
-    }
-    function handleMainFileChange(event) { mainTexFile = event.target.value; openFileInEditor(mainTexFile); }
-    async function handleTemplateChangegg(event) { const templateKey = event.target.value; if (!templateKey) return; const templateContent = TEMPLATES[templateKey]; const newFileName = `main-${templateKey.toLowerCase()}.tex`; const existingFile = await getFileFromDb(newFileName); if (existingFile) { mainTexFile = newFileName; await openFileInEditor(newFileName); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 }); } else { const textEncoder = new TextEncoder(); const templateData = textEncoder.encode(templateContent); await saveFileToDb(newFileName, templateData); globalEn.writeMemFSFile(newFileName, templateData); mainTexFile = newFileName; updateMainFileSelector(); await openFileInEditor(newFileName); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 }); }; }
-    async function handleTemplateChange(event) {
-        const templateId = event.target.value;
-        if (!templateId) return;
-
-        try {
-            // 1. Tìm thông tin mẫu dựa trên ID đã chọn
-            const selectedTemplate = availableTemplates.find(t => t.id === templateId);
-            if (!selectedTemplate) throw new Error(`Không tìm thấy mẫu với ID: ${templateId}`);
-
-            // 2. Tải nội dung của file .tex tương ứng
-            const templateFileName = selectedTemplate.file;
-            const response = await fetch(templateFileName);
-            if (!response.ok) throw new Error(`Không thể tải file mẫu: ${templateFileName}`);
-            const templateContent = await response.text();
-
-            // 3. Logic tạo file mới cho người dùng (giữ nguyên như cũ)
-            const newFileName = `main-${templateId.toLowerCase()}.tex`;
-            const existingFile = await getFileFromDb(newFileName);
-
-            if (existingFile) {
-                mainTexFile = newFileName;
-                await openFileInEditor(newFileName);
-                await updateMainFileSelector();
-                Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Đã mở file có sẵn: ${newFileName}`, showConfirmButton: false, timer: 2500 });
-            } else {
-                const textEncoder = new TextEncoder();
-                const templateData = textEncoder.encode(templateContent);
-                await saveFileToDb(newFileName, templateData);
-                globalEn.writeMemFSFile(newFileName, templateData);
-                mainTexFile = newFileName;
-                await openFileInEditor(newFileName);
-                await updateMainFileSelector();
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã tạo file mẫu ${newFileName}`, showConfirmButton: false, timer: 2000 });
-            }
-
-        } catch (error) {
-            console.error("Lỗi khi xử lý mẫu:", error);
-            Swal.fire('Lỗi', `Không thể tải nội dung file mẫu. Chi tiết: ${error.message}`, 'error');
-        } finally {
-            // Reset lại selector để người dùng có thể chọn lại
-            event.target.value = '';
-        }
-    }
-    async function showFileManager() { try { const files = await getAllFilesFromDb(); files.sort((a, b) => a.name.localeCompare(b.name)); const getFileIcon = (fileName) => { if (fileName.endsWith('.tex')) return 'fa-file-code'; if (fileName.endsWith('.sty') || fileName.endsWith('.cls')) return 'fa-file-alt'; if (fileName.endsWith('.json')) return 'fa-file-medical-alt'; if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].some(ext => fileName.endsWith(ext))) return 'fa-file-image'; return 'fa-file'; }; let fileListHtml = files.map(file => `<div class="file-manager-item" data-filename="${file.name}"><div class="file-name"><i class="fas ${getFileIcon(file.name)}"></i><span>${file.name}</span></div><div class="file-actions"><button class="swal2-styled file-open-btn" style="background-color: #007bff;">Mở</button><button class="swal2-styled file-delete-btn" style="background-color: #dc3545;">Xóa</button></div></div>`).join(''); if (files.length === 0) fileListHtml = '<p style="text-align:center; color:#888;">Chưa có file nào trong dự án.</p>'; const managerHTML = `<div class="swal2-content" style="text-align: left;"><div style="display: flex; gap: 10px; margin-bottom: 10px;"><input type="text" id="new-filename-input" class="swal2-input" placeholder="ví dụ: chapter2.tex"><button id="add-new-file-btn" class="swal2-confirm swal2-styled">Thêm file</button></div> <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="upload-files-btn-modal" class="swal2-confirm swal2-styled" style="background-color:var(--success-color); width:100%;"><i class="fas fa-upload"></i> Tải lên file lẻ</button></div><div id="file-manager-container">${fileListHtml}</div>`; Swal.fire({ title: '<strong>Quản lý File Dự án</strong>', html: managerHTML, width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: () => { const fileLoaderInput = document.createElement('input'); fileLoaderInput.type = 'file'; fileLoaderInput.multiple = true; fileLoaderInput.style.display = 'none'; document.body.appendChild(fileLoaderInput); document.getElementById('add-new-file-btn').addEventListener('click', handleAddNewFile); document.getElementById('upload-files-btn-modal').addEventListener('click', () => fileLoaderInput.click()); fileLoaderInput.addEventListener('change', (e) => { handleFileLoad(e); Swal.close(); document.body.removeChild(fileLoaderInput); }); document.getElementById('file-manager-container').addEventListener('click', handleFileAction); } }); } catch (error) { Swal.fire('Lỗi', 'Không thể tải danh sách file từ database.', 'error'); console.error(error); } }
-    async function handleAddNewFile() { const input = document.getElementById('new-filename-input'); const newFileName = input.value.trim(); if (!newFileName || !newFileName.includes('.')) { Swal.showValidationMessage('Tên file không hợp lệ.'); return; } if (await getFileFromDb(newFileName)) { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'File đã tồn tại!', showConfirmButton: false, timer: 2000 }); return; } await saveFileToDb(newFileName, new Uint8Array()); globalEn.writeMemFSFile(newFileName, new Uint8Array()); Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã thêm file ${newFileName}`, showConfirmButton: false, timer: 2000 }); }
-    async function handleFileAction(event) { const target = event.target; const fileItem = target.closest('.file-manager-item'); if (!fileItem) return; const fileName = fileItem.dataset.filename; if (target.classList.contains('file-open-btn')) { await openFileInEditor(fileName); Swal.close(); } else if (target.classList.contains('file-delete-btn')) { Swal.fire({ title: `Xóa file "${fileName}"?`, text: "Hành động này không thể hoàn tác!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Vâng, xóa nó!', cancelButtonText: 'Hủy' }).then(async (result) => { if (result.isConfirmed) { await deleteFileFromDb(fileName); if (typeof globalEn.removeMemFSFile === 'function') { globalEn.removeMemFSFile(fileName); } if (currentOpenFile === fileName) { await openFileInEditor(mainTexFile || 'main.tex'); } Swal.close(); showFileManager(); updateMainFileSelector(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã xóa file!', showConfirmButton: false, timer: 2000 }); } }); } }
-    async function handleFileLoad(event) { const files = event.target.files; if (!files.length) return; const promises = Array.from(files).map(file => { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = async (e) => { const fileData = new Uint8Array(e.target.result); await saveFileToDb(file.name, fileData); globalEn.writeMemFSFile(file.name, fileData); resolve(); }; reader.onerror = reject; reader.readAsArrayBuffer(file); }); }); await Promise.all(promises); Swal.fire('Thành công', `${files.length} file đã được tải lên và lưu lại.`, 'success'); updateMainFileSelector(); if (typeof showFileManager === 'function') showFileManager(); event.target.value = ''; }
-    async function handleZipLoad(event) { const file = event.target.files[0]; if (!file) return; loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang giải nén và xử lý file...'; try { const zip = await JSZip.loadAsync(file); const fileEntries = Object.values(zip.files).filter(entry => !entry.dir && !entry.name.startsWith('__MACOSX/') && !entry.name.endsWith('/.DS_Store')); if (fileEntries.length === 0) { loadingOverlay.style.display = 'none'; Swal.fire('Tệp ZIP trống', 'Không tìm thấy tệp hợp lệ nào để import.', 'warning'); return; } let commonPath = ''; const firstPath = fileEntries[0].name; const firstSlashIndex = firstPath.indexOf('/'); if (firstSlashIndex > -1) { const potentialRoot = firstPath.substring(0, firstSlashIndex + 1); if (fileEntries.every(entry => entry.name.startsWith(potentialRoot))) { commonPath = potentialRoot; } } const promises = fileEntries.map(zipEntry => { return zipEntry.async('uint8array').then(async (content) => { const finalFileName = zipEntry.name.substring(commonPath.length); if (finalFileName) { await saveFileToDb(finalFileName, content); globalEn.writeMemFSFile(finalFileName, content); } }); }); await Promise.all(promises); Swal.fire('Thành công!', `${promises.length} file từ ${file.name} đã được giải nén và lưu lại!`, 'success'); updateMainFileSelector(); } catch (error) { console.error("Error processing zip file:", error); Swal.fire('Lỗi', 'Không thể xử lý file zip. Vui lòng kiểm tra file và thử lại.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; event.target.value = ''; } }
-    async function downloadProjectAsZip() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } loadingOverlay.style.display = 'flex'; loadingText.textContent = 'Đang nén dự án...'; try { const files = await getAllFilesFromDb(); if (files.length === 0) { Swal.fire('Thông báo', 'Không có file nào để tải về.', 'info'); return; } const zip = new JSZip(); files.forEach(file => zip.file(file.name, file.data)); const blob = await zip.generateAsync({ type: 'blob' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); const date = new Date().toISOString().slice(0, 10); link.download = `latex-project-${date}.zip`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href); } catch (error) { console.error("Error creating zip file:", error); Swal.fire('Lỗi', 'Không thể tạo file zip.', 'error'); } finally { loadingOverlay.style.display = 'none'; loadingText.textContent = 'Compiling...'; } }
-    function clearStyCache() { if (!db) { Swal.fire('Lỗi', 'Database không khả dụng.', 'error'); return; } Swal.fire({ title: 'Bạn chắc chắn?', html: "Hành động này sẽ <b>xóa tất cả các file đã cache</b> (gói .sty, .cls...).<br>Hành động này không thể hoàn tác và sẽ tải lại trang.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Vâng, xóa hết!', cancelButtonText: 'Hủy' }).then((result) => { if (result.isConfirmed) { db.transaction([STORE_NAME], 'readwrite').objectStore(STORE_NAME).clear().onsuccess = () => Swal.fire('Đã xóa!', 'Cache đã được dọn dẹp. Trang sẽ tải lại.', 'success').then(() => location.reload()); } }); }
-
-    function showHelpModal() {
-        const helpHTML = `
+                    function showHelpModal() {
+                        const helpHTML = `
             <div style="padding: 10px;">
                 <h2>Chào mừng đến với Trình soạn thảo LaTeX trên Web!</h2>
                 <p>Đây là một môi trường mạnh mẽ để soạn thảo và biên dịch tài liệu LaTeX ngay trên trình duyệt của bạn.</p>
@@ -1452,23 +1525,23 @@ function main() {
                 </ul>
             </div>
         `;
-        Swal.fire({
-            title: '<strong>Hướng Dẫn Sử Dụng</strong>', icon: 'info', html: helpHTML,
-            showCloseButton: true, focusConfirm: false, width: '800px',
-            confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!',
-        });
-    }
+                        Swal.fire({
+                            title: '<strong>Hướng Dẫn Sử Dụng</strong>', icon: 'info', html: helpHTML,
+                            showCloseButton: true, focusConfirm: false, width: '800px',
+                            confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!',
+                        });
+                    }
 
-    async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
-    async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
-    async function loadCustomSuggestions() { const fileData = await getFileFromDb('suggestions.json'); if (fileData) { try { customSuggestions = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { console.error('Failed to parse suggestions.json:', e); customSuggestions = []; } } }
-    async function parseLogAndCacheDependencies(logContent) { const fileRegex = /\(([^)\s]+\.(?:cls|sty|def|clo|ldf|cfg|tex|bst))\s?/g; let match; const dependencies = new Set(); while ((match = fileRegex.exec(logContent)) !== null) { dependencies.add(match[1].split('/').pop()); } for (const fileName of dependencies) { if (await getFileFromDb(fileName)) continue; try { const response = await fetch(`${TEXLIVE_BASE_URL}${TEXLIVE_VERSION}/${fileName}`); if (response.ok) { const fileData = await response.arrayBuffer(); await saveFileToDb(fileName, new Uint8Array(fileData)); globalEn.writeMemFSFile(fileName, new Uint8Array(fileData)); console.log(`[Cache SAVE] ${fileName}`); } } catch (error) { console.error(`Error fetching ${fileName}:`, error); } } }
-    function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
+                    async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
+                    async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
+                    async function loadCustomSuggestions() { const fileData = await getFileFromDb('suggestions.json'); if (fileData) { try { customSuggestions = JSON.parse(new TextDecoder().decode(fileData)); } catch (e) { console.error('Failed to parse suggestions.json:', e); customSuggestions = []; } } }
+                    async function parseLogAndCacheDependencies(logContent) { const fileRegex = /\(([^)\s]+\.(?:cls|sty|def|clo|ldf|cfg|tex|bst))\s?/g; let match; const dependencies = new Set(); while ((match = fileRegex.exec(logContent)) !== null) { dependencies.add(match[1].split('/').pop()); } for (const fileName of dependencies) { if (await getFileFromDb(fileName)) continue; try { const response = await fetch(`${TEXLIVE_BASE_URL}${TEXLIVE_VERSION}/${fileName}`); if (response.ok) { const fileData = await response.arrayBuffer(); await saveFileToDb(fileName, new Uint8Array(fileData)); globalEn.writeMemFSFile(fileName, new Uint8Array(fileData)); console.log(`[Cache SAVE] ${fileName}`); } } catch (error) { console.error(`Error fetching ${fileName}:`, error); } } }
+                    function toggleConsole() { consoleOutput.classList.toggle('collapsed'); consoleToggleIcon.textContent = consoleOutput.classList.contains('collapsed') ? '▼' : '▲'; }
 
 
-    // KHỞI CHẠY ỨNG DỤNG
-    init();
-}
+                    // KHỞI CHẠY ỨNG DỤNG
+                    init();
+                }
 
-// ĐIỂM BẮT ĐẦU CỦA TOÀN BỘ SCRIPT
-main();
+                // ĐIỂM BẮT ĐẦU CỦA TOÀN BỘ SCRIPT
+                main();
