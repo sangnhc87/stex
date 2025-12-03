@@ -908,13 +908,19 @@ function main() {
             });
         }
 
+        // Global variable to store admin data
+        window.currentAdminUsers = [];
+
         async function showAdminDashboard() {
             try {
-                const snapshot = await firestoreDb.collection('users').get();
-                const totalUsers = snapshot.size;
-                const activeUsers = snapshot.docs.filter(d => d.data().status === 'approved').length;
-                const pendingUsers = snapshot.docs.filter(d => d.data().status === 'pending').length;
+                const snapshot = await firestoreDb.collection('users').orderBy('createdAt', 'desc').get();
+                window.currentAdminUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+                const totalUsers = window.currentAdminUsers.length;
+                const activeUsers = window.currentAdminUsers.filter(u => u.status === 'approved').length;
+                const pendingUsers = window.currentAdminUsers.filter(u => u.status === 'pending').length;
+
+                // 1. Build the Shell (Header + Toolbar + Container)
                 let html = `
                     <div class="admin-container">
                         <div class="admin-header">
@@ -933,59 +939,44 @@ function main() {
                                 </div>
                             </div>
                         </div>
+
+                        <div class="admin-toolbar">
+                            <div class="search-box">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="adminSearch" class="search-input" placeholder="Tìm kiếm email..." oninput="filterAdminUsers()">
+                            </div>
+                            <select id="filterStatus" class="filter-select" onchange="filterAdminUsers()">
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="pending">⏳ Chờ duyệt</option>
+                                <option value="approved">✅ Đã duyệt</option>
+                                <option value="blocked">⛔ Đã chặn</option>
+                            </select>
+                            <select id="filterRole" class="filter-select" onchange="filterAdminUsers()">
+                                <option value="all">Tất cả vai trò</option>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
                         
-                        <div class="admin-table-wrapper">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>Email</th>
-                                        <th>Trạng thái</th>
-                                        <th>Vai trò</th>
-                                        <th>Hết hạn ngày</th>
-                                        <th>Ghi chú</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                        <div id="adminTableContainer" class="admin-table-wrapper">
+                            <!-- Table will be rendered here -->
+                        </div>
+                    </div>
                 `;
 
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    const uid = doc.id;
-                    const isSelf = (uid === firebase.auth().currentUser.uid);
-
-                    const statusClass = `status-${u.status}`;
-                    const roleClass = `role-${u.role}`;
-
-                    html += `
-                        <tr>
-                            <td>
-                                <div style="font-weight: 500;">${u.email}</div>
-                                <div style="font-size: 0.8em; color: #95a5a6;">ID: ${uid.substr(0, 8)}...</div>
-                            </td>
-                            <td>
-                                <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
-                                    <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
-                                    <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>✅ Approved</option>
-                                    <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>⛔ Blocked</option>
-                                </select>
-                            </td>
-                            <td>
-                                <select class="action-select ${roleClass}" onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
-                                    <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
-                                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-                                </select>
-                            </td>
-                            <td>
-                                <input type="date" class="date-input" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
-                            </td>
-                            <td>
-                                ${isSelf ? '<span class="role-badge role-admin">BẠN</span>' : ''}
-                            </td>
-                        </tr>
-                    `;
+                // 2. Show Modal (Wide)
+                await Swal.fire({
+                    title: 'Admin Dashboard',
+                    html: html,
+                    width: '90%',
+                    maxWidth: '1200px',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    didOpen: () => {
+                        // Initial Render
+                        renderAdminTable(window.currentAdminUsers);
+                    }
                 });
-
-                html += `</tbody></table></div></div>`;
 
                 // Expose helper globally
                 window.updateUser = async (uid, field, value) => {
@@ -1003,32 +994,111 @@ function main() {
                                 });
                                 if (date) {
                                     await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
+                                    // Update local data
+                                    const userIndex = window.currentAdminUsers.findIndex(u => u.id === uid);
+                                    if (userIndex !== -1) window.currentAdminUsers[userIndex].expiryDate = date;
                                 }
                             }
                         }
 
                         await firestoreDb.collection('users').doc(uid).update({ [field]: value });
+
+                        // Update local data
+                        const userIndex = window.currentAdminUsers.findIndex(u => u.id === uid);
+                        if (userIndex !== -1) window.currentAdminUsers[userIndex][field] = value;
+
                         const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
                         toast.fire({ icon: 'success', title: 'Đã cập nhật' });
 
-                        // Refresh dashboard to show new values
-                        showAdminDashboard();
+                        // Re-render to show changes
+                        filterAdminUsers();
                     } catch (e) {
                         Swal.fire('Lỗi', e.message, 'error');
                     }
                 };
 
-                Swal.fire({
-                    title: 'Admin Dashboard',
-                    html: html,
-                    width: '900px',
-                    showCloseButton: true,
-                    showConfirmButton: false
-                });
+                // Filter Logic
+                window.filterAdminUsers = () => {
+                    const searchText = document.getElementById('adminSearch').value.toLowerCase();
+                    const statusFilter = document.getElementById('filterStatus').value;
+                    const roleFilter = document.getElementById('filterRole').value;
 
-            } catch (error) {
-                console.error("Admin Error:", error);
-                Swal.fire('Lỗi', error.message, 'error');
+                    const filtered = window.currentAdminUsers.filter(u => {
+                        const matchesSearch = u.email.toLowerCase().includes(searchText);
+                        const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
+                        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+                        return matchesSearch && matchesStatus && matchesRole;
+                    });
+
+                    renderAdminTable(filtered);
+                };
+
+                // Render Logic
+                window.renderAdminTable = (users) => {
+                    const container = document.getElementById('adminTableContainer');
+                    if (!container) return;
+
+                    if (users.length === 0) {
+                        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #7f8c8d;">Không tìm thấy kết quả nào.</div>';
+                        return;
+                    }
+
+                    let tableHtml = `
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Trạng thái</th>
+                                    <th>Vai trò</th>
+                                    <th>Hết hạn ngày</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    users.forEach(u => {
+                        const uid = u.id;
+                        const isSelf = (uid === firebase.auth().currentUser.uid);
+                        const statusClass = `status-${u.status}`;
+                        const roleClass = `role-${u.role}`;
+
+                        tableHtml += `
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 500;">${u.email}</div>
+                                    <div style="font-size: 0.8em; color: #95a5a6;">ID: ${uid.substr(0, 8)}...</div>
+                                </td>
+                                <td>
+                                    <select class="action-select ${statusClass}" onchange="updateUser('${uid}', 'status', this.value)" ${isSelf ? 'disabled' : ''}>
+                                        <option value="pending" ${u.status === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                        <option value="approved" ${u.status === 'approved' ? 'selected' : ''}>✅ Approved</option>
+                                        <option value="blocked" ${u.status === 'blocked' ? 'selected' : ''}>⛔ Blocked</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="action-select ${roleClass}" onchange="updateUser('${uid}', 'role', this.value)" ${isSelf ? 'disabled' : ''}>
+                                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="date" class="date-input" value="${u.expiryDate || ''}" onchange="updateUser('${uid}', 'expiryDate', this.value)" ${isSelf ? 'disabled' : ''}>
+                                </td>
+                                <td>
+                                    ${isSelf ? '<span class="role-badge role-admin">BẠN</span>' : ''}
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHtml += `</tbody></table>`;
+                    container.innerHTML = tableHtml;
+                };
+
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Lỗi tải dữ liệu', e.message, 'error');
             }
         }
 
