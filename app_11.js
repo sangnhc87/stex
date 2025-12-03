@@ -810,8 +810,15 @@ function main() {
                                     renderOutlineItem(item.items, childrenDiv);
                                     container.appendChild(childrenDiv);
                                 }
+                            });
+                        };
+                        renderOutlineItem(outline, outlineContainer);
+                    } else {
+                        outlineContainer.innerHTML = '<div style="padding:10px; color:#777; font-style:italic;">No Table of Contents</div>';
+                    }
+                }
 
-                            } else {
+            } else {
                                 pdfbox.innerHTML = `<div class="error-display">Biên dịch thất bại.</div>`;
                             }
         } catch (error) {
@@ -1531,6 +1538,7 @@ function main() {
                             confirmButtonText: '<i class="fa fa-thumbs-up"></i> Đã hiểu!',
                         });
                     }
+                }
 
                     async function preloadPackagedFiles() { const textEncoder = new TextEncoder(); for (const fileName in PREPACKAGED_FILES) { if (!(await getFileFromDb(fileName))) { await saveFileToDb(fileName, textEncoder.encode(PREPACKAGED_FILES[fileName])); } } }
                     async function loadCacheIntoEngine() { const files = await getAllFilesFromDb(); files.forEach(file => globalEn.writeMemFSFile(file.name, file.data)); }
