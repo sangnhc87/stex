@@ -528,7 +528,7 @@
 }
 
 % ==================================================
-% === PREMIUM DESIGN (ADDED BY ASSISTANT) ===
+% === PREMIUM DESIGN (ROBUST VERSION) ===
 % ==================================================
 \RequirePackage[most]{tcolorbox}
 \RequirePackage{titlesec}
@@ -554,25 +554,30 @@
     }
 }
 
-% Environments
-\tcbuselibrary{theorems,skins,hooks}
+% Helper to create environments with Title and Label
+% Syntax: \begin{env}{Title}{Label}
+\newcommand{\NewPremiumEnv}[4]{
+    \let#1\relax \let\end#1\relax % Undefine if exists
+    \newtcolorbox[auto counter, number within=section]{#1_inner}[3][]{
+        premiumbox=#3,
+        title={\textbf{#2~\thetcbcounter:} ##2},
+        label={##3},
+        ##1
+    }
+    \NewDocumentEnvironment{#1}{ m m }
+    {\begin{#1_inner}{##1}{##2}}
+    {\end{#1_inner}}
+}
 
-\let\dn\relax \let\enddn\relax
-\newtcbtheorem[number within=section]{dn}{Định nghĩa}{premiumbox=secondColor}{dn}
+% Define Environments
+\NewPremiumEnv{dn}{Định nghĩa}{secondColor}{dn}
+\NewPremiumEnv{dl}{Định lý}{mainColor}{dl}
+\NewPremiumEnv{tc}{Tính chất}{accentColor!80!black}{tc}
+\NewPremiumEnv{bt}{Bài tập}{mainColor}{bt}
+\NewPremiumEnv{vd}{Ví dụ}{secondColor}{vd}
 
-\let\dl\relax \let\enddl\relax
-\newtcbtheorem[number within=section]{dl}{Định lý}{premiumbox=mainColor}{dl}
-
-\let\tc\relax \let\endtc\relax
-\newtcbtheorem[number within=section]{tc}{Tính chất}{premiumbox=accentColor!80!black}{tc}
-
-\let\bt\relax \let\endbt\relax
-\newtcbtheorem[number within=section]{bt}{Bài tập}{premiumbox=mainColor}{bt}
-
-\let\vd\relax \let\endvd\relax
-\newtcbtheorem[number within=section]{vd}{Ví dụ}{premiumbox=secondColor}{vd}
-
-% Note
+% Note (No counter)
+\let\note\relax \let\endnote\relax
 \newtcolorbox{note}{
     enhanced,
     colback=highlightColor!10,
@@ -587,7 +592,8 @@
     fonttitle=\bfseries
 }
 
-% Dang toan
+% Dang toan (No counter, custom title)
+\let\dang\relax \let\enddang\relax
 \newtcolorbox{dang}[1][]{
     enhanced,
     colback=white,
