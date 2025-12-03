@@ -78,39 +78,37 @@
     {\begin{tcbox}{#1}{#2}}
     {\end{tcbox}}
 
-% 4. Bai Tap (bt) - Defined as standard environment + tcolorbox wrapper
-% This allows verbatim-like content (loigiai) to work correctly
-\newcounter{bt}[section]
-\renewcommand{\thebt}{\thesection.\arabic{bt}}
-\newenvironment{bt}[2]
-    {\refstepcounter{bt}\InitPremiumEx\par\noindent\textbf{Bài tập~\thebt: #1} #2\par\medskip}
-    {\FinishPremiumEx}
+% 4. Bai Tap (bt) - Defined as Theorem (like ex)
+% This ensures loigiai works correctly.
+\newtheorem{bt}{Bài tập}[section]
+\AtBeginEnvironment{bt}{\InitPremiumEx}
+\AtEndEnvironment{bt}{\FinishPremiumEx}
 
 \tcolorboxenvironment{bt}{
-    premiumbox=mainColor,
-    title={\textbf{Bài tập~\thebt:} \raggedright},
     enhanced,
     colback=white,
     colframe=mainColor,
-    drop fuzzy shadow,
-    before skip=10pt,
-    after skip=10pt
+    fonttitle=\bfseries,
+    title={Bài tập~\thebt}, % Simple title for the wrapper
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
+    boxed title style={colback=mainColor, rounded corners},
+    drop fuzzy shadow
 }
 
-% 5. Vi Du (vd)
-\newcounter{vd}[section]
-\renewcommand{\thevd}{\thesection.\arabic{vd}}
-\newenvironment{vd}[2]
-    {\refstepcounter{vd}\InitPremiumEx\par\noindent\textbf{\color{secondColor}Ví dụ~\thevd: #1} #2\par\medskip}
-    {\FinishPremiumEx}
+% 5. Vi Du (vd) - Defined as Theorem (like ex)
+\newtheorem{vd}{Ví dụ}[section]
+\AtBeginEnvironment{vd}{\InitPremiumEx}
+\AtEndEnvironment{vd}{\FinishPremiumEx}
 
 \tcolorboxenvironment{vd}{
     enhanced,
     colback=white,
     colframe=secondColor,
-    drop fuzzy shadow,
-    before skip=10pt,
-    after skip=10pt
+    fonttitle=\bfseries,
+    title={Ví dụ~\thevd},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=5mm},
+    boxed title style={colback=secondColor, rounded corners},
+    drop fuzzy shadow
 }
 
 % Helper to initialize ex-like behavior
