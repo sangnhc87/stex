@@ -907,6 +907,35 @@ function main() {
         const customCompleter = { getCompletions: (editor, session, pos, prefix, callback) => callback(null, customSuggestions) };
         langTools.addCompleter(customCompleter);
 
+        // --- AUTO SAVE IMPLEMENTATION ---
+        let autoSaveTimeout;
+        editorEl.session.on('change', () => {
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(async () => {
+                if (currentOpenFile) {
+                    const content = editorEl.getValue();
+                    const textEncoder = new TextEncoder();
+                    const encodedData = textEncoder.encode(content);
+
+                    // Save to IndexedDB
+                    await saveFileToDb(currentOpenFile, encodedData);
+
+                    // Save to Memory FS (for compiler)
+                    globalEn.writeMemFSFile(currentOpenFile, encodedData);
+
+                    // Optional: Show a small indicator or log
+                    // console.log(`Auto-saved ${currentOpenFile} at ${new Date().toLocaleTimeString()}`);
+
+                    // If it's a JSON file (snippets/suggestions), reload them
+                    if (currentOpenFile === 'snippets.json') {
+                        // Logic to reload snippets if needed, mostly handled by showSnippetManager re-reading DB
+                    } else if (currentOpenFile === 'suggestions.json') {
+                        loadCustomSuggestions();
+                    }
+                }
+            }, 2000); // Auto-save after 2 seconds of inactivity
+        });
+
         // --- BƯỚC 2: Gán sự kiện cho tất cả các nút trên giao diện ---
         // (Đã loại bỏ các listener cho các nút Google Drive và mainFileSelector)
         const zipLoaderInput = document.getElementById('zip-loader-input');
