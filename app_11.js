@@ -677,13 +677,24 @@ function main() {
                         const viewport = page.getViewport({ scale });
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
+
+                        // High DPI Support
+                        const outputScale = window.devicePixelRatio || 1;
+                        canvas.width = Math.floor(viewport.width * outputScale);
+                        canvas.height = Math.floor(viewport.height * outputScale);
+                        canvas.style.width = Math.floor(viewport.width) + "px";
+                        canvas.style.height = Math.floor(viewport.height) + "px";
+
                         canvas.style.display = 'block';
                         canvas.style.marginBottom = '10px';
                         canvas.style.border = '1px solid #ccc';
                         container.appendChild(canvas);
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                        const transform = outputScale !== 1
+                            ? [outputScale, 0, 0, outputScale, 0, 0]
+                            : null;
+
+                        await page.render({ canvasContext: context, viewport: viewport, transform: transform }).promise;
                     }
 
                 } else {
@@ -726,7 +737,7 @@ function main() {
                     pdfbox.appendChild(appDiv);
 
                     // 2. State & Logic
-                    let currentScale = 1.0;
+                    let currentScale = 1.2; // Increased default scale
 
                     const renderPages = async () => {
                         mainView.innerHTML = ''; // Clear pages
@@ -744,14 +755,27 @@ function main() {
 
                             const canvas = document.createElement('canvas');
                             canvas.className = 'pdf-page-canvas';
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
+
+                            // High DPI Support
+                            const outputScale = window.devicePixelRatio || 1;
+                            canvas.width = Math.floor(viewport.width * outputScale);
+                            canvas.height = Math.floor(viewport.height * outputScale);
+                            canvas.style.width = Math.floor(viewport.width) + "px";
+                            canvas.style.height = Math.floor(viewport.height) + "px";
 
                             pageContainer.appendChild(canvas);
                             mainView.appendChild(pageContainer);
 
+                            const transform = outputScale !== 1
+                                ? [outputScale, 0, 0, outputScale, 0, 0]
+                                : null;
+
                             // Render
-                            page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+                            page.render({
+                                canvasContext: canvas.getContext('2d'),
+                                viewport: viewport,
+                                transform: transform
+                            });
                         }
                     };
 

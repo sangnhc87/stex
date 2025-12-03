@@ -58,22 +58,34 @@
 #latex-tools-btn {
     background-color: var(--color-purple);
 }
+
 #latex-tools-btn:hover {
     background-color: #8e44ad;
 }
+
 #latex-tools-btn i {
     animation: magic-sparkle 2s infinite;
 }
 
 @keyframes magic-sparkle {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.7; }
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
 }
 
 /* Nút QR Đáp án */
 #generate-qr-btn {
     background-color: var(--color-teal);
 }
+
 #generate-qr-btn:hover {
     background-color: #1abc9c;
 }
@@ -83,6 +95,7 @@
     background-color: #555;
     font-family: monospace;
 }
+
 .fold-button:hover {
     background-color: #777;
 }
@@ -95,6 +108,7 @@
     overflow: hidden;
     margin: 0 5px;
 }
+
 .drive-buttons-group button {
     background-color: var(--color-success);
     color: white;
@@ -103,9 +117,11 @@
     cursor: pointer;
     transition: background-color 0.3s;
 }
+
 .drive-buttons-group button:first-child {
     border-right: 1px solid #27ae60;
 }
+
 .drive-buttons-group button:hover {
     background-color: #27ae60;
 }
@@ -124,6 +140,7 @@
     margin-left: 10px;
     border: 1px solid #555;
 }
+
 .font-size-controls button {
     background-color: transparent;
     border: none;
@@ -132,9 +149,11 @@
     cursor: pointer;
     font-size: 0.9em;
 }
+
 .font-size-controls button:hover {
     background-color: #555;
 }
+
 .font-size-controls #current-font-size {
     padding: 0 8px;
     font-weight: bold;
@@ -177,23 +196,29 @@
     text-align: left;
     font-size: 1em;
 }
+
 #latex-tools-form hr {
     margin: 1.5rem 0;
     border-top: 1px solid #e0e0e0;
 }
+
 #latex-tools-form .form-check {
     padding-left: 0;
     margin-bottom: 15px;
 }
+
 #latex-tools-form .form-check-label {
     cursor: pointer;
     display: flex;
     align-items: center;
     font-size: 1.05em;
 }
+
 #latex-tools-form .form-check-input {
-    display: none; /* Ẩn checkbox mặc định */
+    display: none;
+    /* Ẩn checkbox mặc định */
 }
+
 #latex-tools-form .form-check-label::before {
     content: '';
     display: inline-block;
@@ -206,7 +231,8 @@
     transition: all 0.2s;
     flex-shrink: 0;
 }
-#latex-tools-form .form-check-input:checked + .form-check-label::before {
+
+#latex-tools-form .form-check-input:checked+.form-check-label::before {
     background-color: var(--color-primary);
     border-color: #2980b9;
     content: '\f00c';
@@ -217,9 +243,11 @@
     line-height: 18px;
     font-size: 14px;
 }
+
 #latex-tools-form .form-check-label:hover::before {
     border-color: var(--color-primary);
 }
+
 #numbering-options {
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
@@ -229,6 +257,7 @@
     margin-top: 10px;
     display: none;
 }
+
 #numbering-options .form-label {
     font-size: 0.9em;
     font-weight: 500;
@@ -239,6 +268,7 @@
 .swal2-popup.qr-modal-wide {
     width: 700px !important;
 }
+
 .swal2-popup #qr-result-textarea {
     width: 95% !important;
     height: 180px !important;
@@ -251,4 +281,112 @@
 .swal2-styled.swal2-confirm {
     background-color: var(--color-success) !important;
     font-size: 1.1em !important;
+}
+
+/* ================================================= */
+/* === MODERN PDF VIEWER STYLES                  === */
+/* ================================================= */
+.pdf-viewer-app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #525659;
+}
+
+.pdf-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background-color: #323639;
+    color: white;
+    border-bottom: 1px solid #000;
+}
+
+.pdf-toolbar button {
+    background: none;
+    border: none;
+    color: #f1f1f1;
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.pdf-toolbar button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.pdf-toolbar .spacer {
+    flex: 1;
+}
+
+.pdf-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.pdf-sidebar {
+    width: 250px;
+    background-color: #f1f1f1;
+    border-right: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease;
+}
+
+.pdf-sidebar.collapsed {
+    margin-left: -250px;
+}
+
+.pdf-sidebar-header {
+    padding: 10px;
+    font-weight: bold;
+    background-color: #e0e0e0;
+    border-bottom: 1px solid #ccc;
+}
+
+.pdf-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.pdf-outline-item {
+    padding: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pdf-outline-item:hover {
+    background-color: #ddd;
+}
+
+.pdf-outline-children {
+    margin-left: 15px;
+}
+
+.pdf-main-view {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #525659;
+}
+
+.pdf-page-container {
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: white;
+}
+
+.pdf-page-canvas {
+    display: block;
 }
