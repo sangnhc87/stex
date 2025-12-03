@@ -555,10 +555,21 @@
 }
 
 % Environments
+\tcbuselibrary{theorems,skins,hooks}
+
+\let\dn\relax \let\enddn\relax
 \newtcbtheorem[number within=section]{dn}{Định nghĩa}{premiumbox=secondColor}{dn}
+
+\let\dl\relax \let\enddl\relax
 \newtcbtheorem[number within=section]{dl}{Định lý}{premiumbox=mainColor}{dl}
+
+\let\tc\relax \let\endtc\relax
 \newtcbtheorem[number within=section]{tc}{Tính chất}{premiumbox=accentColor!80!black}{tc}
+
+\let\bt\relax \let\endbt\relax
 \newtcbtheorem[number within=section]{bt}{Bài tập}{premiumbox=mainColor}{bt}
+
+\let\vd\relax \let\endvd\relax
 \newtcbtheorem[number within=section]{vd}{Ví dụ}{premiumbox=secondColor}{vd}
 
 % Note
