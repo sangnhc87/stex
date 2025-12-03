@@ -1119,9 +1119,16 @@ function main() {
 
                 // 3. Filter Logic
                 window.filterAdminUsers = () => {
-                    const searchText = document.getElementById('adminSearch').value.toLowerCase();
-                    const statusFilter = document.getElementById('filterStatus').value;
-                    const roleFilter = document.getElementById('filterRole').value;
+                    const searchEl = document.getElementById('adminSearch');
+                    const statusEl = document.getElementById('filterStatus');
+                    const roleEl = document.getElementById('filterRole');
+
+                    // Safety check: if elements are missing (modal closed), stop.
+                    if (!searchEl || !statusEl || !roleEl) return;
+
+                    const searchText = searchEl.value.toLowerCase();
+                    const statusFilter = statusEl.value;
+                    const roleFilter = roleEl.value;
 
                     window.adminState.filteredUsers = window.adminState.users.filter(u => {
                         const matchesSearch = u.email.toLowerCase().includes(searchText);
@@ -1148,23 +1155,43 @@ function main() {
                 // 5. Update Helper
                 window.updateUser = async (uid, field, value) => {
                     try {
+                        // Capture current filter state BEFORE any modal changes
+                        const currentSearch = document.getElementById('adminSearch') ? document.getElementById('adminSearch').value : '';
+                        const currentStatus = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : 'all';
+                        const currentRole = document.getElementById('filterRole') ? document.getElementById('filterRole').value : 'all';
+
                         // If approving, ask for expiration date if not set
                         if (field === 'status' && value === 'approved') {
                             const currentDoc = await firestoreDb.collection('users').doc(uid).get();
                             const currentData = currentDoc.data();
                             if (!currentData.expiryDate) {
+                                // This Swal will CLOSE the dashboard. We must re-open it later.
                                 const { value: date } = await Swal.fire({
                                     title: 'Đặt ngày hết hạn',
                                     input: 'date',
                                     label: 'Người dùng này sẽ được dùng đến ngày nào?',
                                     showCancelButton: true
                                 });
+
                                 if (date) {
                                     await firestoreDb.collection('users').doc(uid).update({ expiryDate: date });
                                     // Update local data
                                     const userIndex = window.adminState.users.findIndex(u => u.id === uid);
                                     if (userIndex !== -1) window.adminState.users[userIndex].expiryDate = date;
                                 }
+
+                                // Since dashboard was closed, we must re-open it
+                                await showAdminDashboard();
+
+                                // Restore filter state
+                                setTimeout(() => {
+                                    if (document.getElementById('adminSearch')) document.getElementById('adminSearch').value = currentSearch;
+                                    if (document.getElementById('filterStatus')) document.getElementById('filterStatus').value = currentStatus;
+                                    if (document.getElementById('filterRole')) document.getElementById('filterRole').value = currentRole;
+                                    filterAdminUsers(); // Re-apply filters
+                                }, 100);
+
+                                // Continue to update status
                             }
                         }
 
@@ -1177,9 +1204,12 @@ function main() {
                         const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
                         toast.fire({ icon: 'success', title: 'Đã cập nhật' });
 
-                        // Re-filter to update view
-                        filterAdminUsers();
+                        // Re-filter to update view (only if dashboard is still open)
+                        if (document.getElementById('adminTableContainer')) {
+                            filterAdminUsers();
+                        }
                     } catch (e) {
+                        console.error(e);
                         Swal.fire('Lỗi', e.message, 'error');
                     }
                 };
