@@ -1,0 +1,43 @@
+\documentclass{article}
+\usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=1.5cm]{geometry}
+\usepackage[hidelinks,unicode]{hyperref}
+\usepackage[dethi]{ex_test} 
+\input{khaibao.tex}
+\anloigiai
+\usepackage{polyglossia}
+
+\begin{document}
+
+\section{Chương 1: Hàm Số Lũy Thừa}
+\subsection{Lý thuyết cơ bản}
+
+\begin{dn}{Hàm số lũy thừa}{dn:luythua}
+    Hàm số $y=x^\alpha$ với $\alpha \in \mathbb{R}$ được gọi là hàm số lũy thừa.
+\end{dn}
+
+\begin{dl}{Đạo hàm}{dl:daoham}
+    $(x^\alpha)' = \alpha x^{\alpha-1}$.
+\end{dl}
+
+\subsection{Bài tập vận dụng}
+
+\begin{vd}{Tìm tập xác định}{}
+    Tìm tập xác định của hàm số $y=(x-1)^{\frac{1}{3}}$.
+\end{vd}
+
+\begin{bt}{Tính đạo hàm}{}
+    Tính đạo hàm của $y=x^{\pi}$.
+\end{bt}
+
+\section{Chương 2: Mũ và Logarit}
+\subsection{Phương trình mũ}
+
+\begin{dang}[Phương trình cơ bản]
+    $a^x = b \Leftrightarrow x = \log_a b$.
+\end{dang}
+
+\begin{note}
+    Điều kiện: $0 < a \ne 1, b > 0$.
+\end{note}
+
+\end{document}

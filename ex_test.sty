@@ -532,7 +532,7 @@
 % ==================================================
 \RequirePackage{tcolorbox}
 \tcbuselibrary{skins,breakable,hooks,raster}
-\RequirePackage{titlesec}
+\RequirePackage[explicit]{titlesec}
 \RequirePackage{fontawesome}
 
 % Colors
@@ -643,13 +643,43 @@
 }
 
 % Section Styling
-\titleformat{\section}
+\titleformat{\section}[block]
   {\normalfont\Large\bfseries\color{mainColor}}
-  {\thesection}{1em}{}
-  [{\titlerule[2pt]}]
+  {}
+  {0pt}
+  {%
+    \begin{tikzpicture}[baseline=(current bounding box.west)]
+      \node[
+        fill=mainColor,
+        text=white,
+        rounded corners=3pt,
+        inner sep=5pt,
+        font=\Large\bfseries
+      ] (num) {\thesection};
+      \node[
+        right=5pt of num,
+        text=mainColor,
+        font=\Large\bfseries,
+        align=left
+      ] (title) {\MakeUppercase{#1}};
+      \draw[mainColor, line width=1.5pt] (title.south west) -- (title.south east);
+    \end{tikzpicture}%
+  }
 
-\titleformat{\subsection}
+\titleformat{\subsection}[block]
   {\normalfont\large\bfseries\color{secondColor}}
-  {\thesubsection}{1em}{}
+  {}
+  {0pt}
+  {%
+    \begin{tikzpicture}[baseline=(current bounding box.west)]
+      \node[
+        text=secondColor,
+        font=\large\bfseries,
+        inner sep=0pt,
+        align=left
+      ] (title) {\thesubsection.~#1};
+      \draw[secondColor!50, line width=1pt] (title.south west) -- ([xshift=2cm]title.south west);
+    \end{tikzpicture}%
+  }
 
 \endinput
