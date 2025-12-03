@@ -555,27 +555,61 @@
     }
 }
 
-% Helper to create environments with Title and Label
-% Syntax: \begin{env}{Title}{Label}
-\newcommand{\NewPremiumEnv}[4]{
-    \let#1\relax \let\end#1\relax % Undefine if exists
-    \newtcolorbox[auto counter, number within=section]{#1_inner}[3][]{
-        premiumbox=#3,
-        title={\textbf{#2~\thetcbcounter:} ##2},
-        label={##3},
-        ##1
-    }
-    \NewDocumentEnvironment{#1}{ m m }
-    {\begin{#1_inner}{##1}{##2}}
-    {\end{#1_inner}}
+% Define Environments explicitly to avoid nested argument issues
+\let\dn\relax \let\enddn\relax
+\newtcolorbox[auto counter, number within=section]{dn_inner}[3][]{
+    premiumbox=secondColor,
+    title={\textbf{Định nghĩa~\thetcbcounter:} #2},
+    label={#3},
+    #1
 }
+\NewDocumentEnvironment{dn}{ m m }
+{\begin{dn_inner}{#1}{#2}}
+{\end{dn_inner}}
 
-% Define Environments
-\NewPremiumEnv{dn}{Định nghĩa}{secondColor}{dn}
-\NewPremiumEnv{dl}{Định lý}{mainColor}{dl}
-\NewPremiumEnv{tc}{Tính chất}{accentColor!80!black}{tc}
-\NewPremiumEnv{bt}{Bài tập}{mainColor}{bt}
-\NewPremiumEnv{vd}{Ví dụ}{secondColor}{vd}
+\let\dl\relax \let\enddl\relax
+\newtcolorbox[auto counter, number within=section]{dl_inner}[3][]{
+    premiumbox=mainColor,
+    title={\textbf{Định lý~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{dl}{ m m }
+{\begin{dl_inner}{#1}{#2}}
+{\end{dl_inner}}
+
+\let\tc\relax \let\endtc\relax
+\newtcolorbox[auto counter, number within=section]{tc_inner}[3][]{
+    premiumbox=accentColor!80!black,
+    title={\textbf{Tính chất~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{tc}{ m m }
+{\begin{tc_inner}{#1}{#2}}
+{\end{tc_inner}}
+
+\let\bt\relax \let\endbt\relax
+\newtcolorbox[auto counter, number within=section]{bt_inner}[3][]{
+    premiumbox=mainColor,
+    title={\textbf{Bài tập~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{bt}{ m m }
+{\begin{bt_inner}{#1}{#2}}
+{\end{bt_inner}}
+
+\let\vd\relax \let\endvd\relax
+\newtcolorbox[auto counter, number within=section]{vd_inner}[3][]{
+    premiumbox=secondColor,
+    title={\textbf{Ví dụ~\thetcbcounter:} #2},
+    label={#3},
+    #1
+}
+\NewDocumentEnvironment{vd}{ m m }
+{\begin{vd_inner}{#1}{#2}}
+{\end{vd_inner}}
 
 % Note (No counter)
 \let\note\relax \let\endnote\relax
