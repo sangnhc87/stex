@@ -176,6 +176,74 @@ app.get('/api/synctex/view', (req, res) => {
     });
 });
 
+// --- Generic LaTeXLite Proxy ---
+const https = require('https');
+
+app.all('/api/latexlite-proxy/*', async (req, res) => {
+    const apiPath = req.params[0] || '';
+    const targetPath = `/v1/${apiPath}`;
+    const api_key = req.headers['x-api-key'] || req.body?.api_key || req.query?.api_key;
+
+    console.log(`[Proxy] ${req.method} to ${targetPath}. API Key: ${api_key?.substring(0, 8)}...`);
+
+    if (!api_key) return res.status(401).json({ error: 'Missing api_key in headers or body' });
+
+    let data = '';
+    if (req.method === 'POST') {
+        data = JSON.stringify(req.body);
+    }
+
+    const options = {
+        hostname: 'latexlite.com',
+        port: 443,
+        path: targetPath,
+        method: req.method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${api_key}`,
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 60000
+    };
+
+    if (data) {
+        options.headers['Content-Length'] = Buffer.byteLength(data);
+    }
+
+    const proxyReq = https.request(options, (proxyRes) => {
+        console.log(`[Proxy] Upstream status for ${targetPath}: ${proxyRes.statusCode}`);
+
+        // Forward Content-Type
+        const contentType = proxyRes.headers['content-type'];
+        if (contentType) res.setHeader('Content-Type', contentType);
+
+        if (proxyRes.statusCode >= 400) {
+            let errorBody = '';
+            proxyRes.on('data', (chunk) => errorBody += chunk);
+            proxyRes.on('end', () => {
+                console.log(`[Proxy] Error: ${errorBody.substring(0, 200)}`);
+                res.status(proxyRes.statusCode).send(errorBody);
+            });
+            return;
+        }
+
+        proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', (e) => {
+        console.error('[Proxy] Error:', e);
+        res.status(500).json({ error: 'Proxy request failed', details: e.message });
+    });
+
+    proxyReq.on('timeout', () => {
+        proxyReq.destroy();
+        res.status(504).json({ error: 'Proxy request timeout' });
+    });
+
+    if (data) proxyReq.write(data);
+    proxyReq.end();
+});
+
 app.listen(PORT, () => {
     console.log(`Tectonic Server running at http://localhost:${PORT}`);
     console.log(`Serving frontend at http://localhost:${PORT}/index_tectonic.html`);

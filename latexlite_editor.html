@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <title>LaTeXLite API Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #17a2b8;
+            --dark-bg: #282c34;
+            --light-bg: #f4f4f4;
+            --border-color: #ddd;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--light-bg);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar input {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        #compile-btn {
+            padding: 8px 20px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #compile-btn:hover {
+            background-color: #218838;
+        }
+
+        #compile-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            padding: 10px;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .editor-pane,
+        .pdf-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #editor {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        #pdfbox {
+            height: 100%;
+            width: 100%;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            flex-direction: column;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <strong>LaTeXLite API Editor</strong>
+        </div>
+        <div class="toolbar-group" style="flex-grow: 1; justify-content: center;">
+            <input type="password" id="api-key-input" placeholder="Nhập LaTeXLite API Key tại đây...">
+        </div>
+        <div class="toolbar-group">
+            <button id="compile-btn">
+                <i class="fas fa-paper-plane"></i> Biên dịch (API)
+            </button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="editor-pane">
+            <div id="editor">\documentclass{article}
+                \usepackage[utf8]{inputenc}
+                \usepackage[T5]{fontenc}
+                \begin{document}
+                \title{Chào mừng đến với STex - LaTeXLite API}
+                \author{Nguyễn Văn Sang}
+                \maketitle
+
+                Đây là ví dụ biên dịch LaTeX sử dụng API của LaTeXLite.com.
+                (Lưu ý: Không nên dùng gói lệnh 'vietnam' vì có thể gây lỗi Timeout trên API này).
+
+                \[ E = mc^2 \]
+
+                Chúc bạn soạn thảo vui vẻ!
+                \end{document}</div>
+        </div>
+        <div class="pdf-pane">
+            <div id="pdfbox">Kết quả PDF sẽ hiển thị ở đây...</div>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <span id="loading-text">Đang gửi yêu cầu tới API...</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.2/ace.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="latexlite_app.js"></script>
+</body>
+
+</html>
